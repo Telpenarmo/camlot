@@ -1,0 +1,23 @@
+Module = Decl*
+
+Decl =
+  LetDecl
+
+LetDecl = 'let' 'Ident' '=' Expr ';'
+
+Expr =
+  VarExpr
+| IntExpr
+| AppExpr
+| LambdaExpr
+| LetExpr
+| ParensExpr
+| UnitExpr
+
+VarExpr = 'Ident'
+IntExpr = 'Int'
+AppExpr = func:Expr arg:Expr
+LambdaExpr = 'Lambda' 'Ident' params:Expr* '->' body:Expr
+LetExpr = 'let' 'Ident' params:Expr* '=' def:Expr 'in' body:Expr
+ParensExpr = '(' Expr ')'
+UnitExpr = '()'
