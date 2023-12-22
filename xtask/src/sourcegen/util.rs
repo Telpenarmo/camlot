@@ -12,7 +12,7 @@ pub fn ensure_file_contents(file: &Path, contents: &str) -> Result<()> {
 			return Ok(());
 		}
 	}
-
+    
 	eprintln!("{} was not up-to-date, updating", file.display());
 	if let Some(parent) = file.parent() {
 		let _ = fs::create_dir_all(parent);
