@@ -6,3 +6,12 @@ members = [
     "parser",
     "xtask",
 ]
+
+[workspace.dependencies]
+anyhow = "1.0.75"
+indexmap = "2.1.0"
+itertools = "0.12.0"
+proc-macro2 = "1.0.70"
+quote = "1.0.33"
+ungrammar = "1.16.1"
+xshell = "0.2.5"
