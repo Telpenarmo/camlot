@@ -21,6 +21,8 @@ pub enum SyntaxKind {
     L_PAREN,
     #[token(")")]
     R_PAREN,
+    #[token(":")]
+    COLON,
     #[token(";")]
     SEMICOLON,
     #[token(",")]
@@ -31,6 +33,14 @@ pub enum SyntaxKind {
     ARROW,
     #[token("()")]
     EMPTY_PAREN,
+    #[token("+")]
+    PLUS,
+    #[token("-")]
+    MINUS,
+    #[token("*")]
+    STAR,
+    #[token("/")]
+    SLASH,
     #[regex("λ|\\\\")]
     LAMBDA,
     #[regex("(?:0|[1-9][0-9]*)")]
@@ -45,22 +55,36 @@ pub enum SyntaxKind {
     COMMENT,
     #[token("let")]
     LET_KW,
+    #[token("open")]
+    OPEN_KW,
+    #[token("type")]
+    TYPE_KW,
     #[token("in")]
     IN_KW,
     #[doc = r" Also acts as __LAST_TOKEN"]
     #[error]
     LEXING_ERROR,
     MODULE,
-    DECL,
     LET_DECL,
-    VAR_EXPR,
-    INT_EXPR,
+    OPEN_DECL,
+    TYPE_DECL,
+    PARAMS,
+    TYPE_IDENT,
+    TYPE_ARROW,
+    TYPE_PAREN,
+    IDENT_EXPR,
+    LITERAL_EXPR,
     APP_EXPR,
     LAMBDA_EXPR,
     LET_EXPR,
-    PARENS_EXPR,
+    PAREN_EXPR,
     UNIT_EXPR,
+    BINARY_EXPR,
+    PARAM,
+    DECL,
     EXPR,
+    TYPE_EXPR,
+    INFIX_SYMBOL,
     #[doc(hidden)]
     __LAST,
 }
@@ -68,14 +92,14 @@ use self::SyntaxKind::*;
 impl SyntaxKind {
     pub fn is_keyword(self) -> bool {
         match self {
-            L_PAREN | R_PAREN | SEMICOLON | COMMA | EQUAL | ARROW | EMPTY_PAREN | LET_KW
-            | IN_KW => true,
+            L_PAREN | R_PAREN | COLON | SEMICOLON | COMMA | EQUAL | ARROW | EMPTY_PAREN | PLUS
+            | MINUS | STAR | SLASH | LET_KW | OPEN_KW | TYPE_KW | IN_KW => true,
             _ => false,
         }
     }
     pub fn is_enum(self) -> bool {
         match self {
-            EXPR => true,
+            DECL | EXPR | TYPE_EXPR | INFIX_SYMBOL => true,
             _ => false,
         }
     }

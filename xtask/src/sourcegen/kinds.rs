@@ -150,11 +150,16 @@ pub fn kinds() -> KindsSrc {
     define_kinds![kinds =
         "(" => "L_Paren";
         ")" => "R_Paren";
+        ":" => "Colon";
         ";" => "Semicolon";
         "," => "Comma";
         "=" => "Equal";
         "->" => "Arrow";
         "()" => "Empty_Paren";
+        "+" => "Plus";
+        "-" => "Minus";
+        "*" => "Star";
+        "/" => "Slash";
         lit("Lambda") => r"λ|\\";
 
         // Literals

@@ -19,16 +19,6 @@ impl Module {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Decl {
-    pub(crate) syntax: SyntaxNode,
-}
-impl Decl {
-    pub fn let_decl(&self) -> Option<LetDecl> {
-        support::child(&self.syntax)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LetDecl {
     pub(crate) syntax: SyntaxNode,
 }
@@ -38,6 +28,9 @@ impl LetDecl {
     }
     pub fn ident_lit(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, IDENT)
+    }
+    pub fn params(&self) -> Option<Params> {
+        support::child(&self.syntax)
     }
     pub fn equal_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, EQUAL)
@@ -51,20 +44,110 @@ impl LetDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct VarExpr {
+pub struct OpenDecl {
     pub(crate) syntax: SyntaxNode,
 }
-impl VarExpr {
+impl OpenDecl {
+    pub fn open_kw_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, OPEN_KW)
+    }
+    pub fn ident_lit(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, IDENT)
+    }
+    pub fn semicolon_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, SEMICOLON)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeDecl {
+    pub(crate) syntax: SyntaxNode,
+}
+impl TypeDecl {
+    pub fn type_kw_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, TYPE_KW)
+    }
+    pub fn ident_lit(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, IDENT)
+    }
+    pub fn equal_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, EQUAL)
+    }
+    pub fn type_expr(&self) -> Option<TypeExpr> {
+        support::child(&self.syntax)
+    }
+    pub fn semicolon_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, SEMICOLON)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Params {
+    pub(crate) syntax: SyntaxNode,
+}
+impl Params {
+    pub fn params(&self) -> AstChildren<Param> {
+        support::children(&self.syntax)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeIdent {
+    pub(crate) syntax: SyntaxNode,
+}
+impl TypeIdent {
     pub fn ident_lit(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, IDENT)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct IntExpr {
+pub struct TypeArrow {
     pub(crate) syntax: SyntaxNode,
 }
-impl IntExpr {
+impl TypeArrow {
+    pub fn from(&self) -> Option<TypeExpr> {
+        support::child(&self.syntax)
+    }
+    pub fn arrow_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, ARROW)
+    }
+    pub fn to(&self) -> Option<TypeExpr> {
+        support::child(&self.syntax)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeParen {
+    pub(crate) syntax: SyntaxNode,
+}
+impl TypeParen {
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, L_PAREN)
+    }
+    pub fn type_expr(&self) -> Option<TypeExpr> {
+        support::child(&self.syntax)
+    }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, R_PAREN)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct IdentExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+impl IdentExpr {
+    pub fn ident_lit(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, IDENT)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct LiteralExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+impl LiteralExpr {
     pub fn int_lit(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, INT)
     }
@@ -94,8 +177,8 @@ impl LambdaExpr {
     pub fn ident_lit(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, IDENT)
     }
-    pub fn params(&self) -> AstChildren<Expr> {
-        support::children(&self.syntax)
+    pub fn params(&self) -> Option<Params> {
+        support::child(&self.syntax)
     }
     pub fn arrow_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, ARROW)
@@ -116,8 +199,8 @@ impl LetExpr {
     pub fn ident_lit(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, IDENT)
     }
-    pub fn params(&self) -> AstChildren<Expr> {
-        support::children(&self.syntax)
+    pub fn params(&self) -> Option<Params> {
+        support::child(&self.syntax)
     }
     pub fn equal_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, EQUAL)
@@ -134,10 +217,10 @@ impl LetExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ParensExpr {
+pub struct ParenExpr {
     pub(crate) syntax: SyntaxNode,
 }
-impl ParensExpr {
+impl ParenExpr {
     pub fn l_paren_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, L_PAREN)
     }
@@ -160,33 +243,85 @@ impl UnitExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BinaryExpr {
+    pub(crate) syntax: SyntaxNode,
+}
+impl BinaryExpr {
+    pub fn lhs(&self) -> Option<Expr> {
+        support::child(&self.syntax)
+    }
+    pub fn infix_symbol(&self) -> Option<InfixSymbol> {
+        support::token_child(&self.syntax)
+    }
+    pub fn rhs(&self) -> Option<Expr> {
+        support::child(&self.syntax)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Param {
+    pub(crate) syntax: SyntaxNode,
+}
+impl Param {
+    pub fn ident_lit(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, IDENT)
+    }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, L_PAREN)
+    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, COLON)
+    }
+    pub fn type_expr(&self) -> Option<TypeExpr> {
+        support::child(&self.syntax)
+    }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, R_PAREN)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Decl {
+    LetDecl(LetDecl),
+    OpenDecl(OpenDecl),
+    TypeDecl(TypeDecl),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Expr {
-    VarExpr(VarExpr),
-    IntExpr(IntExpr),
+    IdentExpr(IdentExpr),
+    LiteralExpr(LiteralExpr),
     AppExpr(AppExpr),
     LambdaExpr(LambdaExpr),
     LetExpr(LetExpr),
-    ParensExpr(ParensExpr),
+    ParenExpr(ParenExpr),
     UnitExpr(UnitExpr),
+    BinaryExpr(BinaryExpr),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TypeExpr {
+    TypeIdent(TypeIdent),
+    TypeArrow(TypeArrow),
+    TypeParen(TypeParen),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InfixSymbol {
+    syntax: SyntaxToken,
+    kind: InfixSymbolKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InfixSymbolKind {
+    Plus,
+    Minus,
+    Star,
+    Slash,
 }
 impl AstNode for Module {
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == MODULE
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-}
-impl AstNode for Decl {
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == DECL
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -214,9 +349,9 @@ impl AstNode for LetDecl {
         &self.syntax
     }
 }
-impl AstNode for VarExpr {
+impl AstNode for OpenDecl {
     fn can_cast(kind: SyntaxKind) -> bool {
-        kind == VAR_EXPR
+        kind == OPEN_DECL
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -229,9 +364,99 @@ impl AstNode for VarExpr {
         &self.syntax
     }
 }
-impl AstNode for IntExpr {
+impl AstNode for TypeDecl {
     fn can_cast(kind: SyntaxKind) -> bool {
-        kind == INT_EXPR
+        kind == TYPE_DECL
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for Params {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PARAMS
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for TypeIdent {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == TYPE_IDENT
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for TypeArrow {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == TYPE_ARROW
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for TypeParen {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == TYPE_PAREN
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for IdentExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == IDENT_EXPR
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for LiteralExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == LITERAL_EXPR
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -289,9 +514,9 @@ impl AstNode for LetExpr {
         &self.syntax
     }
 }
-impl AstNode for ParensExpr {
+impl AstNode for ParenExpr {
     fn can_cast(kind: SyntaxKind) -> bool {
-        kind == PARENS_EXPR
+        kind == PAREN_EXPR
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -319,14 +544,83 @@ impl AstNode for UnitExpr {
         &self.syntax
     }
 }
-impl From<VarExpr> for Expr {
-    fn from(node: VarExpr) -> Expr {
-        Expr::VarExpr(node)
+impl AstNode for BinaryExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == BINARY_EXPR
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
     }
 }
-impl From<IntExpr> for Expr {
-    fn from(node: IntExpr) -> Expr {
-        Expr::IntExpr(node)
+impl AstNode for Param {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PARAM
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl From<LetDecl> for Decl {
+    fn from(node: LetDecl) -> Decl {
+        Decl::LetDecl(node)
+    }
+}
+impl From<OpenDecl> for Decl {
+    fn from(node: OpenDecl) -> Decl {
+        Decl::OpenDecl(node)
+    }
+}
+impl From<TypeDecl> for Decl {
+    fn from(node: TypeDecl) -> Decl {
+        Decl::TypeDecl(node)
+    }
+}
+impl AstNode for Decl {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            LET_DECL | OPEN_DECL | TYPE_DECL => true,
+            _ => false,
+        }
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        let res = match syntax.kind() {
+            LET_DECL => Decl::LetDecl(LetDecl { syntax }),
+            OPEN_DECL => Decl::OpenDecl(OpenDecl { syntax }),
+            TYPE_DECL => Decl::TypeDecl(TypeDecl { syntax }),
+            _ => return None,
+        };
+        Some(res)
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Decl::LetDecl(it) => &it.syntax,
+            Decl::OpenDecl(it) => &it.syntax,
+            Decl::TypeDecl(it) => &it.syntax,
+        }
+    }
+}
+impl From<IdentExpr> for Expr {
+    fn from(node: IdentExpr) -> Expr {
+        Expr::IdentExpr(node)
+    }
+}
+impl From<LiteralExpr> for Expr {
+    fn from(node: LiteralExpr) -> Expr {
+        Expr::LiteralExpr(node)
     }
 }
 impl From<AppExpr> for Expr {
@@ -344,9 +638,9 @@ impl From<LetExpr> for Expr {
         Expr::LetExpr(node)
     }
 }
-impl From<ParensExpr> for Expr {
-    fn from(node: ParensExpr) -> Expr {
-        Expr::ParensExpr(node)
+impl From<ParenExpr> for Expr {
+    fn from(node: ParenExpr) -> Expr {
+        Expr::ParenExpr(node)
     }
 }
 impl From<UnitExpr> for Expr {
@@ -354,46 +648,121 @@ impl From<UnitExpr> for Expr {
         Expr::UnitExpr(node)
     }
 }
+impl From<BinaryExpr> for Expr {
+    fn from(node: BinaryExpr) -> Expr {
+        Expr::BinaryExpr(node)
+    }
+}
 impl AstNode for Expr {
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            VAR_EXPR | INT_EXPR | APP_EXPR | LAMBDA_EXPR | LET_EXPR | PARENS_EXPR | UNIT_EXPR => {
-                true
-            }
+            IDENT_EXPR | LITERAL_EXPR | APP_EXPR | LAMBDA_EXPR | LET_EXPR | PAREN_EXPR
+            | UNIT_EXPR | BINARY_EXPR => true,
             _ => false,
         }
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
-            VAR_EXPR => Expr::VarExpr(VarExpr { syntax }),
-            INT_EXPR => Expr::IntExpr(IntExpr { syntax }),
+            IDENT_EXPR => Expr::IdentExpr(IdentExpr { syntax }),
+            LITERAL_EXPR => Expr::LiteralExpr(LiteralExpr { syntax }),
             APP_EXPR => Expr::AppExpr(AppExpr { syntax }),
             LAMBDA_EXPR => Expr::LambdaExpr(LambdaExpr { syntax }),
             LET_EXPR => Expr::LetExpr(LetExpr { syntax }),
-            PARENS_EXPR => Expr::ParensExpr(ParensExpr { syntax }),
+            PAREN_EXPR => Expr::ParenExpr(ParenExpr { syntax }),
             UNIT_EXPR => Expr::UnitExpr(UnitExpr { syntax }),
+            BINARY_EXPR => Expr::BinaryExpr(BinaryExpr { syntax }),
             _ => return None,
         };
         Some(res)
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Expr::VarExpr(it) => &it.syntax,
-            Expr::IntExpr(it) => &it.syntax,
+            Expr::IdentExpr(it) => &it.syntax,
+            Expr::LiteralExpr(it) => &it.syntax,
             Expr::AppExpr(it) => &it.syntax,
             Expr::LambdaExpr(it) => &it.syntax,
             Expr::LetExpr(it) => &it.syntax,
-            Expr::ParensExpr(it) => &it.syntax,
+            Expr::ParenExpr(it) => &it.syntax,
             Expr::UnitExpr(it) => &it.syntax,
+            Expr::BinaryExpr(it) => &it.syntax,
         }
     }
 }
-impl std::fmt::Display for Expr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
+impl From<TypeIdent> for TypeExpr {
+    fn from(node: TypeIdent) -> TypeExpr {
+        TypeExpr::TypeIdent(node)
     }
 }
-impl std::fmt::Display for Module {
+impl From<TypeArrow> for TypeExpr {
+    fn from(node: TypeArrow) -> TypeExpr {
+        TypeExpr::TypeArrow(node)
+    }
+}
+impl From<TypeParen> for TypeExpr {
+    fn from(node: TypeParen) -> TypeExpr {
+        TypeExpr::TypeParen(node)
+    }
+}
+impl AstNode for TypeExpr {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            TYPE_IDENT | TYPE_ARROW | TYPE_PAREN => true,
+            _ => false,
+        }
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        let res = match syntax.kind() {
+            TYPE_IDENT => TypeExpr::TypeIdent(TypeIdent { syntax }),
+            TYPE_ARROW => TypeExpr::TypeArrow(TypeArrow { syntax }),
+            TYPE_PAREN => TypeExpr::TypeParen(TypeParen { syntax }),
+            _ => return None,
+        };
+        Some(res)
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            TypeExpr::TypeIdent(it) => &it.syntax,
+            TypeExpr::TypeArrow(it) => &it.syntax,
+            TypeExpr::TypeParen(it) => &it.syntax,
+        }
+    }
+}
+impl AstToken for InfixSymbol {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        InfixSymbolKind::can_cast(kind)
+    }
+    fn cast(syntax: SyntaxToken) -> Option<Self> {
+        let kind = InfixSymbolKind::cast(syntax.kind())?;
+        Some(InfixSymbol { syntax, kind })
+    }
+    fn syntax(&self) -> &SyntaxToken {
+        &self.syntax
+    }
+}
+impl InfixSymbolKind {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            PLUS | MINUS | STAR | SLASH => true,
+            _ => false,
+        }
+    }
+    pub fn cast(kind: SyntaxKind) -> Option<Self> {
+        let res = match kind {
+            PLUS => Self::Plus,
+            MINUS => Self::Minus,
+            STAR => Self::Star,
+            SLASH => Self::Slash,
+            _ => return None,
+        };
+        Some(res)
+    }
+}
+impl InfixSymbol {
+    pub fn kind(&self) -> InfixSymbolKind {
+        self.kind
+    }
+}
+impl std::fmt::Display for InfixSymbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -403,17 +772,62 @@ impl std::fmt::Display for Decl {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
+impl std::fmt::Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for TypeExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for Module {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for LetDecl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for VarExpr {
+impl std::fmt::Display for OpenDecl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for IntExpr {
+impl std::fmt::Display for TypeDecl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for Params {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for TypeIdent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for TypeArrow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for TypeParen {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for IdentExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for LiteralExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -433,12 +847,22 @@ impl std::fmt::Display for LetExpr {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for ParensExpr {
+impl std::fmt::Display for ParenExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
 impl std::fmt::Display for UnitExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for BinaryExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for Param {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

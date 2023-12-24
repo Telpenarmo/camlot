@@ -2,22 +2,42 @@ Module = Decl*
 
 Decl =
   LetDecl
+| OpenDecl
+| TypeDecl
 
-LetDecl = 'let' 'Ident' '=' Expr ';'
+LetDecl = 'let' 'Ident' Params '=' Expr ';'
+OpenDecl = 'open' 'Ident' ';'
+TypeDecl = 'type' 'Ident' '=' TypeExpr ';'
+
+TypeExpr =
+  TypeIdent
+| TypeArrow
+| TypeParen
+
+TypeIdent  = 'Ident'
+TypeArrow = from:TypeExpr '->' to:TypeExpr
+TypeParen = '(' TypeExpr ')'
 
 Expr =
-  VarExpr
-| IntExpr
+  IdentExpr
+| LiteralExpr
 | AppExpr
 | LambdaExpr
 | LetExpr
-| ParensExpr
+| ParenExpr
 | UnitExpr
+| BinaryExpr
 
-VarExpr = 'Ident'
-IntExpr = 'Int'
+IdentExpr = 'Ident'
+LiteralExpr = 'Int'
 AppExpr = func:Expr arg:Expr
-LambdaExpr = 'Lambda' 'Ident' params:Expr* '->' body:Expr
-LetExpr = 'let' 'Ident' params:Expr* '=' def:Expr 'in' body:Expr
-ParensExpr = '(' Expr ')'
+LambdaExpr = 'Lambda' 'Ident' Params '->' body:Expr
+LetExpr = 'let' 'Ident' Params '=' def:Expr 'in' body:Expr
+ParenExpr = '(' Expr ')'
 UnitExpr = '()'
+
+Params = Param*
+Param = 'Ident' | '(' 'Ident' ':' TypeExpr ')'
+
+BinaryExpr = lhs:Expr InfixSymbol rhs:Expr
+InfixSymbol = '+' | '-' | '*' | '/'
