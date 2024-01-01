@@ -5,6 +5,7 @@ mod event;
 mod source;
 mod marker;
 mod parser;
+mod grammar;
 
 pub use ast::{AstChildren, AstNode, AstToken};
 pub use generated::{nodes, syntax_kinds::SyntaxKind};
