@@ -14,7 +14,10 @@ pub fn decl(parser: &mut Parser) {
                     parser.advance();
                     break;
                 }
-                _ => parser.error(format!("Unexpected token: {:#?}", current)),
+                _ => {
+                    parser.error(format!("Unexpected token: {:#?}", current));
+                    parser.advance();
+                }
             }
         }
     }
@@ -76,7 +79,7 @@ fn type_expr(parser: &mut Parser) {
                 p.error(format!("Unexpected token: {:?}", t));
             }
         }
-        mark.complete()
+        p.close(mark, SyntaxKind::TYPE_EXPR)
     }
 
     let lhs_mark = lhs(parser);
