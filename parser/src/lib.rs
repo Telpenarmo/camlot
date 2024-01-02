@@ -1,10 +1,12 @@
 mod ast;
-mod generated;
-mod language;
 mod event;
-mod source;
-mod parser;
+mod generated;
 mod grammar;
+mod language;
+mod lexer;
+mod parser;
+mod source;
+mod sink;
 
 pub use ast::{AstChildren, AstNode, AstToken};
 pub use generated::{nodes, syntax_kinds::SyntaxKind};
