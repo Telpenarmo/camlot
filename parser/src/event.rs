@@ -1,6 +1,8 @@
 // use crate::parser::ParseError;
 use crate::SyntaxKind;
 
+pub(crate) type ParseError = String;
+
 #[derive(Debug, PartialEq)]
 pub(crate) enum Event {
     Open {
@@ -9,6 +11,6 @@ pub(crate) enum Event {
     },
     Advance,
     Close,
-    // Error(ParseError),
+    Error(ParseError),
     UnmatchedOpen,
 }

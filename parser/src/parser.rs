@@ -9,30 +9,18 @@ use crate::{
 pub(crate) struct Parser<'t, 'input> {
     source: Source<'t, 'input>,
     events: Vec<Event>,
-    errors: Vec<String>,
-}
-
-#[allow(dead_code)]
-pub(crate) struct ParsingResult {
-    pub events: Vec<Event>,
-    pub errors: Vec<String>,
 }
 
 /// Transform the source into events
-#[allow(dead_code)]
 impl<'t, 'input> Parser<'t, 'input> {
     pub fn new(source: Source<'t, 'input>) -> Self {
         Self {
             source,
             events: Vec::new(),
-            errors: Vec::new(),
         }
     }
-    pub fn finish(self) -> ParsingResult {
-        ParsingResult {
-            events: self.events,
-            errors: self.errors,
-        }
+    pub fn finish(self) -> Vec<Event> {
+        self.events
     }
 
     /// Open a new node
@@ -68,7 +56,7 @@ impl<'t, 'input> Parser<'t, 'input> {
         {
             *forward_parent = Some(new_m.pos - marker.pos);
         } else {
-            unreachable!();
+            unreachable!("Expected open event at {}", marker.pos);
         }
 
         new_m
@@ -112,6 +100,6 @@ impl<'t, 'input> Parser<'t, 'input> {
     }
 
     pub fn error(&mut self, message: String) {
-        self.errors.push(message);
+        self.events.push(Event::Error(message));
     }
 }

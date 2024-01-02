@@ -3,8 +3,7 @@ use crate::parser::Parser;
 mod decl;
 use decl::decl;
 
-#[allow(dead_code)]
-pub(crate) fn parse(mut parser: Parser) -> crate::parser::ParsingResult {
+pub(crate) fn parse(mut parser: Parser) -> Vec<crate::event::Event> {
     let marker = parser.open();
 
     while !parser.at(crate::SyntaxKind::EOF) {
