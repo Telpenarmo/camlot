@@ -3,7 +3,6 @@ use crate::{
     SyntaxKind,
 };
 
-#[allow(unused)]
 pub fn decl(parser: &mut Parser) {
     fn eat_error(parser: &mut Parser) {
         loop {
