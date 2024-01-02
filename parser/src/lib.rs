@@ -3,7 +3,6 @@ mod generated;
 mod language;
 mod event;
 mod source;
-mod marker;
 mod parser;
 mod grammar;
 

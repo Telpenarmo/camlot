@@ -1,6 +1,5 @@
 use crate::{
     event::Event,
-    marker::{CompletedMarker, Marker},
     source::Source,
     SyntaxKind,
 };
@@ -102,4 +101,37 @@ impl<'t, 'input> Parser<'t, 'input> {
     pub fn error(&mut self, message: String) {
         self.events.push(Event::Error(message));
     }
+}
+
+#[must_use]
+pub(crate) struct Marker {
+    pos: usize,
+    completed: bool,
+}
+
+impl Marker {
+    fn new(pos: usize) -> Self {
+        Self {
+            pos,
+            completed: false,
+        }
+    }
+
+    fn complete(mut self) -> CompletedMarker {
+        self.completed = true;
+
+        CompletedMarker { pos: self.pos }
+    }
+}
+
+impl Drop for Marker {
+    fn drop(&mut self) {
+        if !self.completed {
+            panic!("Marker dropped without completion")
+        }
+    }
+}
+
+pub(crate) struct CompletedMarker {
+    pub pos: usize,
 }

@@ -1,4 +1,7 @@
-use crate::{marker::CompletedMarker, parser::Parser, SyntaxKind};
+use crate::{
+    parser::{CompletedMarker, Parser},
+    SyntaxKind,
+};
 
 #[allow(unused)]
 pub fn decl(parser: &mut Parser) {
