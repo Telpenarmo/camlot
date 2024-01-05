@@ -1,6 +1,7 @@
 use crate::parser::Parser;
 
 mod decl;
+mod expr;
 mod params;
 mod type_expr;
 

@@ -70,7 +70,7 @@ fn let_decl(parser: &mut Parser) {
     parser.expect(SyntaxKind::IDENT);
     params::params(parser);
     parser.expect(SyntaxKind::EQUAL);
-    todo!("Expr parsing");
+    expr::expr(parser);
     parser.expect(SyntaxKind::SEMICOLON);
 
     parser.close(mark, SyntaxKind::LET_DECL);
