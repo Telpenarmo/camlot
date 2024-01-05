@@ -1,5 +1,6 @@
 use crate::{
-    parser::{CompletedMarker, Parser},
+    grammar::{expr, type_expr, params},
+    parser::Parser,
     SyntaxKind,
 };
 
@@ -25,7 +26,7 @@ pub fn decl(parser: &mut Parser) {
     }
     match parser.current() {
         SyntaxKind::LET_KW => {
-            type_decl(parser);
+            let_decl(parser);
         }
         SyntaxKind::TYPE_KW => {
             type_decl(parser);
@@ -55,40 +56,22 @@ fn type_decl(parser: &mut Parser) {
     parser.expect(SyntaxKind::TYPE_KW);
     parser.expect(SyntaxKind::IDENT);
     parser.expect(SyntaxKind::EQUAL);
-    type_expr(parser);
+    type_expr::type_expr(parser);
     parser.expect(SyntaxKind::SEMICOLON);
 
     parser.close(mark, SyntaxKind::TYPE_DECL);
 }
 
-fn type_expr(parser: &mut Parser) {
-    fn lhs(p: &mut Parser) -> CompletedMarker {
-        let mark = p.open();
-        match p.current() {
-            SyntaxKind::IDENT => {
-                let mark = p.open();
-                p.advance();
-                p.close(mark, SyntaxKind::TYPE_IDENT);
-            }
-            SyntaxKind::L_PAREN => {
-                let mark = p.open();
-                p.advance();
-                type_expr(p);
-                p.expect(SyntaxKind::R_PAREN);
-                p.close(mark, SyntaxKind::TYPE_PAREN);
-            }
-            t => {
-                p.error(format!("Unexpected token: {:?}", t));
-            }
-        }
-        p.close(mark, SyntaxKind::TYPE_EXPR)
-    }
+fn let_decl(parser: &mut Parser) {
+    assert!(parser.at(SyntaxKind::LET_KW));
 
-    let lhs_mark = lhs(parser);
+    let mark = parser.open();
+    parser.expect(SyntaxKind::LET_KW);
+    parser.expect(SyntaxKind::IDENT);
+    params::params(parser);
+    parser.expect(SyntaxKind::EQUAL);
+    todo!("Expr parsing");
+    parser.expect(SyntaxKind::SEMICOLON);
 
-    if parser.eat(SyntaxKind::ARROW) {
-        let marker = parser.open_before(lhs_mark);
-        type_expr(parser);
-        parser.close(marker, SyntaxKind::TYPE_ARROW);
-    }
+    parser.close(mark, SyntaxKind::LET_DECL);
 }

@@ -1,6 +1,9 @@
 use crate::parser::Parser;
 
 mod decl;
+mod params;
+mod type_expr;
+
 use decl::decl;
 
 pub(crate) fn parse(mut parser: Parser) -> Vec<crate::event::Event> {
