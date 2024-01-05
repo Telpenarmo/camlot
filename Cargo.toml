@@ -5,9 +5,12 @@ resolver = "2"
 members = [
     "parser",
     "xtask",
+    "server"
 ]
 
 [workspace.dependencies]
+parser = { path = "./parser", version = "0.1.0" }
+
 anyhow = "1.0.75"
 indexmap = "2.1.0"
 itertools = "0.12.0"
