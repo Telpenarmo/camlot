@@ -25,16 +25,16 @@ Expr =
 | LambdaExpr
 | LetExpr
 | ParenExpr
-| UnitExpr
 | BinaryExpr
 
 IdentExpr = 'Ident'
-LiteralExpr = 'Int'
+LiteralExpr = Literal
 AppExpr = func:Expr arg:Expr
 LambdaExpr = 'Lambda' 'Ident' Params '->' body:Expr
 LetExpr = 'let' 'Ident' Params '=' def:Expr 'in' body:Expr
 ParenExpr = '(' Expr ')'
-UnitExpr = '()'
+
+Literal =  'Int' | '()'
 
 Params = Param*
 Param = 'Ident' | '(' 'Ident' ':' TypeExpr ')'

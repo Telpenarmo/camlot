@@ -78,12 +78,12 @@ pub enum SyntaxKind {
     LAMBDA_EXPR,
     LET_EXPR,
     PAREN_EXPR,
-    UNIT_EXPR,
     BINARY_EXPR,
     PARAM,
     DECL,
     EXPR,
     TYPE_EXPR,
+    LITERAL,
     INFIX_SYMBOL,
     #[doc(hidden)]
     __LAST,
@@ -99,7 +99,7 @@ impl SyntaxKind {
     }
     pub fn is_enum(self) -> bool {
         match self {
-            DECL | EXPR | TYPE_EXPR | INFIX_SYMBOL => true,
+            DECL | EXPR | TYPE_EXPR | LITERAL | INFIX_SYMBOL => true,
             _ => false,
         }
     }

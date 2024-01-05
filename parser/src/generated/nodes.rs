@@ -148,8 +148,8 @@ pub struct LiteralExpr {
     pub(crate) syntax: SyntaxNode,
 }
 impl LiteralExpr {
-    pub fn int_lit(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, INT)
+    pub fn literal(&self) -> Option<Literal> {
+        support::token_child(&self.syntax)
     }
 }
 
@@ -233,16 +233,6 @@ impl ParenExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct UnitExpr {
-    pub(crate) syntax: SyntaxNode,
-}
-impl UnitExpr {
-    pub fn empty_paren_token(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, EMPTY_PAREN)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BinaryExpr {
     pub(crate) syntax: SyntaxNode,
 }
@@ -295,7 +285,6 @@ pub enum Expr {
     LambdaExpr(LambdaExpr),
     LetExpr(LetExpr),
     ParenExpr(ParenExpr),
-    UnitExpr(UnitExpr),
     BinaryExpr(BinaryExpr),
 }
 
@@ -304,6 +293,18 @@ pub enum TypeExpr {
     TypeIdent(TypeIdent),
     TypeArrow(TypeArrow),
     TypeParen(TypeParen),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Literal {
+    syntax: SyntaxToken,
+    kind: LiteralKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LiteralKind {
+    Int,
+    EmptyParen,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -529,21 +530,6 @@ impl AstNode for ParenExpr {
         &self.syntax
     }
 }
-impl AstNode for UnitExpr {
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == UNIT_EXPR
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-}
 impl AstNode for BinaryExpr {
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == BINARY_EXPR
@@ -643,11 +629,6 @@ impl From<ParenExpr> for Expr {
         Expr::ParenExpr(node)
     }
 }
-impl From<UnitExpr> for Expr {
-    fn from(node: UnitExpr) -> Expr {
-        Expr::UnitExpr(node)
-    }
-}
 impl From<BinaryExpr> for Expr {
     fn from(node: BinaryExpr) -> Expr {
         Expr::BinaryExpr(node)
@@ -657,7 +638,7 @@ impl AstNode for Expr {
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
             IDENT_EXPR | LITERAL_EXPR | APP_EXPR | LAMBDA_EXPR | LET_EXPR | PAREN_EXPR
-            | UNIT_EXPR | BINARY_EXPR => true,
+            | BINARY_EXPR => true,
             _ => false,
         }
     }
@@ -669,7 +650,6 @@ impl AstNode for Expr {
             LAMBDA_EXPR => Expr::LambdaExpr(LambdaExpr { syntax }),
             LET_EXPR => Expr::LetExpr(LetExpr { syntax }),
             PAREN_EXPR => Expr::ParenExpr(ParenExpr { syntax }),
-            UNIT_EXPR => Expr::UnitExpr(UnitExpr { syntax }),
             BINARY_EXPR => Expr::BinaryExpr(BinaryExpr { syntax }),
             _ => return None,
         };
@@ -683,7 +663,6 @@ impl AstNode for Expr {
             Expr::LambdaExpr(it) => &it.syntax,
             Expr::LetExpr(it) => &it.syntax,
             Expr::ParenExpr(it) => &it.syntax,
-            Expr::UnitExpr(it) => &it.syntax,
             Expr::BinaryExpr(it) => &it.syntax,
         }
     }
@@ -725,6 +704,44 @@ impl AstNode for TypeExpr {
             TypeExpr::TypeArrow(it) => &it.syntax,
             TypeExpr::TypeParen(it) => &it.syntax,
         }
+    }
+}
+impl AstToken for Literal {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        LiteralKind::can_cast(kind)
+    }
+    fn cast(syntax: SyntaxToken) -> Option<Self> {
+        let kind = LiteralKind::cast(syntax.kind())?;
+        Some(Literal { syntax, kind })
+    }
+    fn syntax(&self) -> &SyntaxToken {
+        &self.syntax
+    }
+}
+impl LiteralKind {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            INT | EMPTY_PAREN => true,
+            _ => false,
+        }
+    }
+    pub fn cast(kind: SyntaxKind) -> Option<Self> {
+        let res = match kind {
+            INT => Self::Int,
+            EMPTY_PAREN => Self::EmptyParen,
+            _ => return None,
+        };
+        Some(res)
+    }
+}
+impl Literal {
+    pub fn kind(&self) -> LiteralKind {
+        self.kind
+    }
+}
+impl std::fmt::Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
     }
 }
 impl AstToken for InfixSymbol {
@@ -848,11 +865,6 @@ impl std::fmt::Display for LetExpr {
     }
 }
 impl std::fmt::Display for ParenExpr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
-impl std::fmt::Display for UnitExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
