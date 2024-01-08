@@ -135,3 +135,24 @@ impl Drop for Marker {
 pub(crate) struct CompletedMarker {
     pub pos: usize,
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::check;
+    use expect_test::expect;
+
+    #[test]
+    fn parse_nothing() {
+        check("", expect![[r#"MODULE@0..0"#]]);
+    }
+
+    #[test]
+    fn parse_whitespace() {
+        check(
+            "   ",
+            expect![[r#"
+                MODULE@0..3
+                  WHITESPACE@0..3 "   ""#]],
+        );
+    }
+}

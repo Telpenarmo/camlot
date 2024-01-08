@@ -90,3 +90,46 @@ fn paren_expr(parser: &mut Parser) -> CompletedMarker {
     parser.expect(SyntaxKind::R_PAREN);
     parser.close(mark, SyntaxKind::PAREN_EXPR)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{check, check_file};
+    use expect_test::{expect, expect_file};
+
+    #[test]
+    fn parse_lambda() {
+        check(
+            r"let f = \x -> x;",
+            expect![[r#"
+                MODULE@0..16
+                  LET_DECL@0..16
+                    LET_KW@0..3 "let"
+                    WHITESPACE@3..4 " "
+                    IDENT@4..5 "f"
+                    WHITESPACE@5..6 " "
+                    PARAMS@6..6
+                    EQUAL@6..7 "="
+                    WHITESPACE@7..8 " "
+                    LAMBDA_EXPR@8..15
+                      LAMBDA@8..9 "\\"
+                      PARAMS@9..11
+                        PARAM@9..11
+                          IDENT@9..10 "x"
+                          WHITESPACE@10..11 " "
+                      ARROW@11..13 "->"
+                      WHITESPACE@13..14 " "
+                      IDENT_EXPR@14..15
+                        IDENT@14..15 "x"
+                    SEMICOLON@15..16 ";""#]],
+        );
+    }
+
+    #[test]
+    fn parse_let() {
+        eprintln!("{}", std::env::current_dir().unwrap().display());
+        check_file(
+            r"let f = \x -> let y = x in y;",
+            expect_file!["../../test_data/parse_let.rml_cst"],
+        );
+    }
+}
