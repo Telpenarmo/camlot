@@ -143,12 +143,13 @@ mod tests {
 
     #[test]
     fn parse_nothing() {
-        check("", expect![[r#"MODULE@0..0"#]]);
+        check(crate::PrefixEntryPoint::Module, "", expect![[r#"MODULE@0..0"#]]);
     }
 
     #[test]
     fn parse_whitespace() {
         check(
+            crate::PrefixEntryPoint::Module,
             "   ",
             expect![[r#"
                 MODULE@0..3

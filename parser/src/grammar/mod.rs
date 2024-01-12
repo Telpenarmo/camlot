@@ -1,4 +1,4 @@
-use crate::parser::{CompletedMarker, Parser};
+use crate::{parser::Parser, PrefixEntryPoint};
 
 mod decl;
 mod expr;
@@ -7,16 +7,24 @@ mod type_expr;
 
 use decl::decl;
 
-pub(crate) fn parse(mut parser: Parser) -> Vec<crate::event::Event> {
-  let marker = parser.open();
+pub(crate) fn module(parser: &mut Parser) {
+    let marker = parser.open();
 
-  while !parser.at(crate::SyntaxKind::EOF) {
-      decl(&mut parser);
-  }
+    while !parser.at(crate::SyntaxKind::EOF) {
+        decl(parser);
+    }
 
-  parser.close(marker, crate::SyntaxKind::MODULE);
+    parser.close(marker, crate::SyntaxKind::MODULE);
+}
 
-  parser.finish()
+pub(crate) fn parse(mut parser: Parser, entry_point: PrefixEntryPoint) -> Vec<crate::event::Event> {
+    match entry_point {
+        PrefixEntryPoint::Module => module(&mut parser),
+        PrefixEntryPoint::TypeExpr => type_expr::type_expr(&mut parser),
+        PrefixEntryPoint::Expr => expr::expr(&mut parser),
+        PrefixEntryPoint::Decl => decl(&mut parser),
+    };
+    parser.finish()
 }
 
 #[cfg(test)]
@@ -26,7 +34,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_declarations() {
-        check(
+        check(crate::PrefixEntryPoint::Module,
             "open a; type t = a;",
             expect![[r#"
             MODULE@0..19

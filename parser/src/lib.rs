@@ -20,13 +20,24 @@ pub struct Parse {
 }
 
 pub fn parse(input: &str) -> Parse {
+    parse_internal(input, PrefixEntryPoint::Module)
+}
+
+fn parse_internal(input: &str, entry_point: PrefixEntryPoint) -> Parse {
     let lexer = lexer::Lexer::new(input);
     let tokens: Vec<_> = lexer.collect();
     let source = source::Source::new(&tokens);
     let parser = parser::Parser::new(source);
-    let events = grammar::parse(parser);
+    let events = grammar::parse(parser, entry_point);
     let sink = sink::Sink::new(&tokens, events);
     sink.finish()
+}
+
+pub(crate) enum PrefixEntryPoint {
+    Module,
+    TypeExpr,
+    Expr,
+    Decl,
 }
 
 impl Parse {
@@ -51,8 +62,8 @@ impl Parse {
 }
 
 #[cfg(test)]
-fn check(input: &str, expected_tree: expect_test::Expect) {
-    let parse = parse(input);
+fn check(entry_point: PrefixEntryPoint, input: &str, expected_tree: expect_test::Expect) {
+    let parse = parse_internal(input, entry_point);
     expected_tree.assert_eq(&parse.debug_tree());
 }
 

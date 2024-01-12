@@ -4,10 +4,14 @@ use crate::{
     SyntaxKind,
 };
 
-pub(crate) fn expr(parser: &mut Parser) -> CompletedMarker {
+pub(crate) fn expr(parser: &mut Parser) {
     match parser.current() {
-        SyntaxKind::LET_KW => let_expr(parser),
-        SyntaxKind::LAMBDA => lambda_expr(parser),
+        SyntaxKind::LET_KW => {
+            let_expr(parser);
+        }
+        SyntaxKind::LAMBDA => {
+            lambda_expr(parser);
+        }
         _ => {
             let mut prev_mark = None;
             while parser.at(SyntaxKind::L_PAREN)
@@ -24,9 +28,8 @@ pub(crate) fn expr(parser: &mut Parser) -> CompletedMarker {
                     None => prev_mark = Some(delimited_expr(parser)),
                 };
             }
-            prev_mark.unwrap()
         }
-    }
+    };
 }
 
 fn delimited_expr(parser: &mut Parser) -> CompletedMarker {
@@ -93,34 +96,34 @@ fn paren_expr(parser: &mut Parser) -> CompletedMarker {
 
 #[cfg(test)]
 mod tests {
-    use crate::{check, check_file};
+    use crate::{check, check_file, PrefixEntryPoint};
     use expect_test::{expect, expect_file};
 
     #[test]
     fn parse_lambda() {
         check(
+            PrefixEntryPoint::Decl,
             r"let f = \x -> x;",
             expect![[r#"
-                MODULE@0..16
-                  LET_DECL@0..16
-                    LET_KW@0..3 "let"
-                    WHITESPACE@3..4 " "
-                    IDENT@4..5 "f"
-                    WHITESPACE@5..6 " "
-                    PARAMS@6..6
-                    EQUAL@6..7 "="
-                    WHITESPACE@7..8 " "
-                    LAMBDA_EXPR@8..15
-                      LAMBDA@8..9 "\\"
-                      PARAMS@9..11
-                        PARAM@9..11
-                          IDENT@9..10 "x"
-                          WHITESPACE@10..11 " "
-                      ARROW@11..13 "->"
-                      WHITESPACE@13..14 " "
-                      IDENT_EXPR@14..15
-                        IDENT@14..15 "x"
-                    SEMICOLON@15..16 ";""#]],
+                LET_DECL@0..16
+                  LET_KW@0..3 "let"
+                  WHITESPACE@3..4 " "
+                  IDENT@4..5 "f"
+                  WHITESPACE@5..6 " "
+                  PARAMS@6..6
+                  EQUAL@6..7 "="
+                  WHITESPACE@7..8 " "
+                  LAMBDA_EXPR@8..15
+                    LAMBDA@8..9 "\\"
+                    PARAMS@9..11
+                      PARAM@9..11
+                        IDENT@9..10 "x"
+                        WHITESPACE@10..11 " "
+                    ARROW@11..13 "->"
+                    WHITESPACE@13..14 " "
+                    IDENT_EXPR@14..15
+                      IDENT@14..15 "x"
+                  SEMICOLON@15..16 ";""#]],
         );
     }
 
