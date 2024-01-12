@@ -123,7 +123,8 @@ mod tests {
                     WHITESPACE@13..14 " "
                     IDENT_EXPR@14..15
                       IDENT@14..15 "x"
-                  SEMICOLON@15..16 ";""#]],
+                  SEMICOLON@15..16 ";"
+            "#]],
         );
     }
 

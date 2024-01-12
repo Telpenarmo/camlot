@@ -143,7 +143,9 @@ mod tests {
 
     #[test]
     fn parse_nothing() {
-        check(crate::PrefixEntryPoint::Module, "", expect![[r#"MODULE@0..0"#]]);
+        check(crate::PrefixEntryPoint::Module, "", expect![[r#"
+            MODULE@0..0
+        "#]]);
     }
 
     #[test]
@@ -153,7 +155,8 @@ mod tests {
             "   ",
             expect![[r#"
                 MODULE@0..3
-                  WHITESPACE@0..3 "   ""#]],
+                  WHITESPACE@0..3 "   "
+            "#]],
         );
     }
 }
