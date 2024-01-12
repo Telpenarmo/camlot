@@ -1,8 +1,4 @@
-use crate::{
-    event::Event,
-    source::Source,
-    SyntaxKind,
-};
+use crate::{event::Event, source::Source, SyntaxKind};
 
 #[allow(dead_code)]
 pub(crate) struct Parser<'t, 'input> {
@@ -143,9 +139,13 @@ mod tests {
 
     #[test]
     fn parse_nothing() {
-        check(crate::PrefixEntryPoint::Module, "", expect![[r#"
+        check(
+            crate::PrefixEntryPoint::Module,
+            "",
+            expect![[r#"
             MODULE@0..0
-        "#]]);
+        "#]],
+        );
     }
 
     #[test]

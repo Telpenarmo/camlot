@@ -5,8 +5,8 @@ mod grammar;
 mod language;
 mod lexer;
 mod parser;
-mod source;
 mod sink;
+mod source;
 
 pub use ast::{AstChildren, AstNode, AstToken};
 pub use generated::{nodes, syntax_kinds::SyntaxKind};

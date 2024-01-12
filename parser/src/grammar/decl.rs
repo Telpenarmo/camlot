@@ -1,5 +1,5 @@
 use crate::{
-    grammar::{expr, type_expr, params},
+    grammar::{expr, params, type_expr},
     parser::Parser,
     SyntaxKind,
 };

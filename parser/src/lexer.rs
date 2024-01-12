@@ -1,7 +1,7 @@
 use logos::Logos;
 
-use crate::SyntaxKind;
 use crate::source::Token;
+use crate::SyntaxKind;
 
 pub struct Lexer<'a> {
     inner: logos::Lexer<'a, SyntaxKind>,

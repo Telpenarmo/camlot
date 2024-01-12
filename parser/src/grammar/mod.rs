@@ -34,7 +34,8 @@ mod tests {
 
     #[test]
     fn parse_multiple_declarations() {
-        check(crate::PrefixEntryPoint::Module,
+        check(
+            crate::PrefixEntryPoint::Module,
             "open a; type t = a;",
             expect![[r#"
                 MODULE@0..19

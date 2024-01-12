@@ -88,8 +88,7 @@ impl<'t, 'input> Sink<'t, 'input> {
     fn token(&mut self) {
         let Token { kind, text, .. } = self.tokens[self.cursor];
 
-        self.builder
-            .token(RideMLLanguage::kind_to_raw(kind), text);
+        self.builder.token(RideMLLanguage::kind_to_raw(kind), text);
 
         self.cursor += 1;
     }
