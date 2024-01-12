@@ -174,9 +174,6 @@ impl LambdaExpr {
     pub fn lambda_lit(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, LAMBDA)
     }
-    pub fn ident_lit(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, IDENT)
-    }
     pub fn params(&self) -> Option<Params> {
         support::child(&self.syntax)
     }

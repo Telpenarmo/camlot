@@ -109,6 +109,7 @@ fn generate_syntax_kinds(kinds: &KindsSrc, grammar: &AstSrc) -> Result<String> {
             /// Also acts as __LAST_TOKEN
             #[error]
             LEXING_ERROR,
+            ERROR,
             #(#nodes,)*
             #[doc(hidden)]
             __LAST,

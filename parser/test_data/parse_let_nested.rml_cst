@@ -1,0 +1,38 @@
+MODULE@0..36
+  LET_DECL@0..36
+    LET_KW@0..3 "let"
+    WHITESPACE@3..4 " "
+    IDENT@4..5 "a"
+    WHITESPACE@5..6 " "
+    PARAMS@6..6
+    EQUAL@6..7 "="
+    WHITESPACE@7..8 " "
+    LET_EXPR@8..35
+      LET_KW@8..11 "let"
+      WHITESPACE@11..12 " "
+      IDENT@12..13 "x"
+      WHITESPACE@13..14 " "
+      PARAMS@14..14
+      EQUAL@14..15 "="
+      WHITESPACE@15..16 " "
+      LITERAL_EXPR@16..18
+        INT@16..17 "5"
+        WHITESPACE@17..18 " "
+      IN_KW@18..20 "in"
+      WHITESPACE@20..21 " "
+      LET_EXPR@21..35
+        LET_KW@21..24 "let"
+        WHITESPACE@24..25 " "
+        IDENT@25..26 "y"
+        WHITESPACE@26..27 " "
+        PARAMS@27..27
+        EQUAL@27..28 "="
+        WHITESPACE@28..29 " "
+        IDENT_EXPR@29..31
+          IDENT@29..30 "x"
+          WHITESPACE@30..31 " "
+        IN_KW@31..33 "in"
+        WHITESPACE@33..34 " "
+        IDENT_EXPR@34..35
+          IDENT@34..35 "y"
+    SEMICOLON@35..36 ";"

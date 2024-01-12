@@ -64,6 +64,7 @@ pub enum SyntaxKind {
     #[doc = r" Also acts as __LAST_TOKEN"]
     #[error]
     LEXING_ERROR,
+    ERROR,
     MODULE,
     LET_DECL,
     OPEN_DECL,
