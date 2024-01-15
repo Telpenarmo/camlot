@@ -3,8 +3,9 @@
 resolver = "2"
 
 members = [
-    "parser",
     "xtask",
+    "parser",
+    "core",
     "server"
 ]
 
