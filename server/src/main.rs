@@ -1,5 +1,7 @@
 use std::io::Read;
 
+mod lsp;
+
 fn main() {
     let mode = parse_args();
     eprintln!("mode: {:?}", mode);
@@ -11,8 +13,10 @@ fn main() {
             std::process::exit(1);
         }
         Mode::LSP => {
-            eprintln!("Lsp mode is not yet implemented.");
-            std::process::exit(1);
+            match lsp::main() {
+                Ok(_) => (),
+                Err(e) => eprintln!("LSP failed: {e}"),
+            }
         }
     }
 }
