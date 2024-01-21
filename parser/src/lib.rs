@@ -35,9 +35,11 @@ fn parse_internal(input: &str, entry_point: PrefixEntryPoint) -> Parse {
 
 pub(crate) enum PrefixEntryPoint {
     Module,
+    #[cfg(test)]
     TypeExpr,
+    #[cfg(test)]
     Expr,
-    Decl,
+    // Decl,
 }
 
 impl Parse {

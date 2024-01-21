@@ -4,7 +4,7 @@ use crate::{
     SyntaxKind,
 };
 
-pub fn decl(parser: &mut Parser) {
+pub(crate) fn decl(parser: &mut Parser) {
     fn eat_error(parser: &mut Parser) {
         loop {
             let current = parser.current();
