@@ -1,4 +1,4 @@
-use crate::hir::*;
+use crate::{hir::*, LetDecl};
 use la_arena::Arena;
 use parser::nodes as ast;
 
@@ -11,35 +11,45 @@ pub struct Database {
 impl Database {
     pub(crate) fn lower_decl(&mut self, ast: ast::Decl) -> Option<Declaration> {
         let r = match ast {
-            ast::Decl::LetDecl(ast) => Declaration::LetDecl {
-                name: ast.ident_lit()?.text().into(),
-                params: ast.params().map(|params| {
-                    params
-                        .params()
+            ast::Decl::LetDecl(ast) => {
+                let params = ast.params().map(|ast| {
+                    ast.params()
                         .map(|param| self.lower_param(param))
                         .flatten()
                         .collect()
-                })?,
-                defn: ast.expr().map(|expr| self.lower_expr(expr)).flatten()?,
-            },
+                })?;
+                let defn = ast.expr().map(|expr| self.lower_expr(expr)).flatten()?;
+                let defn = Box::new(defn);
+                Declaration::LetDecl(Box::new(LetDecl {
+                    name: ast.ident_lit()?.text().into(),
+                    params,
+                    defn,
+                }))
+            }
             ast::Decl::OpenDecl(ast) => Declaration::OpenDecl {
                 path: ast.ident_lit()?.text().into(),
             },
-            ast::Decl::TypeDecl(ast) => Declaration::TypeDecl {
-                name: ast.ident_lit()?.text().into(),
-                defn: ast
+            ast::Decl::TypeDecl(ast) => {
+                let defn = ast
                     .type_expr()
                     .map(|typ| self.lower_type_expr(typ))
-                    .flatten()?,
-            },
+                    .flatten()?;
+                let defn = Box::new(defn);
+                Declaration::TypeDecl {
+                    name: ast.ident_lit()?.text().into(),
+                    defn,
+                }
+            }
         };
         None
     }
 
     fn lower_param(&mut self, ast: ast::Param) -> Option<Param> {
+        let typ = ast.type_expr().and_then(|typ| self.lower_type_expr(typ));
+        let typ = typ.map(|typ| self.type_expressions.alloc(typ));
         Some(Param {
             name: ast.ident_lit()?.text().into(),
-            typ: ast.type_expr().and_then(|typ| self.lower_type_expr(typ)),
+            typ,
         })
     }
 

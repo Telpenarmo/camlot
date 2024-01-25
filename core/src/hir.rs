@@ -1,48 +1,43 @@
 use la_arena::Idx;
 
-type ExprIdx = Idx<Expr>;
-type TypeExprIdx = Idx<TypeExpr>;
+pub(crate) type ExprIdx = Idx<Expr>;
+pub(crate) type TypeExprIdx = Idx<TypeExpr>;
 
 pub struct Module {
-    sdeclarations: Vec<Declaration>,
+    declarations: Box<[Declaration]>,
+}
+
+pub struct LetDecl {
+    pub name: String,
+    pub params: Box<[Param]>,
+    pub defn: Box<Expr>,
 }
 
 pub enum Declaration {
-    TypeDecl { name: String, defn: TypeExpr },
-    LetDecl { name: String, params: Vec<Param>, defn: Expr },
+    TypeDecl { name: String, defn: Box<TypeExpr> },
+    LetDecl(Box<LetDecl>),
     OpenDecl { path: String },
 }
 
 pub enum Expr {
     Missing,
-    ParenExpr {
-        expr: ExprIdx,
-    },
-    LetExpr {
-        name: String,
-        params: Vec<Param>,
-        defn: ExprIdx,
-        body: ExprIdx,
-    },
-    IdentExpr {
-        name: String,
-    },
-    LambdaExpr {
-        params: Vec<Param>,
-        body: ExprIdx,
-    },
-    AppExpr {
-        func: ExprIdx,
-        arg: ExprIdx,
-    },
-    LiteralExpr {
-        lit: Literal,
-    },
+    LetExpr(Box<LetExpr>),
+    IdentExpr { name: String },
+    LambdaExpr { params: Box<[Param]>, body: ExprIdx },
+    AppExpr { func: ExprIdx, arg: ExprIdx },
+    LiteralExpr { lit: Literal },
+}
+
+#[allow(unused)]
+pub struct LetExpr {
+    name: String,
+    params: Box<[Param]>,
+    defn: ExprIdx,
+    body: ExprIdx,
 }
 
 pub enum TypeExpr {
     Missing,
-    ParenTypeExpr { expr: TypeExprIdx },
     IdentTypeExpr { name: String },
     TypeArrow { from: TypeExprIdx, to: TypeExprIdx },
 }
@@ -55,5 +50,5 @@ pub enum Literal {
 
 pub struct Param {
     pub(crate) name: String,
-    pub(crate) typ: Option<TypeExpr>,
+    pub(crate) typ: Option<TypeExprIdx>,
 }
