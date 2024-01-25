@@ -1,6 +1,6 @@
 use crate::{hir::*, LetDecl};
 use la_arena::Arena;
-use parser::nodes as ast;
+use parser::{nodes as ast, AstToken};
 
 pub struct Database {
     expressions: Arena<Expr>,
@@ -69,21 +69,84 @@ impl Database {
         })
     }
 
-    fn lower_type_expr(&self, type_expr: ast::TypeExpr) -> Option<TypeExpr> {
+    fn lower_type_expr(&mut self, type_expr: ast::TypeExpr) -> Option<TypeExpr> {
         Some(match type_expr {
             ast::TypeExpr::TypeIdent(ast) => TypeExpr::IdentTypeExpr {
                 name: ast.ident_lit()?.text().into(),
             },
-            ast::TypeExpr::TypeArrow(ast) => TypeExpr::TypeArrow {
-                from: todo!(),
-                to: todo!(),
-            },
-            ast::TypeExpr::TypeParen(ast) => todo!(),
+            ast::TypeExpr::TypeArrow(ast) => {
+                let from = ast.from().and_then(|from| self.lower_type_expr(from))?;
+                let from = self.alloc_type_expr(from);
+
+                let to = ast.to().and_then(|to| self.lower_type_expr(to))?;
+                let to = self.alloc_type_expr(to);
+                TypeExpr::TypeArrow { from, to }
+            }
+            ast::TypeExpr::TypeParen(ast) => self.lower_type_expr(ast.type_expr()?)?,
         })
     }
 
-    fn lower_expr(&self, expr: ast::Expr) -> Option<Expr> {
-        todo!()
+    fn lower_expr(&mut self, expr: ast::Expr) -> Option<Expr> {
+        Some(match expr {
+            ast::Expr::IdentExpr(ast) => Expr::IdentExpr {
+                name: ast.ident_lit()?.text().into(),
+            },
+            ast::Expr::ParenExpr(ast) => self.lower_expr(ast.expr()?)?,
+            ast::Expr::AppExpr(ast) => {
+                let func = self.lower_expr(ast.func()?)?;
+                let func = self.alloc_expr(func);
+
+                let arg = self.lower_expr(ast.arg()?)?;
+                let arg = self.alloc_expr(arg);
+
+                Expr::AppExpr { func, arg }
+            }
+            ast::Expr::LiteralExpr(ast) => {
+                let lit = ast.literal()?;
+                Expr::LiteralExpr(match lit.kind() {
+                    ast::LiteralKind::Int => Literal::IntLiteral(
+                        lit.syntax().text().parse().expect("Invalid int literal"),
+                    ),
+
+                    ast::LiteralKind::EmptyParen => Literal::UnitLiteral,
+                })
+            }
+            ast::Expr::LambdaExpr(ast) => {
+                let params = ast.params().map(|ast| {
+                    ast.params()
+                        .map(|param| self.lower_param(param))
+                        .flatten()
+                        .collect()
+                })?;
+                let body = self.lower_expr(ast.body()?)?;
+                let body = self.alloc_expr(body);
+                Expr::LambdaExpr { params, body }
+            }
+            ast::Expr::LetExpr(ast) => {
+                let name = ast.ident_lit()?.text().into();
+
+                let params = ast.params().map(|ast| {
+                    ast.params()
+                        .map(|param| self.lower_param(param))
+                        .flatten()
+                        .collect()
+                })?;
+
+                let defn = self.lower_expr(ast.def()?)?;
+                let defn = self.alloc_expr(defn);
+
+                let body = self.lower_expr(ast.body()?)?;
+                let body = self.alloc_expr(body);
+
+                Expr::LetExpr(Box::new(LetExpr {
+                    name,
+                    params,
+                    defn,
+                    body,
+                }))
+            }
+            ast::Expr::BinaryExpr(_) => todo!("Binary expressions are not yet supported"),
+        })
     }
 
     fn alloc_expr(&mut self, expr: Expr) -> ExprIdx {

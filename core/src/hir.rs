@@ -3,6 +3,7 @@ use la_arena::Idx;
 pub(crate) type ExprIdx = Idx<Expr>;
 pub(crate) type TypeExprIdx = Idx<TypeExpr>;
 
+#[allow(unused)]
 pub struct Module {
     declarations: Box<[Declaration]>,
 }
@@ -25,15 +26,15 @@ pub enum Expr {
     IdentExpr { name: String },
     LambdaExpr { params: Box<[Param]>, body: ExprIdx },
     AppExpr { func: ExprIdx, arg: ExprIdx },
-    LiteralExpr { lit: Literal },
+    LiteralExpr(Literal),
 }
 
 #[allow(unused)]
 pub struct LetExpr {
-    name: String,
-    params: Box<[Param]>,
-    defn: ExprIdx,
-    body: ExprIdx,
+    pub name: String,
+    pub params: Box<[Param]>,
+    pub defn: ExprIdx,
+    pub body: ExprIdx,
 }
 
 pub enum TypeExpr {
@@ -43,11 +44,12 @@ pub enum TypeExpr {
 }
 
 pub enum Literal {
-    IntLiteral { value: i64 },
-    BoolLiteral { value: bool },
+    IntLiteral(i64),
+    BoolLiteral(bool),
     UnitLiteral,
 }
 
+#[allow(unused)]
 pub struct Param {
     pub(crate) name: String,
     pub(crate) typ: Option<TypeExprIdx>,
