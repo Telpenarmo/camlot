@@ -9,6 +9,19 @@ pub struct Database {
 
 #[allow(unreachable_code, unused)]
 impl Database {
+    pub fn new() -> Self {
+        let mut expressions = Arena::new();
+        let mut type_expressions = Arena::new();
+
+        expressions.alloc(Expr::Missing);
+        type_expressions.alloc(TypeExpr::Missing);
+
+        Self {
+            expressions,
+            type_expressions,
+        }
+    }
+
     pub(crate) fn lower_decl(&mut self, ast: ast::Decl) -> Option<Declaration> {
         let r = match ast {
             ast::Decl::LetDecl(ast) => {
@@ -46,18 +59,14 @@ impl Database {
 
     fn lower_param(&mut self, ast: ast::Param) -> Option<Param> {
         let typ = ast.type_expr().and_then(|typ| self.lower_type_expr(typ));
-        let typ = typ.map(|typ| self.type_expressions.alloc(typ));
+        let typ = match typ {
+            Some(typ) => Some(self.alloc_type_expr(typ)),
+            None => None,
+        };
         Some(Param {
             name: ast.ident_lit()?.text().into(),
             typ,
         })
-    }
-
-    pub fn new() -> Self {
-        Self {
-            expressions: Arena::new(),
-            type_expressions: Arena::new(),
-        }
     }
 
     fn lower_type_expr(&self, type_expr: ast::TypeExpr) -> Option<TypeExpr> {
@@ -75,5 +84,31 @@ impl Database {
 
     fn lower_expr(&self, expr: ast::Expr) -> Option<Expr> {
         todo!()
+    }
+
+    fn alloc_expr(&mut self, expr: Expr) -> ExprIdx {
+        if let Expr::Missing = expr {
+            self.missing_expr_id()
+        } else {
+            self.expressions.alloc(expr)
+        }
+    }
+
+    fn alloc_type_expr(&mut self, type_expr: TypeExpr) -> TypeExprIdx {
+        if let TypeExpr::Missing = type_expr {
+            self.missing_type_expr_id()
+        } else {
+            self.type_expressions.alloc(type_expr)
+        }
+    }
+
+    fn missing_expr_id(&self) -> ExprIdx {
+        let raw = la_arena::RawIdx::from_u32(0);
+        ExprIdx::from_raw(raw)
+    }
+
+    fn missing_type_expr_id(&self) -> TypeExprIdx {
+        let raw = la_arena::RawIdx::from_u32(0);
+        TypeExprIdx::from_raw(raw)
     }
 }
