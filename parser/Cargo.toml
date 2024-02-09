@@ -11,4 +11,4 @@ anyhow.workspace = true
 logos.workspace = true
 
 [dev-dependencies]
-expect-test = "1.4.1"
+expect-test.workspace = true
