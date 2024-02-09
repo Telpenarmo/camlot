@@ -2,6 +2,7 @@ use crate::{hir::*, LetDecl};
 use la_arena::Arena;
 use parser::{nodes as ast, AstToken};
 
+#[allow(unused)]
 pub struct Database {
     expressions: Arena<Expr>,
     type_expressions: Arena<TypeExpr>,
@@ -23,15 +24,14 @@ impl Database {
     }
 
     pub(crate) fn lower_decl(&mut self, ast: ast::Decl) -> Option<Declaration> {
-        let r = match ast {
+        Some(match ast {
             ast::Decl::LetDecl(ast) => {
                 let params = ast.params().map(|ast| {
                     ast.params()
-                        .map(|param| self.lower_param(param))
-                        .flatten()
+                        .filter_map(|param| self.lower_param(param))
                         .collect()
                 })?;
-                let defn = ast.expr().map(|expr| self.lower_expr(expr)).flatten()?;
+                let defn = ast.expr().and_then(|expr| self.lower_expr(expr))?;
                 let defn = Box::new(defn);
                 Declaration::LetDecl(Box::new(LetDecl {
                     name: ast.ident_lit()?.text().into(),
@@ -43,26 +43,19 @@ impl Database {
                 path: ast.ident_lit()?.text().into(),
             },
             ast::Decl::TypeDecl(ast) => {
-                let defn = ast
-                    .type_expr()
-                    .map(|typ| self.lower_type_expr(typ))
-                    .flatten()?;
+                let defn = ast.type_expr().and_then(|typ| self.lower_type_expr(typ))?;
                 let defn = Box::new(defn);
                 Declaration::TypeDecl {
                     name: ast.ident_lit()?.text().into(),
                     defn,
                 }
             }
-        };
-        None
+        })
     }
 
     fn lower_param(&mut self, ast: ast::Param) -> Option<Param> {
         let typ = ast.type_expr().and_then(|typ| self.lower_type_expr(typ));
-        let typ = match typ {
-            Some(typ) => Some(self.alloc_type_expr(typ)),
-            None => None,
-        };
+        let typ = typ.map(|typ| self.alloc_type_expr(typ));
         Some(Param {
             name: ast.ident_lit()?.text().into(),
             typ,
@@ -114,8 +107,7 @@ impl Database {
             ast::Expr::LambdaExpr(ast) => {
                 let params = ast.params().map(|ast| {
                     ast.params()
-                        .map(|param| self.lower_param(param))
-                        .flatten()
+                        .filter_map(|param| self.lower_param(param))
                         .collect()
                 })?;
                 let body = self.lower_expr(ast.body()?)?;
@@ -127,8 +119,7 @@ impl Database {
 
                 let params = ast.params().map(|ast| {
                     ast.params()
-                        .map(|param| self.lower_param(param))
-                        .flatten()
+                        .filter_map(|param| self.lower_param(param))
                         .collect()
                 })?;
 
