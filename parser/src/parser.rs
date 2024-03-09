@@ -122,7 +122,7 @@ impl Marker {
 
 impl Drop for Marker {
     fn drop(&mut self) {
-        if !self.completed {
+        if !self.completed && !::std::thread::panicking() {
             panic!("Marker dropped without completion")
         }
     }

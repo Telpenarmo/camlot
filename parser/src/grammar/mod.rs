@@ -52,9 +52,8 @@ mod tests {
                     WHITESPACE@14..15 " "
                     EQUAL@15..16 "="
                     WHITESPACE@16..17 " "
-                    TYPE_EXPR@17..18
-                      TYPE_IDENT@17..18
-                        IDENT@17..18 "a"
+                    TYPE_IDENT@17..18
+                      IDENT@17..18 "a"
                     SEMICOLON@18..19 ";"
             "#]],
         );
