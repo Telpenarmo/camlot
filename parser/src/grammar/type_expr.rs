@@ -5,25 +5,22 @@ use crate::{
 
 pub(crate) fn type_expr(parser: &mut Parser) {
     fn lhs(parser: &mut Parser) -> CompletedMarker {
-        match parser.current() {
-            SyntaxKind::IDENT => {
-                let mark = parser.open();
-                parser.advance();
-                parser.close(mark, SyntaxKind::TYPE_IDENT)
-            }
-            SyntaxKind::L_PAREN => {
-                let mark = parser.open();
-                parser.advance();
-                type_expr(parser);
-                parser.expect(SyntaxKind::R_PAREN);
-                parser.close(mark, SyntaxKind::TYPE_PAREN)
-            }
-            t => {
-                parser.error(format!("Unexpected token: {:?}", t));
-                let marker = parser.open();
-                parser.advance();
-                parser.close(marker, SyntaxKind::ERROR)
-            }
+        if parser.at(SyntaxKind::IDENT) {
+            let mark = parser.open();
+            parser.advance();
+            parser.close(mark, SyntaxKind::TYPE_IDENT)
+        } else if parser.at(SyntaxKind::L_PAREN) {
+            let mark = parser.open();
+            parser.advance();
+            type_expr(parser);
+            parser.expect(SyntaxKind::R_PAREN);
+            parser.close(mark, SyntaxKind::TYPE_PAREN)
+        } else {
+            parser.unexpected();
+
+            let marker = parser.open();
+            parser.advance();
+            parser.close(marker, SyntaxKind::ERROR)
         }
     }
 

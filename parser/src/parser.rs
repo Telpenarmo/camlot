@@ -14,6 +14,7 @@ impl<'t, 'input> Parser<'t, 'input> {
             events: Vec::new(),
         }
     }
+
     pub fn finish(self) -> Vec<Event> {
         self.events
     }
@@ -63,7 +64,7 @@ impl<'t, 'input> Parser<'t, 'input> {
     }
 
     /// Get the current token, ignoring trivia
-    pub fn current(&mut self) -> SyntaxKind {
+    fn current(&mut self) -> SyntaxKind {
         self.source.current()
     }
 
@@ -96,6 +97,12 @@ impl<'t, 'input> Parser<'t, 'input> {
 
     pub fn error(&mut self, message: String) {
         self.events.push(Event::Error(message));
+    }
+
+    pub fn unexpected(&mut self) {
+        let msg = format!("Unexpected token: {:#?}", self.current());
+        eprintln!("{}", msg);
+        self.error(msg)
     }
 }
 

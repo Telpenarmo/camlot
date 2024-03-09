@@ -7,34 +7,30 @@ use crate::{
 pub(crate) fn decl(parser: &mut Parser) {
     fn eat_error(parser: &mut Parser) {
         loop {
-            let current = parser.current();
-            match current {
-                SyntaxKind::EOF
-                | SyntaxKind::LET_KW
-                | SyntaxKind::TYPE_KW
-                | SyntaxKind::OPEN_KW => break,
-                SyntaxKind::SEMICOLON => {
-                    parser.advance();
-                    break;
-                }
-                _ => {
-                    parser.error(format!("Unexpected token: {:#?}", current));
-                    parser.advance();
-                }
+            if parser.at(SyntaxKind::EOF)
+                || parser.at(SyntaxKind::LET_KW)
+                || parser.at(SyntaxKind::TYPE_KW)
+                || parser.at(SyntaxKind::OPEN_KW)
+            {
+                break;
             }
+            if parser.at(SyntaxKind::SEMICOLON) {
+                parser.advance();
+                break;
+            }
+            parser.unexpected();
+            parser.advance();
         }
     }
-    match parser.current() {
-        SyntaxKind::LET_KW => {
-            let_decl(parser);
-        }
-        SyntaxKind::TYPE_KW => {
-            type_decl(parser);
-        }
-        SyntaxKind::OPEN_KW => {
-            open_decl(parser);
-        }
-        _ => eat_error(parser),
+
+    if parser.at(SyntaxKind::LET_KW) {
+        let_decl(parser);
+    } else if parser.at(SyntaxKind::TYPE_KW) {
+        type_decl(parser);
+    } else if parser.at(SyntaxKind::OPEN_KW) {
+        open_decl(parser);
+    } else {
+        eat_error(parser)
     }
 }
 

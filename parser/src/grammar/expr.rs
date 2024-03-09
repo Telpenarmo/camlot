@@ -5,39 +5,38 @@ use crate::{
 };
 
 pub(crate) fn expr(parser: &mut Parser) {
-    match parser.current() {
-        SyntaxKind::LET_KW => {
-            let_expr(parser);
-        }
-        SyntaxKind::LAMBDA => {
-            lambda_expr(parser);
-        }
-        _ => {
-            let mut prev_mark = None;
-            while parser.at(SyntaxKind::L_PAREN)
-                || parser.at(SyntaxKind::IDENT)
-                || parser.at(SyntaxKind::INT)
-                || parser.at(SyntaxKind::EMPTY_PAREN)
-            {
-                match prev_mark {
-                    Some(prev) => {
-                        let marker = parser.open_before(prev);
-                        delimited_expr(parser);
-                        prev_mark = Some(parser.close(marker, SyntaxKind::APP_EXPR));
-                    }
-                    None => prev_mark = Some(delimited_expr(parser)),
-                };
-            }
+    if parser.at(SyntaxKind::LET_KW) {
+        let_expr(parser);
+    } else if parser.at(SyntaxKind::LAMBDA) {
+        lambda_expr(parser);
+    } else {
+        let mut prev_mark = None;
+        while parser.at(SyntaxKind::L_PAREN)
+            || parser.at(SyntaxKind::IDENT)
+            || parser.at(SyntaxKind::INT)
+            || parser.at(SyntaxKind::EMPTY_PAREN)
+        {
+            match prev_mark {
+                Some(prev) => {
+                    let marker = parser.open_before(prev);
+                    delimited_expr(parser);
+                    prev_mark = Some(parser.close(marker, SyntaxKind::APP_EXPR));
+                }
+                None => prev_mark = Some(delimited_expr(parser)),
+            };
         }
     };
 }
 
 fn delimited_expr(parser: &mut Parser) -> CompletedMarker {
-    match parser.current() {
-        SyntaxKind::IDENT => ident_expr(parser),
-        SyntaxKind::L_PAREN => paren_expr(parser),
-        SyntaxKind::INT | SyntaxKind::EMPTY_PAREN => literal_expr(parser),
-        _ => unreachable!(),
+    if parser.at(SyntaxKind::IDENT) {
+        ident_expr(parser)
+    } else if parser.at(SyntaxKind::L_PAREN) {
+        paren_expr(parser)
+    } else if parser.at(SyntaxKind::INT) || parser.at(SyntaxKind::EMPTY_PAREN) {
+        literal_expr(parser)
+    } else {
+        unreachable!()
     }
 }
 
@@ -51,9 +50,10 @@ fn ident_expr(parser: &mut Parser) -> CompletedMarker {
 
 fn literal_expr(parser: &mut Parser) -> CompletedMarker {
     let mark = parser.open();
-    match parser.current() {
-        SyntaxKind::INT | SyntaxKind::EMPTY_PAREN => parser.advance(),
-        _ => unreachable!(),
+    if parser.at(SyntaxKind::INT) || parser.at(SyntaxKind::EMPTY_PAREN) {
+        parser.advance()
+    } else {
+        unreachable!()
     }
     parser.close(mark, SyntaxKind::LITERAL_EXPR)
 }
