@@ -9,17 +9,23 @@ mod parser;
 mod sink;
 mod source;
 
+use std::ops::Range;
+
 pub use ast::{AstChildren, AstNode, AstToken};
 pub use generated::{nodes, syntax_kinds::SyntaxKind};
 pub use language::*;
 
 use rowan::GreenNode;
 
-type SyntaxError = String;
+#[derive(Debug, PartialEq)]
+pub struct SyntaxError {
+    pub message: String,
+    pub range: Range<usize>,
+}
 
 pub struct Parse {
     pub green_node: GreenNode,
-    pub errors: Vec<String>,
+    pub errors: Vec<SyntaxError>,
 }
 
 pub fn parse(input: &str) -> Parse {
@@ -55,7 +61,7 @@ impl Parse {
         output.push_str(&tree[0..tree.len() - 1]);
 
         for error in &self.errors {
-            output.push_str(&format!("{}\n", error));
+            output.push_str(&format!("{:#?}\n", error));
         }
 
         output

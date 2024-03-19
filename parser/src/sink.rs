@@ -1,8 +1,7 @@
-use crate::event::ParseError;
 use crate::{event::Event, RideMLLanguage};
 // use crate::parser::ParseError;
 use crate::source::Token;
-use crate::Parse;
+use crate::{Parse, SyntaxError};
 use rowan::{GreenNodeBuilder, Language};
 use std::mem;
 
@@ -11,7 +10,7 @@ pub(crate) struct Sink<'t, 'input> {
     tokens: &'t [Token<'input>],
     cursor: usize,
     events: Vec<Event>,
-    errors: Vec<ParseError>,
+    errors: Vec<SyntaxError>,
 }
 
 impl<'t, 'input> Sink<'t, 'input> {
@@ -62,7 +61,7 @@ impl<'t, 'input> Sink<'t, 'input> {
                 }
                 Event::Advance => self.token(),
                 Event::Close => self.builder.finish_node(),
-                Event::Error(error) => self.errors.push(error),
+                Event::Error(error) => self.error(error),
                 Event::UnmatchedOpen => {}
             }
 
@@ -91,5 +90,16 @@ impl<'t, 'input> Sink<'t, 'input> {
         self.builder.token(RideMLLanguage::kind_to_raw(kind), text);
 
         self.cursor += 1;
+    }
+
+    fn error(&mut self, message: String) {
+        let range = match &self.tokens.get(self.cursor) {
+            Some(Token { range, .. }) => range.clone(),
+            None => {
+                let end = self.tokens.last().unwrap().range.end;
+                end..end
+            }
+        };
+        self.errors.push(SyntaxError { message, range });
     }
 }
