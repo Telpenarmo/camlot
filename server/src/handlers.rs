@@ -1,4 +1,4 @@
-use lsp_server::{Message, ResponseError};
+use lsp_server::ResponseError;
 use lsp_types::notification::PublishDiagnostics;
 use lsp_types::{
     DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
@@ -34,18 +34,7 @@ pub(crate) fn handle_did_open_text_document_params(
         diagnostics,
         version: None,
     };
-    let params = serde_json::to_value(params).unwrap();
-    let send = lsp
-        .connection
-        .sender
-        .send(Message::Notification(lsp_server::Notification {
-            method: <PublishDiagnostics as lsp_types::notification::Notification>::METHOD
-                .to_string(),
-            params,
-        }));
-    if let Err(e) = send {
-        eprintln!("failed to send notification: {e:?}");
-    }
+    lsp.send_notification::<PublishDiagnostics>(params);
 }
 
 pub(crate) fn handle_did_change_text_document_params(
@@ -58,24 +47,11 @@ pub(crate) fn handle_did_change_text_document_params(
         diagnostics,
         version: None,
     };
-    let params = serde_json::to_value(params).unwrap();
-    let method = <PublishDiagnostics as lsp_types::notification::Notification>::METHOD.to_string();
-    let send = lsp
-        .connection
-        .sender
-        .send(Message::Notification(lsp_server::Notification {
-            method,
-            params,
-        }));
-    if let Err(e) = send {
-        eprintln!("failed to send notification: {e:?}");
-    }
+    lsp.send_notification::<PublishDiagnostics>(params);
 }
 
-pub fn get_diagnostics(source: &str) -> Vec<lsp_types::Diagnostic> {
-    let parsed = parser::parse(source);
-
-    parsed
+fn get_diagnostics(source: &str) -> Vec<lsp_types::Diagnostic> {
+    parser::parse(source)
         .errors
         .iter()
         .map(|error| syntax_error_to_diagnostic(error, source))

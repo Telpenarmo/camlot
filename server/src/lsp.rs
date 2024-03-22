@@ -57,7 +57,7 @@ type RequestHandler = Box<dyn Fn(Request, &Lsp) -> Response>;
 type NotificationHandler = Box<dyn Fn(Notification, &Lsp)>;
 
 pub(crate) struct Lsp {
-    pub connection: Connection,
+    connection: Connection,
     request_handlers: HashMap<String, RequestHandler>,
     notification_handlers: HashMap<String, NotificationHandler>,
 }
@@ -69,6 +69,26 @@ impl Lsp {
             request_handlers: HashMap::new(),
             notification_handlers: HashMap::new(),
         }
+    }
+
+    fn send_message(&self, msg: Message) {
+        let sent = self.connection.sender.send(msg);
+        if let Err(e) = sent {
+            eprintln!("failed to send message: {}", e);
+        }
+    }
+
+    pub fn send_notification<N>(&self, params: N::Params)
+    where
+        N: lsp_types::notification::Notification,
+    {
+        let params = serde_json::to_value(params).unwrap();
+        let msg = Message::Notification(Notification::new(N::METHOD.into(), params));
+        self.send_message(msg);
+    }
+
+    pub fn send_response(&self, response: Response) {
+        self.send_message(Message::Response(response));
     }
 
     pub fn register_request<R, F>(&mut self, handler: F)
@@ -142,10 +162,7 @@ fn main_loop(lsp: Lsp, params: serde_json::Value) -> Result<(), Box<dyn Error + 
                 }
                 eprintln!("got request: {req:?}");
                 if let Some(resp) = lsp.handle_request(req) {
-                    let send = lsp.connection.sender.send(Message::Response(resp));
-                    if let Err(e) = send {
-                        eprintln!("failed to send response: {e:?}");
-                    }
+                    lsp.send_response(resp);
                 };
             }
             Message::Response(resp) => {
