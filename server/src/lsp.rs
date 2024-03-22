@@ -1,16 +1,14 @@
 use std::collections::HashMap;
 use std::error::Error;
 
-use lsp_types::notification::PublishDiagnostics;
 use lsp_types::request::DocumentDiagnosticRequest;
-use lsp_types::{
-    DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
-};
 use lsp_types::{InitializeParams, ServerCapabilities};
 
 use lsp_server::{
     Connection, ExtractError, Message, Notification, Request, RequestId, Response, ResponseError,
 };
+
+use crate::handlers;
 
 pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     eprintln!("starting generic LSP server");
@@ -19,129 +17,26 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
 
     let mut lsp = Lsp::new(connection);
 
-    lsp.register_request::<DocumentDiagnosticRequest>(Box::new(|req, _lsp| {
-        let source = req.text_document.uri.path().to_string();
-        let source = std::fs::read_to_string(source).unwrap();
-        let diagnostics = get_diagnostics(&source);
-        Ok(DocumentDiagnosticReportResult::Report(
-            DocumentDiagnosticReport::Full(lsp_types::RelatedFullDocumentDiagnosticReport {
-                related_documents: None,
-                full_document_diagnostic_report: lsp_types::FullDocumentDiagnosticReport {
-                    result_id: None,
-                    items: diagnostics,
-                },
-            }),
-        ))
-        // Err(ResponseError {
-        // code: 1,
-        // message: "not implemented".into(),
-        // data: None,
-        // })
-    }));
+    lsp.register_request::<DocumentDiagnosticRequest, _>(
+        handlers::handle_document_diagnostic_request,
+    );
 
-    lsp.register_notification::<lsp_types::notification::DidOpenTextDocument>(Box::new(
-        |params, lsp| {
-            let diagnostics = get_diagnostics(&params.text_document.text);
-            let params = PublishDiagnosticsParams {
-                uri: params.text_document.uri,
-                diagnostics,
-                version: None,
-            };
-            let params = serde_json::to_value(&params).unwrap();
-            let send =
-                lsp.connection
-                    .sender
-                    .send(Message::Notification(lsp_server::Notification {
-                        method:
-                            <PublishDiagnostics as lsp_types::notification::Notification>::METHOD
-                                .to_string(),
-                        params,
-                    }));
-            if let Err(e) = send {
-                eprintln!("failed to send notification: {e:?}");
-            }
-        },
-    ));
+    lsp.register_notification::<lsp_types::notification::DidOpenTextDocument, _>(
+        handlers::handle_did_open_text_document_params,
+    );
 
-    lsp.register_notification::<lsp_types::notification::DidChangeTextDocument>(Box::new(
-        |params, lsp| {
-            let diagnostics = get_diagnostics(&params.content_changes[0].text);
-            let params = PublishDiagnosticsParams {
-                uri: params.text_document.uri,
-                diagnostics,
-                version: None,
-            };
-            let params = serde_json::to_value(&params).unwrap();
-            let method =
-                <PublishDiagnostics as lsp_types::notification::Notification>::METHOD.to_string();
-            let send =
-                lsp.connection
-                    .sender
-                    .send(Message::Notification(lsp_server::Notification {
-                        method,
-                        params,
-                    }));
-            if let Err(e) = send {
-                eprintln!("failed to send notification: {e:?}");
-            }
-        },
-    ));
+    lsp.register_notification::<lsp_types::notification::DidChangeTextDocument, _>(
+        handlers::handle_did_change_text_document_params,
+    );
 
-    lsp.register_notification::<lsp_types::notification::DidOpenTextDocument>(Box::new(
-        |params, lsp| {
-            let diagnostics = get_diagnostics(&params.text_document.text);
-            let params = PublishDiagnosticsParams {
-                uri: params.text_document.uri,
-                diagnostics,
-                version: None,
-            };
-            let params = serde_json::to_value(&params).unwrap();
-            let send =
-                lsp.connection
-                    .sender
-                    .send(Message::Notification(lsp_server::Notification {
-                        method:
-                            <PublishDiagnostics as lsp_types::notification::Notification>::METHOD
-                                .to_string(),
-                        params,
-                    }));
-            if let Err(e) = send {
-                eprintln!("failed to send notification: {e:?}");
-            }
-        },
-    ));
-
-    lsp.register_notification::<lsp_types::notification::DidChangeTextDocument>(Box::new(
-        |params, lsp| {
-            let diagnostics = get_diagnostics(&params.content_changes[0].text);
-            let params = PublishDiagnosticsParams {
-                uri: params.text_document.uri,
-                diagnostics,
-                version: None,
-            };
-            let params = serde_json::to_value(&params).unwrap();
-            let method =
-                <PublishDiagnostics as lsp_types::notification::Notification>::METHOD.to_string();
-            let send =
-                lsp.connection
-                    .sender
-                    .send(Message::Notification(lsp_server::Notification {
-                        method,
-                        params,
-                    }));
-            if let Err(e) = send {
-                eprintln!("failed to send notification: {e:?}");
-            }
-        },
-    ));
-
-    let server_capabilities = serde_json::to_value(&ServerCapabilities {
+    let server_capabilities = serde_json::to_value(ServerCapabilities {
         text_document_sync: Some(lsp_types::TextDocumentSyncCapability::Kind(
             lsp_types::TextDocumentSyncKind::FULL,
         )),
         ..Default::default()
     })
     .unwrap();
+
     let initialization_params = match lsp.connection.initialize(server_capabilities) {
         Ok(it) => it,
         Err(e) => {
@@ -159,10 +54,10 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
 }
 
 type RequestHandler = Box<dyn Fn(Request, &Lsp) -> Response>;
-type NotificationHandler = Box<dyn Fn(Notification, &Lsp) -> ()>;
+type NotificationHandler = Box<dyn Fn(Notification, &Lsp)>;
 
-struct Lsp {
-    connection: Connection,
+pub(crate) struct Lsp {
+    pub connection: Connection,
     request_handlers: HashMap<String, RequestHandler>,
     notification_handlers: HashMap<String, NotificationHandler>,
 }
@@ -176,12 +71,11 @@ impl Lsp {
         }
     }
 
-    pub fn register_request<R>(
-        &mut self,
-        handler: Box<dyn Fn(&R::Params, &Lsp) -> Result<R::Result, ResponseError>>,
-    ) where
+    pub fn register_request<R, F>(&mut self, handler: F)
+    where
         R: lsp_types::request::Request,
         R::Params: serde::de::DeserializeOwned,
+        F: Fn(&R::Params, &Lsp) -> Result<R::Result, ResponseError> + 'static,
     {
         self.request_handlers.insert(
             R::METHOD.into(),
@@ -207,7 +101,7 @@ impl Lsp {
         );
     }
 
-    pub fn register_notification<N>(&mut self, handler: Box<dyn Fn(N::Params, &Lsp) -> ()>)
+    pub fn register_notification<N, F: Fn(N::Params, &Lsp) + 'static>(&mut self, handler: F)
     where
         N: lsp_types::notification::Notification,
     {
@@ -228,9 +122,9 @@ impl Lsp {
     }
 
     fn handle_notification(&self, not: Notification) {
-        self.notification_handlers
-            .get(&not.method)
-            .map(|handler| handler(not, self));
+        if let Some(handler) = self.notification_handlers.get(&not.method) {
+            handler(not, self)
+        }
     }
 }
 
@@ -246,12 +140,12 @@ fn main_loop(lsp: Lsp, params: serde_json::Value) -> Result<(), Box<dyn Error + 
                     return Ok(());
                 }
                 eprintln!("got request: {req:?}");
-                lsp.handle_request(req).map(|resp| {
+                if let Some(resp) = lsp.handle_request(req) {
                     let send = lsp.connection.sender.send(Message::Response(resp));
                     if let Err(e) = send {
                         eprintln!("failed to send response: {e:?}");
                     }
-                });
+                };
             }
             Message::Response(resp) => {
                 eprintln!("got response: {resp:?}");
@@ -283,7 +177,7 @@ where
     not.extract(N::METHOD)
 }
 
-fn get_diagnostics(source: &str) -> Vec<lsp_types::Diagnostic> {
+pub fn get_diagnostics(source: &str) -> Vec<lsp_types::Diagnostic> {
     let parsed = parser::parse(source);
 
     parsed

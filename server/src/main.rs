@@ -1,5 +1,6 @@
 use std::io::Read;
 
+mod handlers;
 mod lsp;
 
 fn main() {
