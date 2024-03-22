@@ -1,10 +1,10 @@
 use lsp_server::{Message, ResponseError};
+use lsp_types::notification::PublishDiagnostics;
 use lsp_types::{
-    notification::PublishDiagnostics, DocumentDiagnosticReport, DocumentDiagnosticReportResult,
-    PublishDiagnosticsParams,
+    DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
 };
 
-use crate::lsp::{get_diagnostics, Lsp};
+use crate::{lsp::Lsp, lsp_utils::syntax_error_to_diagnostic};
 
 pub(crate) fn handle_document_diagnostic_request(
     req: &lsp_types::DocumentDiagnosticParams,
@@ -70,4 +70,14 @@ pub(crate) fn handle_did_change_text_document_params(
     if let Err(e) = send {
         eprintln!("failed to send notification: {e:?}");
     }
+}
+
+pub fn get_diagnostics(source: &str) -> Vec<lsp_types::Diagnostic> {
+    let parsed = parser::parse(source);
+
+    parsed
+        .errors
+        .iter()
+        .map(|error| syntax_error_to_diagnostic(error, source))
+        .collect()
 }

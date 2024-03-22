@@ -2,6 +2,7 @@ use std::io::Read;
 
 mod handlers;
 mod lsp;
+mod lsp_utils;
 
 fn main() {
     let mode = parse_args();

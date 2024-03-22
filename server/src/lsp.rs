@@ -5,10 +5,10 @@ use lsp_types::request::DocumentDiagnosticRequest;
 use lsp_types::{InitializeParams, ServerCapabilities};
 
 use lsp_server::{
-    Connection, ExtractError, Message, Notification, Request, RequestId, Response, ResponseError,
+    Connection, ExtractError, Message, Notification, Request, Response, ResponseError,
 };
 
-use crate::handlers;
+use crate::{handlers, lsp_utils};
 
 pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     eprintln!("starting generic LSP server");
@@ -79,7 +79,7 @@ impl Lsp {
     {
         self.request_handlers.insert(
             R::METHOD.into(),
-            Box::new(move |req, lsp| match cast_req::<R>(req) {
+            Box::new(move |req, lsp| match lsp_utils::cast_req::<R>(req) {
                 Ok((id, params)) => match handler(&params, lsp) {
                     Ok(result) => {
                         let result = serde_json::to_value(&result).unwrap();
@@ -101,13 +101,14 @@ impl Lsp {
         );
     }
 
-    pub fn register_notification<N, F: Fn(N::Params, &Lsp) + 'static>(&mut self, handler: F)
+    pub fn register_notification<N, F>(&mut self, handler: F)
     where
         N: lsp_types::notification::Notification,
+        F: Fn(N::Params, &Lsp) + 'static,
     {
         self.notification_handlers.insert(
             N::METHOD.into(),
-            Box::new(move |not, lsp| match cast_not::<N>(not) {
+            Box::new(move |not, lsp| match lsp_utils::cast_not::<N>(not) {
                 Ok(params) => handler(params, lsp),
                 Err(err @ ExtractError::JsonError { .. }) => panic!("{err:?}"),
                 Err(ExtractError::MethodMismatch(_)) => unreachable!(),
@@ -157,44 +158,4 @@ fn main_loop(lsp: Lsp, params: serde_json::Value) -> Result<(), Box<dyn Error + 
         }
     }
     Ok(())
-}
-
-fn cast_req<R>(req: Request) -> Result<(RequestId, R::Params), ExtractError<Request>>
-where
-    R: lsp_types::request::Request,
-    R::Params: serde::de::DeserializeOwned,
-{
-    req.extract(R::METHOD)
-}
-
-fn cast_not<N>(
-    not: lsp_server::Notification,
-) -> Result<N::Params, ExtractError<lsp_server::Notification>>
-where
-    N: lsp_types::notification::Notification,
-    N::Params: serde::de::DeserializeOwned,
-{
-    not.extract(N::METHOD)
-}
-
-pub fn get_diagnostics(source: &str) -> Vec<lsp_types::Diagnostic> {
-    let parsed = parser::parse(source);
-
-    parsed
-        .errors
-        .iter()
-        .map(|error| syntax_error_to_diagnostic(error, source))
-        .collect()
-}
-
-fn syntax_error_to_diagnostic(error: &parser::SyntaxError, source: &str) -> lsp_types::Diagnostic {
-    let line_index = line_index::LineIndex::new(source);
-    let start = line_index.line_col(line_index::TextSize::new(error.range.start as u32));
-    let end = line_index.line_col(line_index::TextSize::new(error.range.end as u32));
-    let start = lsp_types::Position::new(start.line, start.col);
-    let end = lsp_types::Position::new(end.line, end.col);
-    let range = lsp_types::Range::new(start, end);
-    let mut diagnostic = lsp_types::Diagnostic::new_simple(range, error.message.clone());
-    diagnostic.source = Some("RideML".into());
-    diagnostic
 }
