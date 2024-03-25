@@ -4,11 +4,11 @@ use lsp_types::{
     DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
 };
 
-use crate::{lsp::Lsp, lsp_utils::syntax_error_to_diagnostic};
+use crate::{lsp_utils::syntax_error_to_diagnostic, server::Server};
 
 pub(crate) fn handle_document_diagnostic_request(
     req: &lsp_types::DocumentDiagnosticParams,
-    _lsp: &Lsp,
+    _lsp: &Server,
 ) -> Result<DocumentDiagnosticReportResult, ResponseError> {
     let source = req.text_document.uri.path().to_string();
     let source = std::fs::read_to_string(source).unwrap();
@@ -26,7 +26,7 @@ pub(crate) fn handle_document_diagnostic_request(
 
 pub(crate) fn handle_did_open_text_document_params(
     params: lsp_types::DidOpenTextDocumentParams,
-    lsp: &Lsp,
+    lsp: &Server,
 ) {
     let diagnostics = get_diagnostics(&params.text_document.text);
     let params = PublishDiagnosticsParams {
@@ -39,7 +39,7 @@ pub(crate) fn handle_did_open_text_document_params(
 
 pub(crate) fn handle_did_change_text_document_params(
     params: lsp_types::DidChangeTextDocumentParams,
-    lsp: &Lsp,
+    lsp: &Server,
 ) {
     let diagnostics = get_diagnostics(&params.content_changes[0].text);
     let params = PublishDiagnosticsParams {
