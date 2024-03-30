@@ -53,18 +53,7 @@ pub(crate) enum PrefixEntryPoint {
 
 impl Parse {
     pub fn debug_tree(&self) -> String {
-        let mut output = String::new();
-
-        let tree = format!("{:#?}\n", self.syntax());
-
-        // We cut off the last byte because formatting the SyntaxNode adds on a newline at the end.
-        output.push_str(&tree[0..tree.len() - 1]);
-
-        for error in &self.errors {
-            output.push_str(&format!("{:#?}\n", error));
-        }
-
-        output
+        format!("{:#?}", self.syntax())
     }
 
     pub fn syntax(&self) -> SyntaxNode {
@@ -92,10 +81,12 @@ impl Parse {
 fn check(entry_point: PrefixEntryPoint, input: &str, expected_tree: expect_test::Expect) {
     let parse = parse_internal(input, entry_point);
     expected_tree.assert_eq(&parse.debug_tree());
+    assert!(parse.errors.is_empty());
 }
 
 #[cfg(test)]
 fn check_file(input: &str, expected_tree: expect_test::ExpectFile) {
     let parse = parse(input);
     expected_tree.assert_eq(&parse.debug_tree());
+    assert!(parse.errors.is_empty());
 }
