@@ -25,6 +25,10 @@ pub(crate) fn expr(parser: &mut Parser) {
                 None => prev_mark = Some(delimited_expr(parser)),
             };
         }
+
+        if prev_mark.is_none() {
+            parser.error("Expected expression".into());
+        }
     };
 }
 
@@ -96,7 +100,7 @@ fn paren_expr(parser: &mut Parser) -> CompletedMarker {
 
 #[cfg(test)]
 mod tests {
-    use crate::{check, check_file, PrefixEntryPoint};
+    use crate::{check, check_err, check_file, PrefixEntryPoint};
     use expect_test::{expect, expect_file};
 
     #[test]
@@ -184,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_app_left_associative() {
+    fn app_is_left_associative() {
         check(
             PrefixEntryPoint::Expr,
             r"x y z",
@@ -231,6 +235,73 @@ mod tests {
         check_file(
             r"let a = let x = 5 in let y = x in y;",
             expect_file!["../../test_data/parse_let_nested.rml_cst"],
+        )
+    }
+
+    #[test]
+    fn report_missing_let_defn() {
+        check_err(
+            PrefixEntryPoint::Expr,
+            r"let x = in x",
+            expect![[r#"
+                LET_EXPR@0..12
+                  LET_KW@0..3 "let"
+                  WHITESPACE@3..4 " "
+                  IDENT@4..5 "x"
+                  WHITESPACE@5..6 " "
+                  PARAMS@6..6
+                  EQUAL@6..7 "="
+                  WHITESPACE@7..8 " "
+                  IN_KW@8..10 "in"
+                  WHITESPACE@10..11 " "
+                  IDENT_EXPR@11..12
+                    IDENT@11..12 "x"
+            "#]],
+            &["Expected expression"],
+        )
+    }
+
+    #[test]
+    fn report_missing_let_body() {
+        check_err(
+            PrefixEntryPoint::Expr,
+            r"let x = 5 in",
+            expect![[r#"
+                LET_EXPR@0..12
+                  LET_KW@0..3 "let"
+                  WHITESPACE@3..4 " "
+                  IDENT@4..5 "x"
+                  WHITESPACE@5..6 " "
+                  PARAMS@6..6
+                  EQUAL@6..7 "="
+                  WHITESPACE@7..8 " "
+                  LITERAL_EXPR@8..10
+                    INT@8..9 "5"
+                    WHITESPACE@9..10 " "
+                  IN_KW@10..12 "in"
+            "#]],
+            &["Expected expression"],
+        )
+    }
+
+    #[test]
+    fn report_missing_in() {
+        check_err(
+            PrefixEntryPoint::Expr,
+            r"let x = 5",
+            expect![[r#"
+                LET_EXPR@0..9
+                  LET_KW@0..3 "let"
+                  WHITESPACE@3..4 " "
+                  IDENT@4..5 "x"
+                  WHITESPACE@5..6 " "
+                  PARAMS@6..6
+                  EQUAL@6..7 "="
+                  WHITESPACE@7..8 " "
+                  LITERAL_EXPR@8..9
+                    INT@8..9 "5"
+            "#]],
+            &["Expected IN_KW but found EOF", "Expected expression"],
         )
     }
 }

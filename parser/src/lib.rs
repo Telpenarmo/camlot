@@ -90,3 +90,22 @@ fn check_file(input: &str, expected_tree: expect_test::ExpectFile) {
     expected_tree.assert_eq(&parse.debug_tree());
     assert!(parse.errors.is_empty());
 }
+
+#[cfg(test)]
+fn check_err(
+    entry_point: PrefixEntryPoint,
+    input: &str,
+    expected_tree: expect_test::Expect,
+    expected_errors: &[&str],
+) {
+    let parse = parse_internal(input, entry_point);
+    expected_tree.assert_eq(&parse.debug_tree());
+    for expected_error in expected_errors {
+        assert!(
+            parse.errors.iter().any(|it| it.message == *expected_error),
+            "expected error `{}`, found: {:?}",
+            expected_error,
+            parse.errors
+        );
+    }
+}

@@ -29,13 +29,13 @@ pub(crate) fn parse(mut parser: Parser, entry_point: PrefixEntryPoint) -> Vec<cr
 
 #[cfg(test)]
 mod tests {
-    use crate::check;
+    use crate::{check, PrefixEntryPoint};
     use expect_test::expect;
 
     #[test]
     fn parse_multiple_declarations() {
         check(
-            crate::PrefixEntryPoint::Module,
+            PrefixEntryPoint::Module,
             "open a; type t = a;",
             expect![[r#"
                 MODULE@0..19
@@ -57,5 +57,10 @@ mod tests {
                     SEMICOLON@18..19 ";"
             "#]],
         );
+    }
+
+    #[test]
+    fn parse_empty_string_as_module() {
+        check(PrefixEntryPoint::Module, "", expect![["MODULE@0..0\n"]]);
     }
 }
