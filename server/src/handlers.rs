@@ -57,3 +57,25 @@ fn get_diagnostics(source: &str) -> Vec<lsp_types::Diagnostic> {
         .map(|error| syntax_error_to_diagnostic(error, source))
         .collect()
 }
+
+pub enum SyntaxTree {}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct SyntaxTreeParams {
+    text_document: lsp_types::TextDocumentIdentifier,
+}
+
+impl lsp_types::request::Request for SyntaxTree {
+    type Params = SyntaxTreeParams;
+    type Result = String;
+    const METHOD: &'static str = "rideml-analyzer/syntaxTree";
+}
+
+pub fn handle_syntax_tree_request(
+    req: &SyntaxTreeParams,
+    _lsp: &Server,
+) -> Result<String, ResponseError> {
+    let source = req.text_document.uri.path().to_string();
+    let source = std::fs::read_to_string(source).unwrap();
+    Ok(parser::parse(&source).debug_tree())
+}

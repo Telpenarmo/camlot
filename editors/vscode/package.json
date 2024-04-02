@@ -21,6 +21,13 @@
         ],
         "configuration": "./language-configuration.json"
       }
+    ],
+    "commands": [
+      {
+        "command": "rideml-analyzer.syntaxTree",
+        "title": "Show Syntax Tree",
+        "category": "RideML"
+      }
     ]
   },
   "scripts": {

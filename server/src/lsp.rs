@@ -19,6 +19,10 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
         handlers::handle_document_diagnostic_request,
     );
 
+    server_builder.register_request::<handlers::SyntaxTree, _>(
+        handlers::handle_syntax_tree_request,
+    );
+
     server_builder.register_notification::<lsp_types::notification::DidOpenTextDocument, _>(
         handlers::handle_did_open_text_document_params,
     );
