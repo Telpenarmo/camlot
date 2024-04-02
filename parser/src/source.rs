@@ -52,8 +52,7 @@ impl<'t, 'input> Source<'t, 'input> {
     }
 
     fn at_trivia(&self) -> bool {
-        self.peek_kind_raw()
-            .map_or(false, |kind| kind == SyntaxKind::WHITESPACE)
+        self.peek_kind_raw().map_or(false, |kind| kind.is_trivial())
     }
 
     // pub fn last_token_range(&self) -> Option<&Range<usize>> {

@@ -126,9 +126,17 @@ fn generate_syntax_kinds(kinds: &KindsSrc, grammar: &AstSrc) -> Result<String> {
                     _ => false,
                 }
             }
+
             pub fn is_enum(self) -> bool {
                 match self {
                     #(#enums)|* => true,
+                    _ => false,
+                }
+            }
+
+            pub fn is_trivial(self) -> bool {
+                match self {
+                    WHITESPACE | COMMENT | LEXING_ERROR => true,
                     _ => false,
                 }
             }

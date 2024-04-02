@@ -90,10 +90,6 @@ impl<'t, 'input> Parser<'t, 'input> {
             return;
         }
 
-        if self.at(SyntaxKind::LEXING_ERROR) {
-            return;
-        }
-
         let msg = format!("Expected {:#?} but found {:?}", kind, self.current());
         eprintln!("{}", msg);
         self.error(msg)

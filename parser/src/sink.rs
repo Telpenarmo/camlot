@@ -76,7 +76,7 @@ impl<'t, 'input> Sink<'t, 'input> {
 
     fn eat_trivia(&mut self) {
         while let Some(token) = self.tokens.get(self.cursor) {
-            if token.kind != crate::SyntaxKind::WHITESPACE {
+            if !token.kind.is_trivial() {
                 break;
             }
 

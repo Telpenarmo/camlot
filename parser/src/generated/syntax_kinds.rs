@@ -104,6 +104,12 @@ impl SyntaxKind {
             _ => false,
         }
     }
+    pub fn is_trivial(self) -> bool {
+        match self {
+            WHITESPACE | COMMENT | LEXING_ERROR => true,
+            _ => false,
+        }
+    }
     pub fn from_raw(r: u16) -> Self {
         assert!(r < Self::__LAST as u16);
         unsafe { std::mem::transmute(r) }
