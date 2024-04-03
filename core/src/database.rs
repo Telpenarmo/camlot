@@ -86,7 +86,7 @@ impl Database {
     }
 
     fn lower_type_expr(&mut self, type_expr: Option<ast::TypeExpr>) -> TypeExpr {
-        if let None = type_expr {
+        if type_expr.is_none() {
             return TypeExpr::Missing;
         }
         match type_expr.unwrap() {
@@ -107,7 +107,7 @@ impl Database {
     }
 
     fn lower_expr(&mut self, expr: Option<ast::Expr>) -> Expr {
-        if let None = expr {
+        if expr.is_none() {
             return Expr::Missing;
         }
         match expr.unwrap() {

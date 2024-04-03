@@ -15,15 +15,14 @@ fn main() {
             eprintln!("Repl mode is not yet implemented.");
             std::process::exit(1);
         }
-        Mode::LSP => {
-            match lsp::main() {
-                Ok(_) => (),
-                Err(e) => eprintln!("LSP failed: {e}"),
-            }
-        }
+        Mode::LSP => match lsp::main() {
+            Ok(()) => (),
+            Err(e) => eprintln!("LSP failed: {e}"),
+        },
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
 enum Mode {
     Parse,
