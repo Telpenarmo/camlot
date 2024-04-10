@@ -3,6 +3,15 @@
 version = 3
 
 [[package]]
+name = "analysis"
+version = "0.1.0"
+dependencies = [
+ "line-index",
+ "lsp-types",
+ "parser",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -341,6 +350,7 @@ dependencies = [
 name = "server"
 version = "0.1.0"
 dependencies = [
+ "analysis",
  "line-index",
  "logos",
  "lsp-server",

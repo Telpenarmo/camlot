@@ -4,7 +4,9 @@ use lsp_types::{
     DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
 };
 
-use crate::{lsp_utils::syntax_error_to_diagnostic, server::Server};
+use analysis::get_diagnostics;
+
+use crate::server::Server;
 
 pub(crate) fn handle_document_diagnostic_request(
     req: &lsp_types::DocumentDiagnosticParams,
@@ -48,14 +50,6 @@ pub(crate) fn handle_did_change_text_document_params(
         version: None,
     };
     lsp.send_notification::<PublishDiagnostics>(params);
-}
-
-fn get_diagnostics(source: &str) -> Vec<lsp_types::Diagnostic> {
-    parser::parse(source)
-        .errors
-        .iter()
-        .map(|error| syntax_error_to_diagnostic(error, source))
-        .collect()
 }
 
 pub enum SyntaxTree {}
