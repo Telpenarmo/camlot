@@ -3,12 +3,12 @@ use logos::Logos;
 use crate::source::Token;
 use crate::SyntaxKind;
 
-pub struct Lexer<'a> {
+pub(crate) struct Lexer<'a> {
     inner: logos::Lexer<'a, SyntaxKind>,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Self {
+    pub(crate) fn new(input: &'a str) -> Self {
         Self {
             inner: SyntaxKind::lexer(input),
         }

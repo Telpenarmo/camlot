@@ -10,7 +10,7 @@ use super::{
 };
 
 impl AstNodeSrc {
-    pub fn remove_field(&mut self, to_remove: Vec<usize>) {
+    pub(crate) fn remove_field(&mut self, to_remove: Vec<usize>) {
         to_remove.into_iter().rev().for_each(|idx| {
             self.fields.remove(idx);
         });
@@ -19,21 +19,21 @@ impl AstNodeSrc {
 
 #[allow(dead_code)]
 #[derive(Default, Debug)]
-pub struct AstSrc {
-    pub nodes: Vec<AstNodeSrc>,
-    pub enums: Vec<AstEnumSrc>,
-    pub token_enums: Vec<AstTokenEnumSrc>,
+pub(crate) struct AstSrc {
+    pub(crate) nodes: Vec<AstNodeSrc>,
+    pub(crate) enums: Vec<AstEnumSrc>,
+    pub(crate) token_enums: Vec<AstTokenEnumSrc>,
 }
 #[derive(Debug)]
-pub struct AstNodeSrc {
-    pub doc: Vec<String>,
-    pub name: String,
-    pub traits: Vec<String>,
-    pub fields: Vec<Field>,
+pub(crate) struct AstNodeSrc {
+    pub(crate) doc: Vec<String>,
+    pub(crate) name: String,
+    pub(crate) traits: Vec<String>,
+    pub(crate) fields: Vec<Field>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum Field {
+pub(crate) enum Field {
     Token(String),
     Node {
         name: String,
@@ -43,7 +43,7 @@ pub enum Field {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum Cardinality {
+pub(crate) enum Cardinality {
     /// This field may not exist in code
     Optional,
     /// This field should exist in correctly parsed code
@@ -53,22 +53,21 @@ pub enum Cardinality {
 }
 
 #[derive(Debug, Clone)]
-pub struct AstEnumSrc {
-    pub doc: Vec<String>,
-    pub name: String,
-    pub traits: Vec<String>,
-    pub variants: Vec<String>,
+pub(crate) struct AstEnumSrc {
+    pub(crate) doc: Vec<String>,
+    pub(crate) name: String,
+    pub(crate) traits: Vec<String>,
+    pub(crate) variants: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
-pub struct AstTokenEnumSrc {
-    pub doc: Vec<String>,
-    pub name: String,
-    pub variants: Vec<String>,
+pub(crate) struct AstTokenEnumSrc {
+    pub(crate) name: String,
+    pub(crate) variants: Vec<String>,
 }
 
 impl Field {
-    pub fn is_many(&self) -> bool {
+    pub(crate) fn is_many(&self) -> bool {
         matches!(
             self,
             Field::Node {
@@ -78,26 +77,26 @@ impl Field {
         )
     }
 
-    pub fn token_name(&self) -> Option<String> {
+    pub(crate) fn token_name(&self) -> Option<String> {
         match self {
             Field::Token(token) => Some(token.clone()),
             _ => None,
         }
     }
-    pub fn token_kind(&self, kinds: &KindsSrc) -> Option<TokenStream> {
+    pub(crate) fn token_kind(&self, kinds: &KindsSrc) -> Option<TokenStream> {
         match self {
             Field::Token(token) => Some(kinds.token(token).expect("token exists").reference()),
             _ => None,
         }
     }
-    pub fn is_token_enum(&self, grammar: &AstSrc) -> bool {
+    pub(crate) fn is_token_enum(&self, grammar: &AstSrc) -> bool {
         match self {
             Field::Node { ty, .. } => grammar.token_enums.iter().any(|e| &e.name == ty),
             _ => false,
         }
     }
 
-    pub fn method_name(&self, kinds: &KindsSrc) -> proc_macro2::Ident {
+    pub(crate) fn method_name(&self, kinds: &KindsSrc) -> proc_macro2::Ident {
         match self {
             Field::Token(name) => kinds
                 .token(name)
@@ -108,7 +107,7 @@ impl Field {
             }
         }
     }
-    pub fn ty(&self) -> proc_macro2::Ident {
+    pub(crate) fn ty(&self) -> proc_macro2::Ident {
         match self {
             Field::Token(_) => format_ident!("SyntaxToken"),
             Field::Node { ty, .. } => format_ident!("{}", ty),
@@ -116,7 +115,7 @@ impl Field {
     }
 }
 
-pub fn lower(kinds: &KindsSrc, grammar: &Grammar) -> AstSrc {
+pub(crate) fn lower(kinds: &KindsSrc, grammar: &Grammar) -> AstSrc {
     let mut res = AstSrc {
         // tokens,
         ..Default::default()
@@ -140,7 +139,6 @@ pub fn lower(kinds: &KindsSrc, grammar: &Grammar) -> AstSrc {
             None => match lower_token_enum(grammar, rule) {
                 Some(variants) => {
                     let tokens_enum_src = AstTokenEnumSrc {
-                        doc: Vec::new(),
                         name,
                         variants,
                     };

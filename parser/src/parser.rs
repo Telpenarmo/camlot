@@ -8,26 +8,26 @@ pub(crate) struct Parser<'t, 'input> {
 
 /// Transform the source into events
 impl<'t, 'input> Parser<'t, 'input> {
-    pub fn new(source: Source<'t, 'input>) -> Self {
+    pub(crate) fn new(source: Source<'t, 'input>) -> Self {
         Self {
             source,
             events: Vec::new(),
         }
     }
 
-    pub fn finish(self) -> Vec<Event> {
+    pub(crate) fn finish(self) -> Vec<Event> {
         self.events
     }
 
     /// Open a new node
-    pub fn open(&mut self) -> Marker {
+    pub(crate) fn open(&mut self) -> Marker {
         let pos = self.events.len();
         self.events.push(Event::UnmatchedOpen);
         Marker::new(pos)
     }
 
     /// Close a node
-    pub fn close(&mut self, marker: Marker, kind: SyntaxKind) -> CompletedMarker {
+    pub(crate) fn close(&mut self, marker: Marker, kind: SyntaxKind) -> CompletedMarker {
         let event_at_pos = &mut self.events[marker.pos];
         assert_eq!(*event_at_pos, Event::UnmatchedOpen);
 
@@ -42,7 +42,7 @@ impl<'t, 'input> Parser<'t, 'input> {
     }
 
     /// Open a new node above the given marker's node
-    pub fn open_before(&mut self, marker: CompletedMarker) -> Marker {
+    pub(crate) fn open_before(&mut self, marker: CompletedMarker) -> Marker {
         let new_m = self.open();
 
         if let Event::Open {
@@ -59,7 +59,7 @@ impl<'t, 'input> Parser<'t, 'input> {
     }
 
     /// Check if the current token is the given kind
-    pub fn at(&mut self, kind: SyntaxKind) -> bool {
+    pub(crate) fn at(&mut self, kind: SyntaxKind) -> bool {
         self.current() == kind
     }
 
@@ -69,13 +69,13 @@ impl<'t, 'input> Parser<'t, 'input> {
     }
 
     /// Advance to the next token
-    pub fn advance(&mut self) {
+    pub(crate) fn advance(&mut self) {
         self.source.bump();
         self.events.push(Event::Advance);
     }
 
     /// Advance if the current token is the given kind
-    pub fn eat(&mut self, kind: SyntaxKind) -> bool {
+    pub(crate) fn eat(&mut self, kind: SyntaxKind) -> bool {
         if self.at(kind) {
             self.advance();
             true
@@ -85,7 +85,7 @@ impl<'t, 'input> Parser<'t, 'input> {
     }
 
     /// Advance if the current token is the given kind, otherwise emit an error
-    pub fn expect(&mut self, kind: SyntaxKind) {
+    pub(crate) fn expect(&mut self, kind: SyntaxKind) {
         if self.eat(kind) {
             return;
         }
@@ -95,11 +95,11 @@ impl<'t, 'input> Parser<'t, 'input> {
         self.error(msg)
     }
 
-    pub fn error(&mut self, message: String) {
+    pub(crate) fn error(&mut self, message: String) {
         self.events.push(Event::Error(message));
     }
 
-    pub fn unexpected(&mut self) {
+    pub(crate) fn unexpected(&mut self) {
         let msg = format!("Unexpected token: {:#?}", self.current());
         eprintln!("{}", msg);
         self.error(msg)
@@ -136,7 +136,7 @@ impl Drop for Marker {
 }
 
 pub(crate) struct CompletedMarker {
-    pub pos: usize,
+    pub(crate) pos: usize,
 }
 
 #[cfg(test)]

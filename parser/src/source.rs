@@ -2,10 +2,10 @@ use std::{cell::Cell, ops::Range};
 
 use crate::SyntaxKind;
 
-pub struct Token<'input> {
-    pub kind: SyntaxKind,
-    pub text: &'input str,
-    pub range: Range<usize>,
+pub(crate) struct Token<'input> {
+    pub(crate) kind: SyntaxKind,
+    pub(crate) text: &'input str,
+    pub(crate) range: Range<usize>,
 }
 
 pub(crate) struct Source<'t, 'input> {
@@ -15,7 +15,7 @@ pub(crate) struct Source<'t, 'input> {
 }
 
 impl<'t, 'input> Source<'t, 'input> {
-    pub fn new(tokens: &'t [Token<'input>]) -> Self {
+    pub(crate) fn new(tokens: &'t [Token<'input>]) -> Self {
         Self {
             tokens,
             cursor: 0,
@@ -23,13 +23,13 @@ impl<'t, 'input> Source<'t, 'input> {
         }
     }
 
-    pub fn bump(&mut self) {
+    pub(crate) fn bump(&mut self) {
         assert!(self.current() != SyntaxKind::EOF);
         self.fuel.set(256);
         self.cursor += 1;
     }
 
-    pub fn current(&mut self) -> SyntaxKind {
+    pub(crate) fn current(&mut self) -> SyntaxKind {
         if self.fuel.get() == 0 {
             panic!("parser is stuck")
         }

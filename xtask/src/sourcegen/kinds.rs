@@ -1,13 +1,13 @@
 #[derive(Debug)]
-pub struct KindsSrc {
+pub(crate) struct KindsSrc {
     /// Key - how this token appears in ungrammar
     defined_tokens: IndexMap<String, TokenKind>,
     defined_node_names: HashSet<String>,
-    pub nodes: Vec<String>,
+    pub(crate) nodes: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
-pub enum TokenKind {
+pub(crate) enum TokenKind {
     /// Keyword - literal match of token
     Keyword {
         /// How this keyword appears in grammar/code, should be same as Kinds key
@@ -27,20 +27,20 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
-    pub fn grammar_name(&self) -> &str {
+    pub(crate) fn grammar_name(&self) -> &str {
         match self {
             TokenKind::Keyword { code, .. } => code,
             TokenKind::Literal { grammar_name, .. } => grammar_name,
         }
     }
     /// How this keyword should appear in kinds enum, screaming snake cased
-    pub fn name(&self) -> String {
+    pub(crate) fn name(&self) -> String {
         match self {
             TokenKind::Keyword { name, .. } => name.to_uppercase(),
             TokenKind::Literal { name, .. } => name.to_uppercase(),
         }
     }
-    pub fn expand_kind(&self) -> TokenStream {
+    pub(crate) fn expand_kind(&self) -> TokenStream {
         let name = format_ident!("{}", self.name());
         let attr = match self {
             TokenKind::Keyword { code, .. } => quote! {#[token(#code)]},
@@ -59,13 +59,13 @@ impl TokenKind {
     }
 
     /// How this token should be referenced in code
-    pub fn reference(&self) -> TokenStream {
+    pub(crate) fn reference(&self) -> TokenStream {
         let name = self.name();
         let ident = format_ident!("{name}");
         quote! {#ident}
     }
 
-    pub fn method_name(&self) -> Ident {
+    pub(crate) fn method_name(&self) -> Ident {
         match self {
             TokenKind::Keyword { name, .. } => {
                 format_ident!("{}_token", name.to_lowercase())
@@ -99,20 +99,20 @@ macro_rules! define_kinds {
 }
 use std::{collections::HashSet, str::FromStr};
 
-pub use define_kinds;
+pub(crate) use define_kinds;
 use indexmap::IndexMap;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 
 impl KindsSrc {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             defined_tokens: IndexMap::new(),
             defined_node_names: HashSet::new(),
             nodes: Vec::new(),
         }
     }
-    pub fn define_token(&mut self, token: TokenKind) {
+    pub(crate) fn define_token(&mut self, token: TokenKind) {
         assert!(
             self.defined_node_names.insert(token.name().to_owned()),
             "node name already defined: {}",
@@ -126,7 +126,7 @@ impl KindsSrc {
             token.grammar_name()
         )
     }
-    pub fn define_node(&mut self, node: &str) {
+    pub(crate) fn define_node(&mut self, node: &str) {
         assert!(
             self.defined_node_names.insert(node.to_owned()),
             "node name already defined: {}",
@@ -134,18 +134,18 @@ impl KindsSrc {
         );
         self.nodes.push(node.to_string())
     }
-    pub fn token(&self, tok: &str) -> Option<&TokenKind> {
+    pub(crate) fn token(&self, tok: &str) -> Option<&TokenKind> {
         self.defined_tokens.get(tok)
     }
-    pub fn is_token(&self, tok: &str) -> bool {
+    pub(crate) fn is_token(&self, tok: &str) -> bool {
         self.defined_tokens.contains_key(tok)
     }
-    pub fn tokens(&self) -> impl Iterator<Item = &TokenKind> {
+    pub(crate) fn tokens(&self) -> impl Iterator<Item = &TokenKind> {
         self.defined_tokens.iter().map(|(_, v)| v)
     }
 }
 
-pub fn kinds() -> KindsSrc {
+pub(crate) fn kinds() -> KindsSrc {
     let mut kinds = KindsSrc::new();
     define_kinds![kinds =
         "(" => "L_Paren";

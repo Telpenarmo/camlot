@@ -25,7 +25,7 @@ impl Server {
         }
     }
 
-    pub fn send_notification<N>(&self, params: N::Params)
+    pub(crate) fn send_notification<N>(&self, params: N::Params)
     where
         N: lsp_types::notification::Notification,
     {
@@ -34,7 +34,7 @@ impl Server {
         self.send_message(msg);
     }
 
-    pub fn send_response(&self, response: Response) {
+    pub(crate) fn send_response(&self, response: Response) {
         self.send_message(Message::Response(response));
     }
 }
@@ -52,7 +52,7 @@ impl Server {
         }
     }
 
-    pub fn initialize(
+    pub(crate) fn initialize(
         &self,
         server_capabilities: ServerCapabilities,
     ) -> Result<InitializeParams, lsp_server::ProtocolError> {
@@ -62,7 +62,7 @@ impl Server {
             .map(|it| serde_json::from_value(it).unwrap())
     }
 
-    pub fn run(self, _params: InitializeParams) -> Result<(), Box<dyn Error + Sync + Send>> {
+    pub(crate) fn run(self, _params: InitializeParams) -> Result<(), Box<dyn Error + Sync + Send>> {
         eprintln!("starting example main loop");
         for msg in &self.connection.receiver {
             eprintln!("got msg: {msg:?}");
@@ -89,7 +89,7 @@ impl Server {
     }
 }
 
-pub struct ServerBuilder {
+pub(crate) struct ServerBuilder {
     request_handlers: HashMap<String, RequestHandler>,
     notification_handlers: HashMap<String, NotificationHandler>,
 }
@@ -102,7 +102,7 @@ impl ServerBuilder {
         }
     }
 
-    pub fn build(self, connection: Connection) -> Server {
+    pub(crate) fn build(self, connection: Connection) -> Server {
         Server {
             connection,
             request_handlers: self.request_handlers,
@@ -112,7 +112,7 @@ impl ServerBuilder {
 }
 
 impl ServerBuilder {
-    pub fn register_request<R, F>(&mut self, handler: F)
+    pub(crate) fn register_request<R, F>(&mut self, handler: F)
     where
         R: lsp_types::request::Request,
         R::Params: serde::de::DeserializeOwned,
@@ -142,7 +142,7 @@ impl ServerBuilder {
         );
     }
 
-    pub fn register_notification<N, F>(&mut self, handler: F)
+    pub(crate) fn register_notification<N, F>(&mut self, handler: F)
     where
         N: lsp_types::notification::Notification,
         F: Fn(N::Params, &Server) + 'static,

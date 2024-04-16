@@ -15,7 +15,7 @@ mod ast;
 mod kinds;
 mod util;
 
-pub fn generate_ungrammar() -> Result<()> {
+pub(crate) fn generate_ungrammar() -> Result<()> {
     let grammar: Grammar = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../parser/rideml.ungram"

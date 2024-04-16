@@ -52,10 +52,10 @@ pub(crate) fn handle_did_change_text_document_params(
     lsp.send_notification::<PublishDiagnostics>(params);
 }
 
-pub enum SyntaxTree {}
+pub(crate) enum SyntaxTree {}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub struct SyntaxTreeParams {
+pub(crate) struct SyntaxTreeParams {
     text_document: lsp_types::TextDocumentIdentifier,
 }
 
@@ -65,7 +65,7 @@ impl lsp_types::request::Request for SyntaxTree {
     const METHOD: &'static str = "rideml-analyzer/syntaxTree";
 }
 
-pub fn handle_syntax_tree_request(
+pub(crate) fn handle_syntax_tree_request(
     req: &SyntaxTreeParams,
     _lsp: &Server,
 ) -> Result<String, ResponseError> {

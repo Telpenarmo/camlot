@@ -5,7 +5,7 @@ use xshell::{cmd, Shell};
 
 /// Checks that the `file` has the specified `contents`. If that is not the
 /// case, updates the file and then fails the test.
-pub fn ensure_file_contents(file: &Path, contents: &str) -> Result<()> {
+pub(crate) fn ensure_file_contents(file: &Path, contents: &str) -> Result<()> {
     if let Ok(old_contents) = fs::read_to_string(file) {
         if normalize_newlines(&old_contents) == normalize_newlines(contents) {
             // File is already up to date.
@@ -30,7 +30,7 @@ pub(crate) fn pluralize(s: &str) -> String {
     format!("{}s", s)
 }
 
-pub fn to_upper_snake_case(s: &str) -> String {
+pub(crate) fn to_upper_snake_case(s: &str) -> String {
     let mut buf = String::with_capacity(s.len());
     let mut prev = false;
     for c in s.chars() {
@@ -43,7 +43,7 @@ pub fn to_upper_snake_case(s: &str) -> String {
     }
     buf
 }
-pub fn to_lower_snake_case(s: &str) -> String {
+pub(crate) fn to_lower_snake_case(s: &str) -> String {
     let mut buf = String::with_capacity(s.len());
     let mut prev = false;
     for c in s.chars() {
@@ -57,7 +57,7 @@ pub fn to_lower_snake_case(s: &str) -> String {
     buf
 }
 
-pub fn to_pascal_case(s: &str) -> String {
+pub(crate) fn to_pascal_case(s: &str) -> String {
     let mut buf = String::with_capacity(s.len());
     let mut prev_is_underscore = true;
     for c in s.chars() {
@@ -73,7 +73,7 @@ pub fn to_pascal_case(s: &str) -> String {
     buf
 }
 
-pub fn reformat(text: &str) -> Result<String> {
+pub(crate) fn reformat(text: &str) -> Result<String> {
     // let _e = pushenv("RUSTUP_TOOLCHAIN", "stable");
     // rustfmt()?;
     let sh = Shell::new()?;
