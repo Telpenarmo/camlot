@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings -W unreachable-pub -W rust-2021-compatibility"
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Compile
+      run: cargo test --no-run --locked
+    - name: Test
+      run: cargo test -- --nocapture --quiet
