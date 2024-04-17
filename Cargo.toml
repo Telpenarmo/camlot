@@ -2,17 +2,11 @@
 
 resolver = "2"
 
-members = [
-    "xtask",
-    "parser",
-    "core",
-    "server",
-    "analysis",
- ]
+members = ["xtask", "crates/*"]
 
 [workspace.dependencies]
-parser = { path = "./parser", version = "0.1.0" }
-analysis = { path = "./analysis", version = "0.1.0" }
+parser = { path = "./crates/parser", version = "0.1.0" }
+analysis = { path = "./crates/analysis", version = "0.1.0" }
 
 anyhow = "1.0.75"
 indexmap = "2.1.0"

@@ -18,7 +18,7 @@ mod util;
 pub(crate) fn generate_ungrammar() -> Result<()> {
     let grammar: Grammar = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../parser/rideml.ungram"
+        "/../crates/parser/rideml.ungram"
     ))
     .parse()?;
 
@@ -56,14 +56,14 @@ pub(crate) fn generate_ungrammar() -> Result<()> {
     ensure_file_contents(
         &PathBuf::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../parser/src/generated/syntax_kinds.rs",
+            "/../crates/parser/src/generated/syntax_kinds.rs",
         )),
         &syntax_kinds,
     )?;
     ensure_file_contents(
         &PathBuf::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../parser/src/generated/nodes.rs",
+            "/../crates/parser/src/generated/nodes.rs",
         )),
         &nodes,
     )?;
