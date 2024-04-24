@@ -7,7 +7,7 @@ use crate::{
 pub(crate) fn expr(parser: &mut Parser) {
     if parser.at(SyntaxKind::LET_KW) {
         let_expr(parser);
-    } else if parser.at(SyntaxKind::LAMBDA) {
+    } else if parser.at(SyntaxKind::LAMBDA) || parser.at(SyntaxKind::BACKSLASH) {
         lambda_expr(parser);
     } else {
         let mut prev_mark = None;
@@ -63,10 +63,10 @@ fn literal_expr(parser: &mut Parser) -> CompletedMarker {
 }
 
 fn lambda_expr(parser: &mut Parser) -> CompletedMarker {
-    assert!(parser.at(SyntaxKind::LAMBDA));
+    assert!(parser.at(SyntaxKind::LAMBDA) || parser.at(SyntaxKind::BACKSLASH));
 
     let mark = parser.open();
-    parser.expect(SyntaxKind::LAMBDA);
+    let _ = parser.eat(SyntaxKind::LAMBDA) || parser.eat(SyntaxKind::BACKSLASH);
     params(parser);
     parser.expect(SyntaxKind::ARROW);
     expr(parser);
@@ -110,7 +110,7 @@ mod tests {
             r"\x -> x;",
             expect![[r#"
                 LAMBDA_EXPR@0..7
-                  LAMBDA@0..1 "\\"
+                  BACKSLASH@0..1 "\\"
                   PARAMS@1..3
                     PARAM@1..3
                       IDENT@1..2 "x"

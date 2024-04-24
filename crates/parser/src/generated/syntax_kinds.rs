@@ -41,7 +41,9 @@ pub enum SyntaxKind {
     STAR,
     #[token("/")]
     SLASH,
-    #[regex("λ|\\\\")]
+    #[token("\\")]
+    BACKSLASH,
+    #[token("λ")]
     LAMBDA,
     #[regex("(?:0|[1-9][0-9]*)")]
     INT,
@@ -94,7 +96,9 @@ impl SyntaxKind {
     pub fn is_keyword(self) -> bool {
         match self {
             L_PAREN | R_PAREN | COLON | SEMICOLON | COMMA | EQUAL | ARROW | EMPTY_PAREN | PLUS
-            | MINUS | STAR | SLASH | LET_KW | OPEN_KW | TYPE_KW | IN_KW => true,
+            | MINUS | STAR | SLASH | BACKSLASH | LAMBDA | LET_KW | OPEN_KW | TYPE_KW | IN_KW => {
+                true
+            }
             _ => false,
         }
     }

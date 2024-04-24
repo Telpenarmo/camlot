@@ -138,10 +138,7 @@ pub(crate) fn lower(kinds: &KindsSrc, grammar: &Grammar) -> AstSrc {
             }
             None => match lower_token_enum(grammar, rule) {
                 Some(variants) => {
-                    let tokens_enum_src = AstTokenEnumSrc {
-                        name,
-                        variants,
-                    };
+                    let tokens_enum_src = AstTokenEnumSrc { name, variants };
                     res.token_enums.push(tokens_enum_src);
                 }
                 None => {

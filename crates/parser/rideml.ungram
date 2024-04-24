@@ -30,7 +30,7 @@ Expr =
 IdentExpr = 'Ident'
 LiteralExpr = Literal
 AppExpr = func:Expr arg:Expr
-LambdaExpr = 'Lambda' Params '->' body:Expr
+LambdaExpr = ('λ' | '\\') Params '->' body:Expr
 LetExpr = 'let' 'Ident' Params '=' def:Expr 'in' body:Expr
 ParenExpr = '(' Expr ')'
 

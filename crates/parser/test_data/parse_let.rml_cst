@@ -8,7 +8,7 @@ MODULE@0..29
     EQUAL@6..7 "="
     WHITESPACE@7..8 " "
     LAMBDA_EXPR@8..28
-      LAMBDA@8..9 "\\"
+      BACKSLASH@8..9 "\\"
       PARAMS@9..11
         PARAM@9..11
           IDENT@9..10 "x"

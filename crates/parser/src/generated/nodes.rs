@@ -177,8 +177,11 @@ impl LambdaExpr {
     pub fn params(&self) -> Option<Params> {
         support::child(&self.syntax)
     }
-    pub fn lambda_lit(&self) -> Option<SyntaxToken> {
+    pub fn lambda_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, LAMBDA)
+    }
+    pub fn backslash_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, BACKSLASH)
     }
     pub fn arrow_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, ARROW)
