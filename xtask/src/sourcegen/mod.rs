@@ -262,7 +262,11 @@ fn generate_nodes(kinds: &KindsSrc, grammar: &AstSrc) -> Result<String> {
             let mut methods: Vec<TokenStream> = Vec::new();
             let node_name = to_lower_snake_case(&node.name);
 
-            for one_or_many in fields_by_type.values() {
+            for one_or_many in fields_by_type
+                .iter()
+                .sorted_by_key(|(k, _)| *k)
+                .map(|(_, v)| v)
+            {
                 match one_or_many {
                     OneOrMany::Single(field) => {
                         methods.push(generate_field_method(
