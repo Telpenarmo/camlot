@@ -4,7 +4,7 @@ use lsp_types::{
     DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
 };
 
-use analysis::get_diagnostics;
+use analysis::{get_diagnostics, get_semantic_tokens};
 
 use crate::server::Server;
 
@@ -72,4 +72,21 @@ pub(crate) fn handle_syntax_tree_request(
     let source = req.text_document.uri.path().to_string();
     let source = std::fs::read_to_string(source).unwrap();
     Ok(parser::parse(&source).debug_tree())
+}
+
+pub(crate) fn handle_semantic_tokens_full_request(
+    req: &lsp_types::SemanticTokensParams,
+    _lsp: &Server,
+) -> Result<Option<lsp_types::SemanticTokensResult>, ResponseError> {
+    let source = req.text_document.uri.path().to_string();
+    let source = std::fs::read_to_string(source).unwrap();
+
+    let tokens = get_semantic_tokens(&source);
+
+    Ok(Some(lsp_types::SemanticTokensResult::Tokens(
+        lsp_types::SemanticTokens {
+            result_id: None,
+            data: tokens,
+        },
+    )))
 }

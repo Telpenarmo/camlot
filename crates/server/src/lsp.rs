@@ -22,6 +22,10 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     server_builder
         .register_request::<handlers::SyntaxTree, _>(handlers::handle_syntax_tree_request);
 
+    server_builder.register_request::<lsp_types::request::SemanticTokensFullRequest, _>(
+        handlers::handle_semantic_tokens_full_request,
+    );
+
     server_builder.register_notification::<lsp_types::notification::DidOpenTextDocument, _>(
         handlers::handle_did_open_text_document_params,
     );
@@ -34,6 +38,18 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
         text_document_sync: Some(lsp_types::TextDocumentSyncCapability::Kind(
             lsp_types::TextDocumentSyncKind::FULL,
         )),
+        semantic_tokens_provider: Some(
+            lsp_types::SemanticTokensOptions {
+                legend: lsp_types::SemanticTokensLegend {
+                    token_types: analysis::SUPPORTED_TOKENS.to_vec(),
+                    token_modifiers: vec![],
+                },
+                full: Some(lsp_types::SemanticTokensFullOptions::Bool(true)),
+                range: Some(false),
+                work_done_progress_options: Default::default(),
+            }
+            .into(),
+        ),
         ..Default::default()
     };
 
