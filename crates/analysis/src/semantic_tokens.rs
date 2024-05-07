@@ -1,6 +1,8 @@
 use line_index::LineCol;
 use parser::{nodes, AstNode, SyntaxKind, SyntaxToken};
 
+use crate::Document;
+
 pub const SUPPORTED_TOKENS: &[lsp_types::SemanticTokenType] = &[
     lsp_types::SemanticTokenType::KEYWORD,
     lsp_types::SemanticTokenType::OPERATOR,
@@ -22,13 +24,13 @@ fn token_index(kind: lsp_types::SemanticTokenType) -> u32 {
         as u32
 }
 
-struct SemanticTokensBuilder {
-    line_index: line_index::LineIndex,
+struct SemanticTokensBuilder<'a> {
+    line_index: &'a line_index::LineIndex,
     prev_pos: line_index::LineCol,
 }
 
-impl SemanticTokensBuilder {
-    fn new(line_index: line_index::LineIndex) -> Self {
+impl<'a> SemanticTokensBuilder<'a> {
+    fn new(line_index: &'a line_index::LineIndex) -> Self {
         Self {
             line_index,
             prev_pos: line_index::LineCol { line: 0, col: 0 },
@@ -49,14 +51,10 @@ impl SemanticTokensBuilder {
     }
 }
 
-pub fn get_semantic_tokens(source: &str) -> Vec<lsp_types::SemanticToken> {
-    let parsed = parser::parse(source);
+pub fn get_semantic_tokens(doc: &Document) -> Vec<lsp_types::SemanticToken> {
+    let mut builder = SemanticTokensBuilder::new(doc.get_line_index());
 
-    let line_index = line_index::LineIndex::new(source);
-
-    let mut builder = SemanticTokensBuilder::new(line_index);
-
-    parsed
+    doc.parsed()
         .syntax()
         .descendants_with_tokens()
         .filter_map(|node| node.as_token().and_then(|token| builder.next(token)))

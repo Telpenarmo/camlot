@@ -1,9 +1,11 @@
 use std::ops::Range;
 
 mod diagnostics;
+mod document;
 mod semantic_tokens;
 
 pub use diagnostics::*;
+pub use document::*;
 pub use semantic_tokens::*;
 
 pub struct ErrorDiagnostic {

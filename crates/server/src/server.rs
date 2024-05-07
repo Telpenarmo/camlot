@@ -1,5 +1,6 @@
 use std::{collections::HashMap, error::Error};
 
+use analysis::Document;
 use lsp_server::{
     Connection, ExtractError, Message, Notification, Request, Response, ResponseError,
 };
@@ -7,14 +8,18 @@ use lsp_types::{InitializeParams, ServerCapabilities};
 
 use crate::lsp_utils;
 
-type RequestHandler = Box<dyn Fn(Request, &Server) -> Response>;
+type RequestHandler = Box<dyn Fn(Request, &Server, &Context) -> Response>;
 
-type NotificationHandler = Box<dyn Fn(Notification, &Server)>;
+type NotificationHandler = Box<dyn Fn(Notification, &Server, &mut Context)>;
 
 pub(crate) struct Server {
     connection: Connection,
     request_handlers: HashMap<String, RequestHandler>,
     notification_handlers: HashMap<String, NotificationHandler>,
+}
+
+pub(crate) struct Context {
+    documents: HashMap<String, Document>,
 }
 
 impl Server {
@@ -39,16 +44,36 @@ impl Server {
     }
 }
 
-impl Server {
-    fn handle_request(&self, req: Request) -> Option<Response> {
-        self.request_handlers
-            .get(&req.method)
-            .map(|handler| handler(req, self))
+impl Context {
+    pub(crate) fn add_document(&mut self, uri: String, text: String) {
+        self.documents.insert(uri, Document::new(text));
     }
 
-    fn handle_notification(&self, not: Notification) {
+    pub(crate) fn update_document(&mut self, uri: String, text: String) {
+        if let Some(doc) = self.documents.get_mut(&uri) {
+            doc.update(text);
+        }
+    }
+
+    pub(crate) fn get_document(&self, uri: &str) -> Option<&Document> {
+        self.documents.get(uri)
+    }
+    
+    pub(crate) fn remove_document(&mut self, path: String) {
+        self.documents.remove(&path);
+    }
+}
+
+impl Server {
+    fn handle_request(&self, ctx: &Context, req: Request) -> Option<Response> {
+        self.request_handlers
+            .get(&req.method)
+            .map(|handler| handler(req, self, ctx))
+    }
+
+    fn handle_notification(&self, ctx: &mut Context, not: Notification) {
         if let Some(handler) = self.notification_handlers.get(&not.method) {
-            handler(not, self)
+            handler(not, self, ctx)
         }
     }
 
@@ -64,6 +89,9 @@ impl Server {
 
     pub(crate) fn run(self, _params: InitializeParams) -> Result<(), Box<dyn Error + Sync + Send>> {
         eprintln!("starting example main loop");
+        let mut ctx = Context {
+            documents: HashMap::new(),
+        };
         for msg in &self.connection.receiver {
             eprintln!("got msg: {msg:?}");
             match msg {
@@ -72,7 +100,7 @@ impl Server {
                         return Ok(());
                     }
                     eprintln!("got request: {req:?}");
-                    if let Some(resp) = self.handle_request(req) {
+                    if let Some(resp) = self.handle_request(&ctx, req) {
                         self.send_response(resp);
                     };
                 }
@@ -81,7 +109,7 @@ impl Server {
                 }
                 Message::Notification(not) => {
                     eprintln!("got notification: {not:?}");
-                    self.handle_notification(not);
+                    self.handle_notification(&mut ctx, not);
                 }
             }
         }
@@ -116,12 +144,12 @@ impl ServerBuilder {
     where
         R: lsp_types::request::Request,
         R::Params: serde::de::DeserializeOwned,
-        F: Fn(&R::Params, &Server) -> Result<R::Result, ResponseError> + 'static,
+        F: Fn(&R::Params, &Server, &Context) -> Result<R::Result, ResponseError> + 'static,
     {
         self.request_handlers.insert(
             R::METHOD.into(),
-            Box::new(move |req, lsp| match lsp_utils::cast_req::<R>(req) {
-                Ok((id, params)) => match handler(&params, lsp) {
+            Box::new(move |req, lsp, ctx| match lsp_utils::cast_req::<R>(req) {
+                Ok((id, params)) => match handler(&params, lsp, ctx) {
                     Ok(result) => {
                         let result = serde_json::to_value(&result).unwrap();
                         Response {
@@ -145,12 +173,12 @@ impl ServerBuilder {
     pub(crate) fn register_notification<N, F>(&mut self, handler: F)
     where
         N: lsp_types::notification::Notification,
-        F: Fn(N::Params, &Server) + 'static,
+        F: Fn(N::Params, &Server, &mut Context) + 'static,
     {
         self.notification_handlers.insert(
             N::METHOD.into(),
-            Box::new(move |not, lsp| match lsp_utils::cast_not::<N>(not) {
-                Ok(params) => handler(params, lsp),
+            Box::new(move |not, lsp, ctx| match lsp_utils::cast_not::<N>(not) {
+                Ok(params) => handler(params, lsp, ctx),
                 Err(err @ ExtractError::JsonError { .. }) => panic!("{err:?}"),
                 Err(ExtractError::MethodMismatch(_)) => unreachable!(),
             }),

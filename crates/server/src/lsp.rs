@@ -34,6 +34,10 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
         handlers::handle_did_change_text_document_params,
     );
 
+    server_builder.register_notification::<lsp_types::notification::DidCloseTextDocument, _>(
+        handlers::handle_did_close_text_document_params,
+    );
+
     let server_capabilities = ServerCapabilities {
         text_document_sync: Some(lsp_types::TextDocumentSyncCapability::Kind(
             lsp_types::TextDocumentSyncKind::FULL,

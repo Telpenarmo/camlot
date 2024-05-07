@@ -6,15 +6,17 @@ use lsp_types::{
 
 use analysis::{get_diagnostics, get_semantic_tokens};
 
-use crate::server::Server;
+use crate::server::{Context, Server};
 
 pub(crate) fn handle_document_diagnostic_request(
     req: &lsp_types::DocumentDiagnosticParams,
     _lsp: &Server,
+    ctx: &Context,
 ) -> Result<DocumentDiagnosticReportResult, ResponseError> {
-    let source = req.text_document.uri.path().to_string();
-    let source = std::fs::read_to_string(source).unwrap();
-    let diagnostics = get_diagnostics(&source);
+    let path = req.text_document.uri.path().to_string();
+    let doc = ctx.get_document(&path).unwrap();
+
+    let diagnostics = get_diagnostics(doc);
     Ok(DocumentDiagnosticReportResult::Report(
         DocumentDiagnosticReport::Full(lsp_types::RelatedFullDocumentDiagnosticReport {
             related_documents: None,
@@ -29,8 +31,16 @@ pub(crate) fn handle_document_diagnostic_request(
 pub(crate) fn handle_did_open_text_document_params(
     params: lsp_types::DidOpenTextDocumentParams,
     lsp: &Server,
+    ctx: &mut Context,
 ) {
-    let diagnostics = get_diagnostics(&params.text_document.text);
+    ctx.add_document(
+        params.text_document.uri.path().to_string(),
+        params.text_document.text,
+    );
+
+    let doc = ctx.get_document(params.text_document.uri.path()).unwrap();
+
+    let diagnostics = get_diagnostics(doc);
     let params = PublishDiagnosticsParams {
         uri: params.text_document.uri,
         diagnostics,
@@ -42,14 +52,28 @@ pub(crate) fn handle_did_open_text_document_params(
 pub(crate) fn handle_did_change_text_document_params(
     params: lsp_types::DidChangeTextDocumentParams,
     lsp: &Server,
+    ctx: &mut Context,
 ) {
-    let diagnostics = get_diagnostics(&params.content_changes[0].text);
+    ctx.update_document(
+        params.text_document.uri.path().to_string(),
+        params.content_changes.last().unwrap().text.clone(),
+    );
+    let doc = ctx.get_document(params.text_document.uri.path()).unwrap();
+    let diagnostics = get_diagnostics(doc);
     let params = PublishDiagnosticsParams {
         uri: params.text_document.uri,
         diagnostics,
         version: None,
     };
     lsp.send_notification::<PublishDiagnostics>(params);
+}
+
+pub(crate) fn handle_did_close_text_document_params(
+    params: lsp_types::DidCloseTextDocumentParams,
+    _lsp: &Server,
+    ctx: &mut Context,
+) {
+    ctx.remove_document(params.text_document.uri.path().to_string());
 }
 
 pub(crate) enum SyntaxTree {}
@@ -68,20 +92,22 @@ impl lsp_types::request::Request for SyntaxTree {
 pub(crate) fn handle_syntax_tree_request(
     req: &SyntaxTreeParams,
     _lsp: &Server,
+    ctx: &Context,
 ) -> Result<String, ResponseError> {
-    let source = req.text_document.uri.path().to_string();
-    let source = std::fs::read_to_string(source).unwrap();
-    Ok(parser::parse(&source).debug_tree())
+    let path = req.text_document.uri.path().to_string();
+    let doc = ctx.get_document(&path).unwrap();
+    Ok(doc.parsed().debug_tree())
 }
 
 pub(crate) fn handle_semantic_tokens_full_request(
     req: &lsp_types::SemanticTokensParams,
     _lsp: &Server,
+    ctx: &Context,
 ) -> Result<Option<lsp_types::SemanticTokensResult>, ResponseError> {
-    let source = req.text_document.uri.path().to_string();
-    let source = std::fs::read_to_string(source).unwrap();
+    let path = req.text_document.uri.path().to_string();
+    let doc = ctx.get_document(&path).unwrap();
 
-    let tokens = get_semantic_tokens(&source);
+    let tokens = get_semantic_tokens(doc);
 
     Ok(Some(lsp_types::SemanticTokensResult::Tokens(
         lsp_types::SemanticTokens {
