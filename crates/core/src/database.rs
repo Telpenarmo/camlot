@@ -140,7 +140,19 @@ impl Database {
                 let params = self.lower_params(ast.params());
                 let body = self.lower_expr(ast.body());
                 let body = self.alloc_expr(body);
-                Expr::LambdaExpr { params, body }
+
+                let tail_param = params
+                    .last()
+                    .map(|param| param.clone())
+                    .unwrap_or(Param::empty());
+                let param = Box::new(tail_param);
+
+                let body = Expr::LambdaExpr { param, body };
+                params.into_iter().rev().skip(1).fold(body, |body, param| {
+                    let body = self.alloc_expr(body);
+                    let param = Box::new(param.clone());
+                    Expr::LambdaExpr { param, body }
+                })
             }
             ast::Expr::LetExpr(ast) => ast.ident_lit().map_or(Expr::Missing, |ident| {
                 let name = ident.text().into();
@@ -197,7 +209,7 @@ impl Database {
 
 #[cfg(test)]
 mod tests {
-    use crate::Expr;
+    use crate::{Expr, Param};
 
     fn check_expr(text: &str, expected_database: super::Database) {
         let module_syntax = parser::parse(&format!("let x = {};", text)).module();
@@ -228,17 +240,23 @@ mod tests {
     #[test]
     fn lower_lambda() {
         let mut database = super::Database::default();
-        let param = crate::Param {
+        let param = Param {
             name: "x".into(),
             typ: None,
         };
-        let param2 = crate::Param {
+        let param2 = Param {
             name: "y".into(),
             typ: None,
         };
-        let params = vec![param, param2].into_boxed_slice();
         let body = database.alloc_expr(Expr::IdentExpr { name: "x".into() });
-        database.alloc_expr(Expr::LambdaExpr { params, body });
+        let inner = database.alloc_expr(Expr::LambdaExpr {
+            param: Box::new(param2),
+            body,
+        });
+        let _outer = database.alloc_expr(Expr::LambdaExpr {
+            param: Box::new(param),
+            body: inner,
+        });
 
         check_expr("\\x y -> x", database);
     }
@@ -246,7 +264,7 @@ mod tests {
     #[test]
     fn lower_let() {
         let mut database = super::Database::default();
-        let param = crate::Param {
+        let param = Param {
             name: "b".into(),
             typ: None,
         };
@@ -267,13 +285,15 @@ mod tests {
     #[test]
     fn lower_lambda_missing_type() {
         let mut database = super::Database::default();
-        let param = crate::Param {
+        let param = Param {
             name: "x".into(),
             typ: None,
         };
-        let params = vec![param].into_boxed_slice();
         let body = database.alloc_expr(Expr::IdentExpr { name: "x".into() });
-        database.alloc_expr(Expr::LambdaExpr { params, body });
+        database.alloc_expr(Expr::LambdaExpr {
+            param: Box::new(param),
+            body,
+        });
 
         check_expr("\\x -> x", database);
     }
@@ -281,14 +301,13 @@ mod tests {
     #[test]
     fn lower_lambda_missing_body() {
         let mut database = super::Database::default();
-        let param = crate::Param {
+        let param = Param {
             name: "x".into(),
             typ: None,
         };
-        let params = vec![param].into_boxed_slice();
 
         database.alloc_expr(Expr::LambdaExpr {
-            params,
+            param: Box::new(param),
             body: database.missing_expr_id(),
         });
 
@@ -299,8 +318,8 @@ mod tests {
     fn lower_lambda_missing_params() {
         let mut database = super::Database::default();
         let body = database.alloc_expr(Expr::IdentExpr { name: "x".into() });
-        let params = vec![].into_boxed_slice();
-        database.alloc_expr(Expr::LambdaExpr { params, body });
+        let param = Box::new(Param::empty());
+        database.alloc_expr(Expr::LambdaExpr { param, body });
 
         check_expr("\\-> x", database);
     }
@@ -308,7 +327,7 @@ mod tests {
     #[test]
     fn lower_let_missing_defn() {
         let mut database = super::Database::default();
-        let param = crate::Param {
+        let param = Param {
             name: "b".into(),
             typ: None,
         };
@@ -327,7 +346,7 @@ mod tests {
     #[test]
     fn lower_let_missing_body() {
         let mut database = super::Database::default();
-        let param = crate::Param {
+        let param = Param {
             name: "b".into(),
             typ: None,
         };

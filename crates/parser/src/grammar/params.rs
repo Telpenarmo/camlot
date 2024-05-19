@@ -15,16 +15,14 @@ pub(crate) fn params(parser: &mut Parser) -> CompletedMarker {
 fn param(parser: &mut Parser) -> CompletedMarker {
     let mark = parser.open();
 
-    if parser.at(SyntaxKind::IDENT) {
-        parser.advance()
-    } else if parser.at(SyntaxKind::L_PAREN) {
-        parser.advance();
+    if parser.eat(SyntaxKind::IDENT) {
+    } else if parser.eat(SyntaxKind::L_PAREN) {
         parser.expect(SyntaxKind::IDENT);
         parser.expect(SyntaxKind::COLON);
         type_expr::type_expr(parser);
         parser.expect(SyntaxKind::R_PAREN);
     } else {
-        unreachable!()
+        parser.error("Expected parameter".to_string());
     }
     parser.close(mark, SyntaxKind::PARAM)
 }

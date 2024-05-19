@@ -28,7 +28,7 @@ pub enum Expr {
     Missing,
     LetExpr(Box<LetExpr>),
     IdentExpr { name: String },
-    LambdaExpr { params: Box<[Param]>, body: ExprIdx },
+    LambdaExpr { param: Box<Param>, body: ExprIdx },
     AppExpr { func: ExprIdx, arg: ExprIdx },
     LiteralExpr(Literal),
 }
@@ -57,8 +57,19 @@ pub enum Literal {
 }
 
 #[allow(unused)]
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Param {
     pub(crate) name: String,
     pub(crate) typ: Option<TypeExprIdx>,
+}
+
+impl Param {
+    /// Empty, "fake" parameter, used when no actual parameter is present,
+    /// but HIR requires at least one (e.g. in lambdas).
+    pub fn empty() -> Param {
+        Param {
+            name: "".to_owned(),
+            typ: None,
+        }
+    }
 }
