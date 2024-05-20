@@ -10,4 +10,5 @@ itertools.workspace = true
 proc-macro2.workspace = true
 quote.workspace = true
 ungrammar.workspace = true
+xflags.workspace = true
 xshell.workspace = true
