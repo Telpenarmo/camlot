@@ -93,7 +93,6 @@ impl Server {
             documents: HashMap::new(),
         };
         for msg in &self.connection.receiver {
-            eprintln!("got msg: {msg:?}");
             match msg {
                 Message::Request(req) => {
                     if self.connection.handle_shutdown(&req)? {

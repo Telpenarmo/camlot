@@ -45,9 +45,12 @@ impl<'a> SemanticTokensBuilder<'a> {
         let prev = self.prev_pos;
         let start = self.line_index.line_col(start);
 
-        self.prev_pos = start;
-
-        get_semantic_token_type(token).map(|kind| make_semantic_token(prev, start, length, kind))
+        if let Some(kind) = get_semantic_token_type(token) {
+            self.prev_pos = start;
+            Some(make_semantic_token(prev, start, length, kind))
+        } else {
+            None
+        }
     }
 }
 
