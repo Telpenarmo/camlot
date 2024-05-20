@@ -280,6 +280,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
+name = "rideml-server"
+version = "0.1.0"
+dependencies = [
+ "analysis",
+ "line-index",
+ "logos",
+ "lsp-server",
+ "lsp-types",
+ "parser",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "rowan"
 version = "0.15.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -344,20 +358,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.48",
-]
-
-[[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "analysis",
- "line-index",
- "logos",
- "lsp-server",
- "lsp-types",
- "parser",
- "serde",
- "serde_json",
 ]
 
 [[package]]

@@ -58,7 +58,7 @@ impl Context {
     pub(crate) fn get_document(&self, uri: &str) -> Option<&Document> {
         self.documents.get(uri)
     }
-    
+
     pub(crate) fn remove_document(&mut self, path: String) {
         self.documents.remove(&path);
     }

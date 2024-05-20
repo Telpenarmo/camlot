@@ -11,6 +11,9 @@
   ],
   "activationEvents": [],
   "main": "./out/extension.js",
+  "author": "Telpenarmo",
+  "publisher": "Telpenarmo",
+  "repository": "https://github.com/Telpenarmo/rideml",
   "contributes": {
     "languages": [
       {
@@ -31,12 +34,14 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "pnpm run compile",
+    "vscode:prepublish": "pnpm run esbuild-base --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm run compile && pnpm run lint",
     "lint": "eslint src --ext ts",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package": "vsce package --no-dependencies --skip-license -o out/rideml-analyzer.vsix"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
@@ -46,6 +51,8 @@
     "@typescript-eslint/parser": "^6.15.0",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^2.26.1",
+    "esbuild": "^0.21.3",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"
   },
