@@ -75,7 +75,13 @@ fn generate_syntax_kinds(kinds: &KindsSrc, grammar: &AstSrc) -> Result<String> {
 
     let keywords = kinds
         .tokens()
-        .filter(|k| matches!(k, TokenKind::Keyword { .. }))
+        .filter(|k| matches!(k, TokenKind::Keyword { name, .. } if name.ends_with("_KW")))
+        .map(TokenKind::name)
+        .map(|n| format_ident!("{n}"));
+
+    let operators = kinds
+        .tokens()
+        .filter(|k| matches!(k, TokenKind::Keyword { name, .. } if !name.ends_with("_KW")))
         .map(TokenKind::name)
         .map(|n| format_ident!("{n}"));
 
@@ -123,6 +129,13 @@ fn generate_syntax_kinds(kinds: &KindsSrc, grammar: &AstSrc) -> Result<String> {
             pub fn is_keyword(self) -> bool {
                 match self {
                     #(#keywords)|* => true,
+                    _ => false,
+                }
+            }
+
+            pub fn is_operator(self) -> bool {
+                match self {
+                    #(#operators)|* => true,
                     _ => false,
                 }
             }

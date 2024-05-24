@@ -97,6 +97,7 @@ fn get_semantic_token_type(token: &SyntaxToken) -> Option<lsp_types::SemanticTok
     let parent = token.parent();
     let parent = parent.as_ref();
     match token.kind() {
+        kw if kw.is_operator() => Some(lsp_types::SemanticTokenType::OPERATOR),
         kw if kw.is_keyword() => Some(lsp_types::SemanticTokenType::KEYWORD),
         SyntaxKind::COMMENT => Some(lsp_types::SemanticTokenType::COMMENT),
         SyntaxKind::INT => Some(lsp_types::SemanticTokenType::NUMBER),

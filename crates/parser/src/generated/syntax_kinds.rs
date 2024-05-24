@@ -95,10 +95,14 @@ use self::SyntaxKind::*;
 impl SyntaxKind {
     pub fn is_keyword(self) -> bool {
         match self {
+            LET_KW | OPEN_KW | TYPE_KW | IN_KW => true,
+            _ => false,
+        }
+    }
+    pub fn is_operator(self) -> bool {
+        match self {
             L_PAREN | R_PAREN | COLON | SEMICOLON | COMMA | EQUAL | ARROW | EMPTY_PAREN | PLUS
-            | MINUS | STAR | SLASH | BACKSLASH | LAMBDA | LET_KW | OPEN_KW | TYPE_KW | IN_KW => {
-                true
-            }
+            | MINUS | STAR | SLASH | BACKSLASH | LAMBDA => true,
             _ => false,
         }
     }
