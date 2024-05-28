@@ -127,7 +127,7 @@ mod tests {
     fn parse_let() {
         eprintln!("{}", std::env::current_dir().unwrap().display());
         check_file(
-            r"let f = \x -> let y = x in y;",
+            r"def f = \x -> let y = x in y;",
             expect_file!["../../test_data/parse_let.rml_cst"],
         );
     }
@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn parse_let_nested() {
         check_file(
-            r"let a = let x = 5 in let y = x in y;",
+            r"def a = let x = 5 in let y = x in y;",
             expect_file!["../../test_data/parse_let_nested.rml_cst"],
         )
     }

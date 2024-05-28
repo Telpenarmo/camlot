@@ -1,6 +1,6 @@
 MODULE@0..29
-  LET_DECL@0..29
-    LET_KW@0..3 "let"
+  DEF_DECL@0..29
+    DEF_KW@0..3 "def"
     WHITESPACE@3..4 " "
     IDENT@4..5 "f"
     WHITESPACE@5..6 " "

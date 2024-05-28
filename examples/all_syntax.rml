@@ -6,21 +6,21 @@ type t2 = a -> b;
 type t3 = a -> b -> c;
 type t4 = (a -> b) -> c;
 
-let x = 42;
+def x = 42;
 
-let const_42 = \(x: t) -> 42;
-let const_42_2 (x: t) = 42;
+def const_42 = \(x: t) -> 42;
+def const_42_2 (x: t) = 42;
 
-let id = \x -> x;
-let id2 x = x;
+def id = \x -> x;
+def id2 x = x;
 
-let const x y = x;
-let const2 x = \x -> x;
-let const3 = \x y -> x;
-let const4 = \x (y: t) -> x;
-let const5 = \x -> \y -> x;
+def const x y = x;
+def const2 x = \x -> x;
+def const3 = \x y -> x;
+def const4 = \x (y: t) -> x;
+def const5 = \x -> \y -> x;
 
-let f =
+def f =
     let a = 1 in
     let f = \x y -> x in
     let g x y = x in

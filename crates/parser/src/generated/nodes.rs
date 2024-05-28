@@ -19,18 +19,18 @@ impl Module {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct LetDecl {
+pub struct DefDecl {
     pub(crate) syntax: SyntaxNode,
 }
-impl LetDecl {
+impl DefDecl {
     pub fn expr(&self) -> Option<Expr> {
         support::child(&self.syntax)
     }
     pub fn params(&self) -> Option<Params> {
         support::child(&self.syntax)
     }
-    pub fn let_kw_token(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, LET_KW)
+    pub fn def_kw_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, DEF_KW)
     }
     pub fn ident_lit(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, IDENT)
@@ -272,7 +272,7 @@ impl Param {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
-    LetDecl(LetDecl),
+    DefDecl(DefDecl),
     OpenDecl(OpenDecl),
     TypeDecl(TypeDecl),
 }
@@ -335,9 +335,9 @@ impl AstNode for Module {
         &self.syntax
     }
 }
-impl AstNode for LetDecl {
+impl AstNode for DefDecl {
     fn can_cast(kind: SyntaxKind) -> bool {
-        kind == LET_DECL
+        kind == DEF_DECL
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -560,9 +560,9 @@ impl AstNode for Param {
         &self.syntax
     }
 }
-impl From<LetDecl> for Decl {
-    fn from(node: LetDecl) -> Decl {
-        Decl::LetDecl(node)
+impl From<DefDecl> for Decl {
+    fn from(node: DefDecl) -> Decl {
+        Decl::DefDecl(node)
     }
 }
 impl From<OpenDecl> for Decl {
@@ -578,13 +578,13 @@ impl From<TypeDecl> for Decl {
 impl AstNode for Decl {
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            LET_DECL | OPEN_DECL | TYPE_DECL => true,
+            DEF_DECL | OPEN_DECL | TYPE_DECL => true,
             _ => false,
         }
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
-            LET_DECL => Decl::LetDecl(LetDecl { syntax }),
+            DEF_DECL => Decl::DefDecl(DefDecl { syntax }),
             OPEN_DECL => Decl::OpenDecl(OpenDecl { syntax }),
             TYPE_DECL => Decl::TypeDecl(TypeDecl { syntax }),
             _ => return None,
@@ -593,7 +593,7 @@ impl AstNode for Decl {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Decl::LetDecl(it) => &it.syntax,
+            Decl::DefDecl(it) => &it.syntax,
             Decl::OpenDecl(it) => &it.syntax,
             Decl::TypeDecl(it) => &it.syntax,
         }
@@ -804,7 +804,7 @@ impl std::fmt::Display for Module {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for LetDecl {
+impl std::fmt::Display for DefDecl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

@@ -55,12 +55,14 @@ pub enum SyntaxKind {
     WHITESPACE,
     #[regex("#[^\\r\\n]*(\\r\\n|\\n)?")]
     COMMENT,
-    #[token("let")]
-    LET_KW,
+    #[token("def")]
+    DEF_KW,
     #[token("open")]
     OPEN_KW,
     #[token("type")]
     TYPE_KW,
+    #[token("let")]
+    LET_KW,
     #[token("in")]
     IN_KW,
     #[doc = r" Also acts as __LAST_TOKEN"]
@@ -68,7 +70,7 @@ pub enum SyntaxKind {
     LEXING_ERROR,
     ERROR,
     MODULE,
-    LET_DECL,
+    DEF_DECL,
     OPEN_DECL,
     TYPE_DECL,
     PARAMS,
@@ -95,7 +97,7 @@ use self::SyntaxKind::*;
 impl SyntaxKind {
     pub fn is_keyword(self) -> bool {
         match self {
-            LET_KW | OPEN_KW | TYPE_KW | IN_KW => true,
+            DEF_KW | OPEN_KW | TYPE_KW | LET_KW | IN_KW => true,
             _ => false,
         }
     }

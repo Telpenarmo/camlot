@@ -1,11 +1,11 @@
 Module = Decl*
 
 Decl =
-  LetDecl
+  DefDecl
 | OpenDecl
 | TypeDecl
 
-LetDecl = 'let' 'Ident' Params '=' Expr ';'
+DefDecl = 'def' 'Ident' Params '=' Expr ';'
 OpenDecl = 'open' 'Ident' ';'
 TypeDecl = 'type' 'Ident' '=' TypeExpr ';'
 

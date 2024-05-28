@@ -108,7 +108,7 @@ fn get_semantic_token_type(token: &SyntaxToken) -> Option<lsp_types::SemanticTok
             }
             Some(SyntaxKind::OPEN_DECL) => Some(lsp_types::SemanticTokenType::NAMESPACE),
             Some(SyntaxKind::PARAM) => Some(lsp_types::SemanticTokenType::PARAMETER),
-            Some(SyntaxKind::LET_DECL) => Some(lsp_types::SemanticTokenType::FUNCTION),
+            Some(SyntaxKind::DEF_DECL) => Some(lsp_types::SemanticTokenType::FUNCTION),
             Some(SyntaxKind::LET_EXPR)
                 if parent.is_some_and(|n| {
                     nodes::LetExpr::cast(n.clone()).is_some_and(|let_expr| {
@@ -178,8 +178,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_semantic_tokens_in_let_func() {
-        let text = "let f g = g a 1;";
+    fn test_get_semantic_tokens_in_def_func() {
+        let text = "def f g = g a 1;";
         let document = Document::new(text.to_string());
         let tokens = get_semantic_tokens(&document);
 

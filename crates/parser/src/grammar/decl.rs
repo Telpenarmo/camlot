@@ -8,7 +8,7 @@ pub(crate) fn decl(parser: &mut Parser) {
     fn eat_error(parser: &mut Parser) {
         loop {
             if parser.at(SyntaxKind::EOF)
-                || parser.at(SyntaxKind::LET_KW)
+                || parser.at(SyntaxKind::DEF_KW)
                 || parser.at(SyntaxKind::TYPE_KW)
                 || parser.at(SyntaxKind::OPEN_KW)
             {
@@ -23,8 +23,8 @@ pub(crate) fn decl(parser: &mut Parser) {
         }
     }
 
-    if parser.at(SyntaxKind::LET_KW) {
-        let_decl(parser);
+    if parser.at(SyntaxKind::DEF_KW) {
+        def_decl(parser);
     } else if parser.at(SyntaxKind::TYPE_KW) {
         type_decl(parser);
     } else if parser.at(SyntaxKind::OPEN_KW) {
@@ -58,16 +58,16 @@ fn type_decl(parser: &mut Parser) {
     parser.close(mark, SyntaxKind::TYPE_DECL);
 }
 
-fn let_decl(parser: &mut Parser) {
-    assert!(parser.at(SyntaxKind::LET_KW));
+fn def_decl(parser: &mut Parser) {
+    assert!(parser.at(SyntaxKind::DEF_KW));
 
     let mark = parser.open();
-    parser.expect(SyntaxKind::LET_KW);
+    parser.expect(SyntaxKind::DEF_KW);
     parser.expect(SyntaxKind::IDENT);
     params::params(parser);
     parser.expect(SyntaxKind::EQUAL);
     expr::expr(parser);
     parser.expect(SyntaxKind::SEMICOLON);
 
-    parser.close(mark, SyntaxKind::LET_DECL);
+    parser.close(mark, SyntaxKind::DEF_DECL);
 }

@@ -47,7 +47,7 @@ impl Database {
 
     fn lower_decl(&mut self, ast: ast::Decl) -> Option<Declaration> {
         Some(match ast {
-            ast::Decl::LetDecl(ast) => {
+            ast::Decl::DefDecl(ast) => {
                 let params = self.lower_params(ast.params());
                 let defn = self.lower_expr(ast.expr());
                 let defn = self.alloc_expr(defn);
@@ -212,7 +212,7 @@ mod tests {
     use crate::{Expr, Param};
 
     fn check_expr(text: &str, expected_database: super::Database) {
-        let module_syntax = parser::parse(&format!("let x = {};", text)).module();
+        let module_syntax = parser::parse(&format!("def x = {};", text)).module();
         let mut db = super::Database::default();
 
         db.lower_module(module_syntax);
