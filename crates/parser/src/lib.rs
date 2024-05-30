@@ -28,6 +28,7 @@ pub struct Parse {
     pub errors: Vec<SyntaxError>,
 }
 
+#[must_use]
 pub fn parse(input: &str) -> Parse {
     parse_internal(input, PrefixEntryPoint::Module)
 }
@@ -42,6 +43,7 @@ fn parse_internal(input: &str, entry_point: PrefixEntryPoint) -> Parse {
     sink.finish()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum PrefixEntryPoint {
     Module,
     #[cfg(test)]
@@ -52,10 +54,12 @@ pub(crate) enum PrefixEntryPoint {
 }
 
 impl Parse {
+    #[must_use]
     pub fn debug_tree(&self) -> String {
         format!("{:#?}", self.syntax())
     }
 
+    #[must_use]
     pub fn syntax(&self) -> SyntaxNode {
         SyntaxNode::new_root(self.green_node.clone())
     }
@@ -64,6 +68,9 @@ impl Parse {
         T::cast(self.syntax()).unwrap()
     }
 
+    /// Convert the valid parse into a typed tree.
+    /// # Errors
+    /// Returns parse errors if any
     pub fn ok<T: ast::AstNode>(self) -> Result<T, Vec<SyntaxError>> {
         if self.errors.is_empty() {
             Ok(self.tree())
@@ -72,13 +79,14 @@ impl Parse {
         }
     }
 
+    #[must_use]
     pub fn module(self) -> nodes::Module {
         self.tree()
     }
 }
 
 #[cfg(test)]
-fn check(entry_point: PrefixEntryPoint, input: &str, expected_tree: expect_test::Expect) {
+fn check(entry_point: PrefixEntryPoint, input: &str, expected_tree: &expect_test::Expect) {
     let parse = parse_internal(input, entry_point);
     expected_tree.assert_eq(&parse.debug_tree());
     assert!(parse.errors.is_empty());
@@ -95,7 +103,7 @@ fn check_file(input: &str, expected_tree: expect_test::ExpectFile) {
 fn check_err(
     entry_point: PrefixEntryPoint,
     input: &str,
-    expected_tree: expect_test::Expect,
+    expected_tree: &expect_test::Expect,
     expected_errors: &[&str],
 ) {
     let parse = parse_internal(input, entry_point);

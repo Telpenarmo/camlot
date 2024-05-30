@@ -4,15 +4,17 @@ pub struct Document {
 }
 
 impl Document {
+    #[must_use]
     pub fn new(text: String) -> Document {
         let line_index = line_index::LineIndex::new(&text);
-        Document { text, line_index }
+        Document { line_index, text }
     }
 
     pub fn update(&mut self, text: String) {
         self.text = text;
     }
 
+    #[must_use]
     pub fn parsed(&self) -> parser::Parse {
         parser::parse(&self.text)
     }

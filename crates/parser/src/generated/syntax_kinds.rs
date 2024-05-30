@@ -6,7 +6,8 @@
     missing_docs,
     unreachable_pub,
     clippy::manual_non_exhaustive,
-    clippy::match_like_matches_macro
+    clippy::match_like_matches_macro,
+    clippy::enum_glob_use
 )]
 use logos::Logos;
 #[doc = r" The kind of syntax node, e.g. `IDENT`, `USE_KW`, or `STRUCT`."]
@@ -95,12 +96,14 @@ pub enum SyntaxKind {
 }
 use self::SyntaxKind::*;
 impl SyntaxKind {
+    #[must_use]
     pub fn is_keyword(self) -> bool {
         match self {
             DEF_KW | OPEN_KW | TYPE_KW | LET_KW | IN_KW => true,
             _ => false,
         }
     }
+    #[must_use]
     pub fn is_operator(self) -> bool {
         match self {
             L_PAREN | R_PAREN | COLON | SEMICOLON | COMMA | EQUAL | ARROW | EMPTY_PAREN | PLUS
@@ -108,22 +111,29 @@ impl SyntaxKind {
             _ => false,
         }
     }
+    #[must_use]
     pub fn is_enum(self) -> bool {
         match self {
             DECL | EXPR | TYPE_EXPR | LITERAL | INFIX_SYMBOL => true,
             _ => false,
         }
     }
+    #[must_use]
     pub fn is_trivial(self) -> bool {
         match self {
             WHITESPACE | COMMENT | LEXING_ERROR => true,
             _ => false,
         }
     }
+    #[doc = r" Returns the corresponding [`SyntaxKind`] for the given raw value."]
+    #[doc = r" # Panics"]
+    #[doc = r" Panics if the raw value does not correspond to any `SyntaxKind`."]
+    #[must_use]
     pub fn from_raw(r: u16) -> Self {
         assert!(r < Self::__LAST as u16);
         unsafe { std::mem::transmute(r) }
     }
+    #[must_use]
     pub fn into_raw(self) -> u16 {
         self as u16
     }

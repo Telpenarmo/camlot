@@ -1,3 +1,5 @@
+#![allow(clippy::missing_errors_doc)]
+
 use std::{env, ffi::OsString, path::PathBuf};
 
 use anyhow::Result;
@@ -60,6 +62,7 @@ pub struct Install {
 
 impl App {
     #[allow(dead_code)]
+    #[must_use]
     pub fn from_env_or_exit() -> Self {
         Self::from_env_or_exit_()
     }

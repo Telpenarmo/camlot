@@ -66,9 +66,10 @@ pub struct Param {
 impl Param {
     /// Empty, "fake" parameter, used when no actual parameter is present,
     /// but HIR requires at least one (e.g. in lambdas).
+    #[must_use]
     pub fn empty() -> Param {
         Param {
-            name: "".to_owned(),
+            name: String::new(),
             typ: None,
         }
     }

@@ -7,7 +7,7 @@ mod server;
 
 fn main() {
     let mode = parse_args();
-    eprintln!("mode: {:?}", mode);
+    eprintln!("mode: {mode:?}");
 
     match mode {
         Mode::Parse => parse_input(),
@@ -35,6 +35,7 @@ fn parse_args() -> Mode {
     if args.len() < 2 {
         Mode::Parse
     } else {
+        #[allow(clippy::match_same_arms)]
         match args[1].as_str().to_lowercase().as_str() {
             "repl" => Mode::REPL,
             "parse" => Mode::Parse,

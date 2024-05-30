@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 
 use proc_macro2::TokenStream;
 use quote::format_ident;
@@ -8,14 +8,6 @@ use super::{
     util::{pluralize, to_lower_snake_case},
     KindsSrc,
 };
-
-impl AstNodeSrc {
-    pub(crate) fn remove_field(&mut self, to_remove: Vec<usize>) {
-        to_remove.into_iter().rev().for_each(|idx| {
-            self.fields.remove(idx);
-        });
-    }
-}
 
 #[allow(dead_code)]
 #[derive(Default, Debug)]
@@ -28,7 +20,6 @@ pub(crate) struct AstSrc {
 pub(crate) struct AstNodeSrc {
     pub(crate) doc: Vec<String>,
     pub(crate) name: String,
-    pub(crate) traits: Vec<String>,
     pub(crate) fields: Vec<Field>,
 }
 
@@ -80,19 +71,19 @@ impl Field {
     pub(crate) fn token_name(&self) -> Option<String> {
         match self {
             Field::Token(token) => Some(token.clone()),
-            _ => None,
+            Field::Node { .. } => None,
         }
     }
     pub(crate) fn token_kind(&self, kinds: &KindsSrc) -> Option<TokenStream> {
         match self {
             Field::Token(token) => Some(kinds.token(token).expect("token exists").reference()),
-            _ => None,
+            Field::Node { .. } => None,
         }
     }
     pub(crate) fn is_token_enum(&self, grammar: &AstSrc) -> bool {
         match self {
             Field::Node { ty, .. } => grammar.token_enums.iter().any(|e| &e.name == ty),
-            _ => false,
+            Field::Token { .. } => false,
         }
     }
 
@@ -136,12 +127,11 @@ pub(crate) fn lower(kinds: &KindsSrc, grammar: &Grammar) -> AstSrc {
                 };
                 res.enums.push(enum_src);
             }
-            None => match lower_token_enum(grammar, rule) {
-                Some(variants) => {
+            None => {
+                if let Some(variants) = lower_token_enum(grammar, rule) {
                     let tokens_enum_src = AstTokenEnumSrc { name, variants };
                     res.token_enums.push(tokens_enum_src);
-                }
-                None => {
+                } else {
                     let mut fields = Vec::new();
                     lower_rule(&mut fields, grammar, None, rule, false);
                     let mut types = HashMap::new();
@@ -166,24 +156,20 @@ pub(crate) fn lower(kinds: &KindsSrc, grammar: &Grammar) -> AstSrc {
                     res.nodes.push(AstNodeSrc {
                         doc: Vec::new(),
                         name,
-                        traits: Vec::new(),
                         fields,
                     });
                 }
-            },
+            }
         }
     }
 
     deduplicate_fields(&mut res);
-    extract_struct_traits(kinds, &mut res);
-    extract_enum_traits(&mut res);
     res
 }
 
 fn lower_enum(grammar: &Grammar, rule: &Rule) -> Option<Vec<String>> {
-    let alternatives = match rule {
-        Rule::Alt(it) => it,
-        _ => return None,
+    let Rule::Alt(alternatives) = rule else {
+        return None;
     };
     let mut variants = Vec::new();
     for alternative in alternatives {
@@ -196,9 +182,8 @@ fn lower_enum(grammar: &Grammar, rule: &Rule) -> Option<Vec<String>> {
     Some(variants)
 }
 fn lower_token_enum(grammar: &Grammar, rule: &Rule) -> Option<Vec<String>> {
-    let alternatives = match rule {
-        Rule::Alt(it) => it,
-        _ => return None,
+    let Rule::Alt(alternatives) = rule else {
+        return None;
     };
     let mut variants = Vec::new();
     for alternative in alternatives {
@@ -237,7 +222,7 @@ fn lower_rule(
             acc.push(field);
         }
         Rule::Token(token) => {
-            assert!(label.is_none(), "uexpected label: {:?}", label);
+            assert!(label.is_none(), "uexpected label: {label:?}");
             let name = grammar[*token].name.clone();
             let field = Field::Token(name);
             acc.push(field);
@@ -264,7 +249,7 @@ fn lower_rule(
         }
         Rule::Seq(rules) | Rule::Alt(rules) => {
             for rule in rules {
-                lower_rule(acc, grammar, label, rule, in_optional)
+                lower_rule(acc, grammar, label, rule, in_optional);
             }
         }
         Rule::Opt(rule) => lower_rule(acc, grammar, label, rule, true),
@@ -278,20 +263,16 @@ fn lower_comma_list(
     label: Option<&String>,
     rule: &Rule,
 ) -> bool {
-    let rule = match rule {
-        Rule::Seq(it) => it,
-        _ => return false,
+    let Rule::Seq(rule) = rule else { return false };
+
+    let [Rule::Node(node), Rule::Rep(repeat), Rule::Opt(trailing_comma)] = rule.as_slice() else {
+        return false;
     };
-    let (node, repeat, trailing_comma) = match rule.as_slice() {
-        [Rule::Node(node), Rule::Rep(repeat), Rule::Opt(trailing_comma)] => {
-            (node, repeat, trailing_comma)
-        }
-        _ => return false,
+
+    let Rule::Seq(repeat) = &**repeat else {
+        return false;
     };
-    let repeat = match &**repeat {
-        Rule::Seq(it) => it,
-        _ => return false,
-    };
+
     match repeat.as_slice() {
         [comma, Rule::Node(n)] if comma == &**trailing_comma && n == node => (),
         _ => return false,
@@ -323,75 +304,5 @@ fn deduplicate_fields(ast: &mut AstSrc) {
             }
             i += 1;
         }
-    }
-}
-
-fn extract_struct_traits(kinds: &KindsSrc, ast: &mut AstSrc) {
-    // TODO: add common accessor traits here.
-    let traits: &[(&str, &[&str])] = &[];
-
-    for node in &mut ast.nodes {
-        for (name, methods) in traits {
-            extract_struct_trait(kinds, node, name, methods);
-        }
-    }
-}
-
-fn extract_struct_trait(
-    kinds: &KindsSrc,
-    node: &mut AstNodeSrc,
-    trait_name: &str,
-    methods: &[&str],
-) {
-    let mut to_remove = Vec::new();
-    for (i, field) in node.fields.iter().enumerate() {
-        let method_name = field.method_name(kinds).to_string();
-        if methods.iter().any(|&it| it == method_name) {
-            to_remove.push(i);
-        }
-    }
-    if to_remove.len() == methods.len() {
-        node.traits.push(trait_name.to_string());
-        node.remove_field(to_remove);
-    }
-}
-
-fn extract_enum_traits(ast: &mut AstSrc) {
-    let enums = ast.enums.clone();
-    for enm in &mut ast.enums {
-        let nodes = &ast.nodes;
-
-        let mut variant_traits = enm.variants.iter().map(|var| {
-            nodes
-                .iter()
-                .find_map(|node| {
-                    if &node.name != var {
-                        return None;
-                    }
-                    Some(node.traits.iter().cloned().collect::<BTreeSet<_>>())
-                })
-                .unwrap_or_else(|| {
-                    enums
-                        .iter()
-                        .find_map(|node| {
-                            if &node.name != var {
-                                return None;
-                            }
-                            Some(node.traits.iter().cloned().collect::<BTreeSet<_>>())
-                        })
-                        .unwrap_or_else(|| {
-                            panic!("could not find struct {var} for enum {}::{var}", enm.name)
-                        })
-                })
-        });
-
-        let mut enum_traits = match variant_traits.next() {
-            Some(it) => it,
-            None => continue,
-        };
-        for traits in variant_traits {
-            enum_traits = enum_traits.intersection(&traits).cloned().collect();
-        }
-        enm.traits = enum_traits.into_iter().collect();
     }
 }

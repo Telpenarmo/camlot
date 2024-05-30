@@ -17,12 +17,16 @@ pub trait AstNode {
         Self: Sized;
 
     fn syntax(&self) -> &SyntaxNode;
+
+    #[must_use]
     fn clone_for_update(&self) -> Self
     where
         Self: Sized,
     {
         Self::cast(self.syntax().clone_for_update()).unwrap()
     }
+
+    #[must_use]
     fn clone_subtree(&self) -> Self
     where
         Self: Sized,
@@ -91,7 +95,7 @@ pub(crate) mod support {
     pub(crate) fn token(parent: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
         parent
             .children_with_tokens()
-            .filter_map(|it| it.into_token())
+            .filter_map(rowan::NodeOrToken::into_token)
             .find(|it| it.kind() == kind)
     }
 }

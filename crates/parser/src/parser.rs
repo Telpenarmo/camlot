@@ -91,8 +91,8 @@ impl<'t, 'input> Parser<'t, 'input> {
         }
 
         let msg = format!("Expected {:#?} but found {:?}", kind, self.current());
-        eprintln!("{}", msg);
-        self.error(msg)
+        eprintln!("{msg}");
+        self.error(msg);
     }
 
     pub(crate) fn error(&mut self, message: String) {
@@ -101,8 +101,8 @@ impl<'t, 'input> Parser<'t, 'input> {
 
     pub(crate) fn unexpected(&mut self) {
         let msg = format!("Unexpected token: {:#?}", self.current());
-        eprintln!("{}", msg);
-        self.error(msg)
+        eprintln!("{msg}");
+        self.error(msg);
     }
 }
 
@@ -129,12 +129,14 @@ impl Marker {
 
 impl Drop for Marker {
     fn drop(&mut self) {
-        if !self.completed && !::std::thread::panicking() {
-            panic!("Marker dropped without completion")
-        }
+        assert!(
+            !(!self.completed && !::std::thread::panicking()),
+            "Marker dropped without completion"
+        );
     }
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct CompletedMarker {
     pub(crate) pos: usize,
 }
@@ -149,9 +151,9 @@ mod tests {
         check(
             crate::PrefixEntryPoint::Module,
             "",
-            expect![[r#"
+            &expect![[r"
             MODULE@0..0
-        "#]],
+        "]],
         );
     }
 
@@ -160,7 +162,7 @@ mod tests {
         check(
             crate::PrefixEntryPoint::Module,
             "   ",
-            expect![[r#"
+            &expect![[r#"
                 MODULE@0..3
                   WHITESPACE@0..3 "   "
             "#]],

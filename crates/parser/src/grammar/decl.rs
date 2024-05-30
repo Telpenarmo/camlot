@@ -30,7 +30,7 @@ pub(crate) fn decl(parser: &mut Parser) {
     } else if parser.at(SyntaxKind::OPEN_KW) {
         open_decl(parser);
     } else {
-        eat_error(parser)
+        eat_error(parser);
     }
 }
 

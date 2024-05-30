@@ -1,3 +1,6 @@
+#![allow(clippy::unnecessary_wraps)]
+#![allow(clippy::needless_pass_by_value)]
+
 use lsp_server::ResponseError;
 use lsp_types::notification::PublishDiagnostics;
 use lsp_types::{
@@ -14,7 +17,9 @@ pub(crate) fn handle_document_diagnostic_request(
     ctx: &Context,
 ) -> Result<DocumentDiagnosticReportResult, ResponseError> {
     let path = req.text_document.uri.path().to_string();
-    let doc = ctx.get_document(&path).unwrap();
+    let doc = ctx
+        .get_document(&path)
+        .ok_or_else(|| doc_not_found_error(&path))?;
 
     let diagnostics = get_diagnostics(doc);
     Ok(DocumentDiagnosticReportResult::Report(
@@ -55,7 +60,7 @@ pub(crate) fn handle_did_change_text_document_params(
     ctx: &mut Context,
 ) {
     ctx.update_document(
-        params.text_document.uri.path().to_string(),
+        params.text_document.uri.path(),
         params.content_changes.last().unwrap().text.clone(),
     );
     let doc = ctx.get_document(params.text_document.uri.path()).unwrap();
@@ -73,7 +78,7 @@ pub(crate) fn handle_did_close_text_document_params(
     _lsp: &Server,
     ctx: &mut Context,
 ) {
-    ctx.remove_document(params.text_document.uri.path().to_string());
+    ctx.remove_document(params.text_document.uri.path());
 }
 
 pub(crate) enum SyntaxTree {}
@@ -115,4 +120,12 @@ pub(crate) fn handle_semantic_tokens_full_request(
             data: tokens,
         },
     )))
+}
+
+fn doc_not_found_error(path: &str) -> ResponseError {
+    ResponseError {
+        code: 0,
+        message: format!("Document not found: {path}"),
+        data: None,
+    }
 }

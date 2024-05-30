@@ -36,8 +36,9 @@ impl TokenKind {
     /// How this keyword should appear in kinds enum, screaming snake cased
     pub(crate) fn name(&self) -> String {
         match self {
-            TokenKind::Keyword { name, .. } => name.to_uppercase(),
-            TokenKind::Literal { name, .. } => name.to_uppercase(),
+            TokenKind::Keyword { name, .. } | TokenKind::Literal { name, .. } => {
+                name.to_uppercase()
+            }
         }
     }
     pub(crate) fn expand_kind(&self) -> TokenStream {
@@ -80,7 +81,7 @@ impl TokenKind {
 #[macro_export]
 macro_rules! define_kinds {
 	($into:ident = lit($name:literal) => $regex:literal $(, $lexer:literal)? $(; $($rest:tt)*)?) => {{
-		$into.define_token(TokenKind::Literal {
+		$into.define_token(&TokenKind::Literal {
 			grammar_name: format!($name),
 			name: $name.to_owned(),
 			regex: $regex.to_owned(),
@@ -89,7 +90,7 @@ macro_rules! define_kinds {
 		$(define_kinds!($into = $($rest)*))?
 	}};
 	($into:ident = $tok:literal => $name:literal $(; $($rest:tt)*)?) => {{
-		$into.define_token(TokenKind::Keyword {
+		$into.define_token(&TokenKind::Keyword {
 			code: format!("{}", $tok),
 			name: $name.to_owned(),
 		});
@@ -112,9 +113,9 @@ impl KindsSrc {
             nodes: Vec::new(),
         }
     }
-    pub(crate) fn define_token(&mut self, token: TokenKind) {
+    pub(crate) fn define_token(&mut self, token: &TokenKind) {
         assert!(
-            self.defined_node_names.insert(token.name().to_owned()),
+            self.defined_node_names.insert(token.name().clone()),
             "node name already defined: {}",
             token.name()
         );
@@ -124,15 +125,14 @@ impl KindsSrc {
                 .is_none(),
             "token already defined: {}",
             token.grammar_name()
-        )
+        );
     }
     pub(crate) fn define_node(&mut self, node: &str) {
         assert!(
             self.defined_node_names.insert(node.to_owned()),
-            "node name already defined: {}",
-            node
+            "node name already defined: {node}"
         );
-        self.nodes.push(node.to_string())
+        self.nodes.push(node.to_string());
     }
     pub(crate) fn token(&self, tok: &str) -> Option<&TokenKind> {
         self.defined_tokens.get(tok)

@@ -22,3 +22,7 @@ expect-test = "1.4.1"
 la-arena = "0.3.1"
 line-index = "0.1.1"
 lsp-types = "0.95.0"
+
+[workspace.lints.clippy]
+pedantic = "warn"
+module_name_repetitions = "allow"

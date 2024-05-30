@@ -12,3 +12,6 @@ quote.workspace = true
 ungrammar.workspace = true
 xflags.workspace = true
 xshell.workspace = true
+
+[lints]
+workspace = true

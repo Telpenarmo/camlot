@@ -1,5 +1,5 @@
 use line_index::LineCol;
-use parser::{nodes, AstNode, SyntaxKind, SyntaxToken};
+use parser::{nodes, AstNode, SyntaxKind, SyntaxNode, SyntaxToken};
 
 use crate::Document;
 
@@ -16,12 +16,14 @@ pub const SUPPORTED_TOKENS: &[lsp_types::SemanticTokenType] = &[
     lsp_types::SemanticTokenType::NAMESPACE,
 ];
 
-fn token_index(kind: lsp_types::SemanticTokenType) -> u32 {
-    SUPPORTED_TOKENS
-        .iter()
-        .position(|t| *t == kind)
-        .unwrap_or_else(|| panic!("Token {:?} should be added to supported tokens list", kind))
-        as u32
+fn token_index(kind: &lsp_types::SemanticTokenType) -> u32 {
+    u32::try_from(
+        SUPPORTED_TOKENS
+            .iter()
+            .position(|t| t == kind)
+            .unwrap_or_else(|| panic!("Token {kind:?} should be added to supported tokens list")),
+    )
+    .expect("Over u32::MAX number of supported tokens?!")
 }
 
 struct SemanticTokensBuilder<'a> {
@@ -47,13 +49,14 @@ impl<'a> SemanticTokensBuilder<'a> {
 
         if let Some(kind) = get_semantic_token_type(token) {
             self.prev_pos = start;
-            Some(make_semantic_token(prev, start, length, kind))
+            Some(make_semantic_token(prev, start, length, &kind))
         } else {
             None
         }
     }
 }
 
+#[must_use]
 pub fn get_semantic_tokens(doc: &Document) -> Vec<lsp_types::SemanticToken> {
     let mut builder = SemanticTokensBuilder::new(doc.get_line_index());
 
@@ -68,7 +71,7 @@ fn make_semantic_token(
     prev: LineCol,
     start: LineCol,
     length: u32,
-    kind: lsp_types::SemanticTokenType,
+    kind: &lsp_types::SemanticTokenType,
 ) -> lsp_types::SemanticToken {
     let delta = line_col_delta(prev, start);
     lsp_types::SemanticToken {
@@ -102,7 +105,7 @@ fn get_semantic_token_type(token: &SyntaxToken) -> Option<lsp_types::SemanticTok
         SyntaxKind::COMMENT => Some(lsp_types::SemanticTokenType::COMMENT),
         SyntaxKind::INT => Some(lsp_types::SemanticTokenType::NUMBER),
         SyntaxKind::STRING => Some(lsp_types::SemanticTokenType::STRING),
-        SyntaxKind::IDENT => match parent.map(|n| n.kind()) {
+        SyntaxKind::IDENT => match parent.map(SyntaxNode::kind) {
             Some(SyntaxKind::TYPE_IDENT | SyntaxKind::TYPE_DECL) => {
                 Some(lsp_types::SemanticTokenType::TYPE)
             }
@@ -185,7 +188,7 @@ mod tests {
 
         let actual = debug_print_tokens(tokens.as_slice());
 
-        expect![[r#"
+        expect![[r"
             0:0..3 - keyword
             0:4..5 - function
             0:2..3 - parameter
@@ -194,7 +197,7 @@ mod tests {
             0:2..3 - variable
             0:2..3 - number
             0:1..2 - operator
-        "#]]
+        "]]
         .assert_eq(&actual);
     }
 
@@ -206,7 +209,7 @@ mod tests {
 
         let actual = debug_print_tokens(tokens.as_slice());
 
-        expect![[r#"
+        expect![[r"
             0:0..4 - keyword
             0:5..7 - type
             0:3..4 - operator
@@ -218,7 +221,7 @@ mod tests {
             0:2..4 - operator
             0:3..4 - type
             0:1..2 - operator
-        "#]]
+        "]]
         .assert_eq(&actual);
     }
 

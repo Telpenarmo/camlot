@@ -37,7 +37,7 @@ mod tests {
         check(
             PrefixEntryPoint::Module,
             "open a; type t = a;",
-            expect![[r#"
+            &expect![[r#"
                 MODULE@0..19
                   OPEN_DECL@0..8
                     OPEN_KW@0..4 "open"
@@ -61,6 +61,6 @@ mod tests {
 
     #[test]
     fn parse_empty_string_as_module() {
-        check(PrefixEntryPoint::Module, "", expect![["MODULE@0..0\n"]]);
+        check(PrefixEntryPoint::Module, "", &expect![["MODULE@0..0\n"]]);
     }
 }

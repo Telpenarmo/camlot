@@ -30,9 +30,7 @@ impl<'t, 'input> Source<'t, 'input> {
     }
 
     pub(crate) fn current(&mut self) -> SyntaxKind {
-        if self.fuel.get() == 0 {
-            panic!("parser is stuck")
-        }
+        assert!(self.fuel.get() != 0, "parser is stuck");
 
         self.fuel.set(self.fuel.get() - 1);
 
@@ -52,7 +50,7 @@ impl<'t, 'input> Source<'t, 'input> {
     }
 
     fn at_trivia(&self) -> bool {
-        self.peek_kind_raw().map_or(false, |kind| kind.is_trivial())
+        self.peek_kind_raw().map_or(false, SyntaxKind::is_trivial)
     }
 
     // pub fn last_token_range(&self) -> Option<&Range<usize>> {

@@ -1,4 +1,10 @@
-use crate::{hir::*, LetDecl};
+use crate::{
+    hir::{
+        Declaration, DeclarationIdx, Expr, ExprIdx, LetExpr, Literal, Module, Param, TypeExpr,
+        TypeExprIdx,
+    },
+    LetDecl,
+};
 use la_arena::Arena;
 use parser::{nodes as ast, AstToken};
 
@@ -18,6 +24,7 @@ impl Default for Database {
 
 #[allow(unused)]
 impl Database {
+    #[must_use]
     pub fn new() -> Self {
         let declarations = Arena::new();
         let mut expressions = Arena::new();
@@ -33,7 +40,7 @@ impl Database {
         }
     }
 
-    pub(crate) fn lower_module(&mut self, ast: ast::Module) -> Module {
+    pub(crate) fn lower_module(&mut self, ast: &ast::Module) -> Module {
         let declarations: Vec<DeclarationIdx> = ast
             .decls()
             .filter_map(|ast| {
@@ -52,19 +59,19 @@ impl Database {
                 let defn = self.lower_expr(ast.expr());
                 let defn = self.alloc_expr(defn);
                 Declaration::LetDecl(Box::new(LetDecl {
-                    name: self.lower_ident(ast.ident_lit())?,
+                    name: Self::lower_ident(ast.ident_lit())?,
                     params,
                     defn,
                 }))
             }
             ast::Decl::OpenDecl(ast) => Declaration::OpenDecl {
-                path: self.lower_ident(ast.ident_lit())?,
+                path: Self::lower_ident(ast.ident_lit())?,
             },
             ast::Decl::TypeDecl(ast) => {
                 let defn = self.lower_type_expr(ast.type_expr());
                 let defn = self.alloc_type_expr(defn);
                 Declaration::TypeDecl {
-                    name: self.lower_ident(ast.ident_lit())?,
+                    name: Self::lower_ident(ast.ident_lit())?,
                     defn,
                 }
             }
@@ -72,11 +79,11 @@ impl Database {
     }
 
     fn lower_params(&mut self, ast: Option<ast::Params>) -> Box<[Param]> {
-        ast.map(|ast| ast.params().map(|ast| self.lower_param(ast)).collect())
+        ast.map(|ast| ast.params().map(|ast| self.lower_param(&ast)).collect())
             .unwrap_or_default()
     }
 
-    fn lower_param(&mut self, ast: ast::Param) -> Param {
+    fn lower_param(&mut self, ast: &ast::Param) -> Param {
         let typ = ast.type_expr().map(|typ| self.lower_type_expr(Some(typ)));
         let typ = typ.map(|typ| self.alloc_type_expr(typ));
         Param {
@@ -141,14 +148,11 @@ impl Database {
                 let body = self.lower_expr(ast.body());
                 let body = self.alloc_expr(body);
 
-                let tail_param = params
-                    .last()
-                    .map(|param| param.clone())
-                    .unwrap_or(Param::empty());
+                let tail_param = params.last().cloned().unwrap_or(Param::empty());
                 let param = Box::new(tail_param);
 
                 let body = Expr::LambdaExpr { param, body };
-                params.into_iter().rev().skip(1).fold(body, |body, param| {
+                params.iter().rev().skip(1).fold(body, |body, param| {
                     let body = self.alloc_expr(body);
                     let param = Box::new(param.clone());
                     Expr::LambdaExpr { param, body }
@@ -176,13 +180,13 @@ impl Database {
         }
     }
 
-    fn lower_ident(&mut self, ident: Option<parser::SyntaxToken>) -> Option<String> {
+    fn lower_ident(ident: Option<parser::SyntaxToken>) -> Option<String> {
         ident.map(|ident| ident.text().into())
     }
 
     fn alloc_expr(&mut self, expr: Expr) -> ExprIdx {
         if let Expr::Missing = expr {
-            self.missing_expr_id()
+            missing_expr_id()
         } else {
             self.expressions.alloc(expr)
         }
@@ -190,32 +194,32 @@ impl Database {
 
     fn alloc_type_expr(&mut self, type_expr: TypeExpr) -> TypeExprIdx {
         if let TypeExpr::Missing = type_expr {
-            self.missing_type_expr_id()
+            missing_type_expr_id()
         } else {
             self.type_expressions.alloc(type_expr)
         }
     }
+}
 
-    fn missing_expr_id(&self) -> ExprIdx {
-        let raw = la_arena::RawIdx::from_u32(0);
-        ExprIdx::from_raw(raw)
-    }
+pub(crate) fn missing_expr_id() -> ExprIdx {
+    let raw = la_arena::RawIdx::from_u32(0);
+    ExprIdx::from_raw(raw)
+}
 
-    fn missing_type_expr_id(&self) -> TypeExprIdx {
-        let raw = la_arena::RawIdx::from_u32(0);
-        TypeExprIdx::from_raw(raw)
-    }
+fn missing_type_expr_id() -> TypeExprIdx {
+    let raw = la_arena::RawIdx::from_u32(0);
+    TypeExprIdx::from_raw(raw)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Expr, Param};
+    use crate::{missing_expr_id, Expr, Param};
 
-    fn check_expr(text: &str, expected_database: super::Database) {
-        let module_syntax = parser::parse(&format!("def x = {};", text)).module();
+    fn check_expr(text: &str, expected_database: &super::Database) {
+        let module_syntax = parser::parse(&format!("def x = {text};")).module();
         let mut db = super::Database::default();
 
-        db.lower_module(module_syntax);
+        db.lower_module(&module_syntax);
 
         assert_eq!(db.expressions, expected_database.expressions);
         assert_eq!(db.type_expressions, expected_database.type_expressions);
@@ -225,7 +229,7 @@ mod tests {
     fn lower_ident() {
         let mut database = super::Database::default();
         database.alloc_expr(Expr::IdentExpr { name: "x".into() });
-        check_expr("x", database);
+        check_expr("x", &database);
     }
 
     #[test]
@@ -234,7 +238,7 @@ mod tests {
         let func = database.alloc_expr(Expr::IdentExpr { name: "f".into() });
         let arg = database.alloc_expr(Expr::IdentExpr { name: "y".into() });
         database.alloc_expr(Expr::AppExpr { func, arg });
-        check_expr("f y", database);
+        check_expr("f y", &database);
     }
 
     #[test]
@@ -258,7 +262,7 @@ mod tests {
             body: inner,
         });
 
-        check_expr("\\x y -> x", database);
+        check_expr("\\x y -> x", &database);
     }
 
     #[test]
@@ -279,7 +283,7 @@ mod tests {
             body,
         })));
 
-        check_expr("let a b = c in d", database);
+        check_expr("let a b = c in d", &database);
     }
 
     #[test]
@@ -295,7 +299,7 @@ mod tests {
             body,
         });
 
-        check_expr("\\x -> x", database);
+        check_expr("\\x -> x", &database);
     }
 
     #[test]
@@ -308,10 +312,10 @@ mod tests {
 
         database.alloc_expr(Expr::LambdaExpr {
             param: Box::new(param),
-            body: database.missing_expr_id(),
+            body: missing_expr_id(),
         });
 
-        check_expr("\\x ->", database);
+        check_expr("\\x ->", &database);
     }
 
     #[test]
@@ -321,7 +325,7 @@ mod tests {
         let param = Box::new(Param::empty());
         database.alloc_expr(Expr::LambdaExpr { param, body });
 
-        check_expr("\\-> x", database);
+        check_expr("\\-> x", &database);
     }
 
     #[test]
@@ -336,11 +340,11 @@ mod tests {
         database.alloc_expr(Expr::LetExpr(Box::new(crate::LetExpr {
             name: "a".into(),
             params,
-            defn: database.missing_expr_id(),
+            defn: missing_expr_id(),
             body,
         })));
 
-        check_expr("let a b = in d", database);
+        check_expr("let a b = in d", &database);
     }
 
     #[test]
@@ -356,9 +360,9 @@ mod tests {
             name: "a".into(),
             params,
             defn,
-            body: database.missing_expr_id(),
+            body: missing_expr_id(),
         })));
 
-        check_expr("let a b = c in", database);
+        check_expr("let a b = c in", &database);
     }
 }

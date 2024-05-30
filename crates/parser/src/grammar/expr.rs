@@ -55,9 +55,9 @@ fn ident_expr(parser: &mut Parser) -> CompletedMarker {
 fn literal_expr(parser: &mut Parser) -> CompletedMarker {
     let mark = parser.open();
     if parser.at(SyntaxKind::INT) || parser.at(SyntaxKind::EMPTY_PAREN) {
-        parser.advance()
+        parser.advance();
     } else {
-        unreachable!()
+        unreachable!();
     }
     parser.close(mark, SyntaxKind::LITERAL_EXPR)
 }
@@ -108,7 +108,7 @@ mod tests {
         check(
             PrefixEntryPoint::Expr,
             r"\x -> x;",
-            expect![[r#"
+            &expect![[r#"
                 LAMBDA_EXPR@0..7
                   BACKSLASH@0..1 "\\"
                   PARAMS@1..3
@@ -137,14 +137,14 @@ mod tests {
         check(
             PrefixEntryPoint::Expr,
             r"(x)",
-            expect![[r#"
+            &expect![[r#"
                 PAREN_EXPR@0..3
                   L_PAREN@0..1 "("
                   IDENT_EXPR@1..2
                     IDENT@1..2 "x"
                   R_PAREN@2..3 ")"
             "#]],
-        )
+        );
     }
 
     #[test]
@@ -152,11 +152,11 @@ mod tests {
         check(
             PrefixEntryPoint::Expr,
             r"5",
-            expect![[r#"
+            &expect![[r#"
                 LITERAL_EXPR@0..1
                   INT@0..1 "5"
             "#]],
-        )
+        );
     }
 
     #[test]
@@ -164,11 +164,11 @@ mod tests {
         check(
             PrefixEntryPoint::Expr,
             r"x",
-            expect![[r#"
+            &expect![[r#"
                 IDENT_EXPR@0..1
                   IDENT@0..1 "x"
             "#]],
-        )
+        );
     }
 
     #[test]
@@ -176,7 +176,7 @@ mod tests {
         check(
             PrefixEntryPoint::Expr,
             r"x y",
-            expect![[r#"
+            &expect![[r#"
                 APP_EXPR@0..3
                   IDENT_EXPR@0..2
                     IDENT@0..1 "x"
@@ -184,7 +184,7 @@ mod tests {
                   IDENT_EXPR@2..3
                     IDENT@2..3 "y"
             "#]],
-        )
+        );
     }
 
     #[test]
@@ -192,7 +192,7 @@ mod tests {
         check(
             PrefixEntryPoint::Expr,
             r"x y z",
-            expect![[r#"
+            &expect![[r#"
                 APP_EXPR@0..5
                   APP_EXPR@0..4
                     IDENT_EXPR@0..2
@@ -204,7 +204,7 @@ mod tests {
                   IDENT_EXPR@4..5
                     IDENT@4..5 "z"
             "#]],
-        )
+        );
     }
 
     #[test]
@@ -212,7 +212,7 @@ mod tests {
         check(
             PrefixEntryPoint::Expr,
             r"x (y z)",
-            expect![[r#"
+            &expect![[r#"
                 APP_EXPR@0..7
                   IDENT_EXPR@0..2
                     IDENT@0..1 "x"
@@ -227,7 +227,7 @@ mod tests {
                         IDENT@5..6 "z"
                     R_PAREN@6..7 ")"
             "#]],
-        )
+        );
     }
 
     #[test]
@@ -235,7 +235,7 @@ mod tests {
         check_file(
             r"def a = let x = 5 in let y = x in y;",
             expect_file!["../../test_data/parse_let_nested.rml_cst"],
-        )
+        );
     }
 
     #[test]
@@ -243,7 +243,7 @@ mod tests {
         check_err(
             PrefixEntryPoint::Expr,
             r"let x = in x",
-            expect![[r#"
+            &expect![[r#"
                 LET_EXPR@0..12
                   LET_KW@0..3 "let"
                   WHITESPACE@3..4 " "
@@ -258,7 +258,7 @@ mod tests {
                     IDENT@11..12 "x"
             "#]],
             &["Expected expression"],
-        )
+        );
     }
 
     #[test]
@@ -266,7 +266,7 @@ mod tests {
         check_err(
             PrefixEntryPoint::Expr,
             r"let x = 5 in",
-            expect![[r#"
+            &expect![[r#"
                 LET_EXPR@0..12
                   LET_KW@0..3 "let"
                   WHITESPACE@3..4 " "
@@ -281,7 +281,7 @@ mod tests {
                   IN_KW@10..12 "in"
             "#]],
             &["Expected expression"],
-        )
+        );
     }
 
     #[test]
@@ -289,7 +289,7 @@ mod tests {
         check_err(
             PrefixEntryPoint::Expr,
             r"let x = 5",
-            expect![[r#"
+            &expect![[r#"
                 LET_EXPR@0..9
                   LET_KW@0..3 "let"
                   WHITESPACE@3..4 " "
@@ -302,6 +302,6 @@ mod tests {
                     INT@8..9 "5"
             "#]],
             &["Expected IN_KW but found EOF", "Expected expression"],
-        )
+        );
     }
 }

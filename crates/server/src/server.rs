@@ -26,7 +26,7 @@ impl Server {
     fn send_message(&self, msg: Message) {
         let sent = self.connection.sender.send(msg);
         if let Err(e) = sent {
-            eprintln!("failed to send message: {}", e);
+            eprintln!("failed to send message: {e}");
         }
     }
 
@@ -49,8 +49,8 @@ impl Context {
         self.documents.insert(uri, Document::new(text));
     }
 
-    pub(crate) fn update_document(&mut self, uri: String, text: String) {
-        if let Some(doc) = self.documents.get_mut(&uri) {
+    pub(crate) fn update_document(&mut self, uri: &str, text: String) {
+        if let Some(doc) = self.documents.get_mut(uri) {
             doc.update(text);
         }
     }
@@ -59,8 +59,8 @@ impl Context {
         self.documents.get(uri)
     }
 
-    pub(crate) fn remove_document(&mut self, path: String) {
-        self.documents.remove(&path);
+    pub(crate) fn remove_document(&mut self, path: &str) {
+        self.documents.remove(path);
     }
 }
 
@@ -73,7 +73,7 @@ impl Server {
 
     fn handle_notification(&self, ctx: &mut Context, not: Notification) {
         if let Some(handler) = self.notification_handlers.get(&not.method) {
-            handler(not, self, ctx)
+            handler(not, self, ctx);
         }
     }
 
@@ -87,7 +87,10 @@ impl Server {
             .map(|it| serde_json::from_value(it).unwrap())
     }
 
-    pub(crate) fn run(self, _params: InitializeParams) -> Result<(), Box<dyn Error + Sync + Send>> {
+    pub(crate) fn run(
+        self,
+        _params: &InitializeParams,
+    ) -> Result<(), Box<dyn Error + Sync + Send>> {
         eprintln!("starting example main loop");
         let mut ctx = Context {
             documents: HashMap::new(),

@@ -17,7 +17,7 @@ pub(crate) fn ensure_file_contents(file: &Path, contents: &str) -> Result<()> {
     if let Some(parent) = file.parent() {
         let _ = fs::create_dir_all(parent);
     }
-    fs::write(file, contents).unwrap();
+    fs::write(file, contents)?;
     Ok(())
 }
 
@@ -27,7 +27,7 @@ fn normalize_newlines(s: &str) -> String {
 }
 
 pub(crate) fn pluralize(s: &str) -> String {
-    format!("{}s", s)
+    format!("{s}s")
 }
 
 pub(crate) fn to_upper_snake_case(s: &str) -> String {
@@ -35,7 +35,7 @@ pub(crate) fn to_upper_snake_case(s: &str) -> String {
     let mut prev = false;
     for c in s.chars() {
         if c.is_ascii_uppercase() && prev {
-            buf.push('_')
+            buf.push('_');
         }
         prev = true;
 
@@ -48,7 +48,7 @@ pub(crate) fn to_lower_snake_case(s: &str) -> String {
     let mut prev = false;
     for c in s.chars() {
         if c.is_ascii_uppercase() && prev {
-            buf.push('_')
+            buf.push('_');
         }
         prev = true;
 

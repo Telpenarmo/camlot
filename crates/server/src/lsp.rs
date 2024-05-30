@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use lsp_types::request::DocumentDiagnosticRequest;
-use lsp_types::ServerCapabilities;
+use lsp_types::{ServerCapabilities, WorkDoneProgressOptions};
 
 use lsp_server::Connection;
 
@@ -50,7 +50,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
                 },
                 full: Some(lsp_types::SemanticTokensFullOptions::Bool(true)),
                 range: Some(false),
-                work_done_progress_options: Default::default(),
+                work_done_progress_options: WorkDoneProgressOptions::default(),
             }
             .into(),
         ),
@@ -69,7 +69,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
         }
     };
 
-    server.run(params)?;
+    server.run(&params)?;
 
     io_threads.join()?;
 

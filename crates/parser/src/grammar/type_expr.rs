@@ -43,7 +43,7 @@ mod tests {
         check(
             PrefixEntryPoint::TypeExpr,
             "a",
-            expect![[r#"
+            &expect![[r#"
                 TYPE_IDENT@0..1
                   IDENT@0..1 "a"
             "#]],
@@ -55,14 +55,14 @@ mod tests {
         check(
             PrefixEntryPoint::TypeExpr,
             "(a)",
-            expect![[r#"
+            &expect![[r#"
                 TYPE_PAREN@0..3
                   L_PAREN@0..1 "("
                   TYPE_IDENT@1..2
                     IDENT@1..2 "a"
                   R_PAREN@2..3 ")"
             "#]],
-        )
+        );
     }
 
     #[test]
@@ -70,7 +70,7 @@ mod tests {
         check(
             PrefixEntryPoint::TypeExpr,
             "a -> b",
-            expect![[r#"
+            &expect![[r#"
                 TYPE_ARROW@0..6
                   TYPE_IDENT@0..2
                     IDENT@0..1 "a"
@@ -80,7 +80,7 @@ mod tests {
                   TYPE_IDENT@5..6
                     IDENT@5..6 "b"
             "#]],
-        )
+        );
     }
 
     #[test]
@@ -88,7 +88,7 @@ mod tests {
         check(
             PrefixEntryPoint::TypeExpr,
             "a -> b -> c",
-            expect![[r#"
+            &expect![[r#"
                 TYPE_ARROW@0..11
                   TYPE_IDENT@0..2
                     IDENT@0..1 "a"
@@ -104,7 +104,7 @@ mod tests {
                     TYPE_IDENT@10..11
                       IDENT@10..11 "c"
             "#]],
-        )
+        );
     }
 
     #[test]
@@ -112,7 +112,7 @@ mod tests {
         check(
             PrefixEntryPoint::TypeExpr,
             "(a -> b) -> c",
-            expect![[r#"
+            &expect![[r#"
                 TYPE_ARROW@0..13
                   TYPE_PAREN@0..9
                     L_PAREN@0..1 "("
@@ -131,6 +131,6 @@ mod tests {
                   TYPE_IDENT@12..13
                     IDENT@12..13 "c"
             "#]],
-        )
+        );
     }
 }
