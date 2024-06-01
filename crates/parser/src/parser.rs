@@ -101,7 +101,6 @@ impl<'t, 'input> Parser<'t, 'input> {
 
     pub(crate) fn unexpected(&mut self) {
         let msg = format!("Unexpected token: {:#?}", self.current());
-        eprintln!("{msg}");
         self.error(msg);
     }
 }

@@ -93,7 +93,7 @@ fn check(entry_point: PrefixEntryPoint, input: &str, expected_tree: &expect_test
 }
 
 #[cfg(test)]
-fn check_file(input: &str, expected_tree: expect_test::ExpectFile) {
+fn check_file(input: &str, expected_tree: &expect_test::ExpectFile) {
     let parse = parse(input);
     expected_tree.assert_eq(&parse.debug_tree());
     assert!(parse.errors.is_empty());
