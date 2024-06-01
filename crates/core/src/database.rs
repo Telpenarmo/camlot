@@ -3,7 +3,7 @@ use crate::{
         Declaration, DeclarationIdx, Expr, ExprIdx, LetExpr, Literal, Module, Param, TypeExpr,
         TypeExprIdx,
     },
-    LetDecl,
+    DefDecl,
 };
 use la_arena::Arena;
 use parser::{nodes as ast, AstToken};
@@ -56,11 +56,18 @@ impl Database {
         Some(match ast {
             ast::Decl::DefDecl(ast) => {
                 let params = self.lower_params(ast.params());
-                let defn = self.lower_expr(ast.expr());
+                let body = self.lower_expr(ast.expr());
+
+                let defn = if params.is_empty() {
+                    body
+                } else {
+                    let body = self.alloc_expr(body);
+                    self.curry(body, &params)
+                };
                 let defn = self.alloc_expr(defn);
-                Declaration::LetDecl(Box::new(LetDecl {
+
+                Declaration::DefDecl(Box::new(DefDecl {
                     name: Self::lower_ident(ast.ident_lit())?,
-                    params,
                     defn,
                 }))
             }
@@ -113,6 +120,18 @@ impl Database {
         }
     }
 
+    fn curry(&mut self, body: ExprIdx, params: &[Param]) -> Expr {
+        let tail_param = params.last().cloned().unwrap_or(Param::empty());
+        let param = Box::new(tail_param);
+
+        let body = Expr::LambdaExpr { param, body };
+        params.iter().rev().skip(1).fold(body, |body, param| {
+            let body = self.alloc_expr(body);
+            let param = Box::new(param.clone());
+            Expr::LambdaExpr { param, body }
+        })
+    }
+
     fn lower_expr(&mut self, expr: Option<ast::Expr>) -> Expr {
         if expr.is_none() {
             return Expr::Missing;
@@ -148,15 +167,7 @@ impl Database {
                 let body = self.lower_expr(ast.body());
                 let body = self.alloc_expr(body);
 
-                let tail_param = params.last().cloned().unwrap_or(Param::empty());
-                let param = Box::new(tail_param);
-
-                let body = Expr::LambdaExpr { param, body };
-                params.iter().rev().skip(1).fold(body, |body, param| {
-                    let body = self.alloc_expr(body);
-                    let param = Box::new(param.clone());
-                    Expr::LambdaExpr { param, body }
-                })
+                self.curry(body, &params)
             }
             ast::Expr::LetExpr(ast) => ast.ident_lit().map_or(Expr::Missing, |ident| {
                 let name = ident.text().into();
@@ -213,7 +224,7 @@ fn missing_type_expr_id() -> TypeExprIdx {
 
 #[cfg(test)]
 mod tests {
-    use crate::{missing_expr_id, Expr, Param};
+    use crate::{missing_expr_id, Declaration, Expr, Param};
 
     fn check_expr(text: &str, expected_database: &super::Database) {
         let module_syntax = parser::parse(&format!("def x = {text};")).module();
@@ -223,6 +234,45 @@ mod tests {
 
         assert_eq!(db.expressions, expected_database.expressions);
         assert_eq!(db.type_expressions, expected_database.type_expressions);
+    }
+
+    #[test]
+    fn lower_def_func() {
+        let module = parser::parse("def f x y = 42;").module();
+        let mut actual_db = super::Database::default();
+
+        actual_db.lower_module(&module);
+
+        let mut expected_db = super::Database::default();
+        let body = expected_db.alloc_expr(Expr::LiteralExpr(super::Literal::IntLiteral(42)));
+
+        let param = Box::new(Param {
+            name: "x".into(),
+            typ: None,
+        });
+
+        let param2 = Box::new(Param {
+            name: "y".into(),
+            typ: None,
+        });
+
+        let body = expected_db.alloc_expr(Expr::LambdaExpr {
+            param: param2,
+            body,
+        });
+
+        let defn = expected_db.alloc_expr(Expr::LambdaExpr { param, body });
+
+        let def_decl = Declaration::DefDecl(Box::new(super::DefDecl {
+            name: String::from("f"),
+            defn,
+        }));
+
+        expected_db.declarations.alloc(def_decl);
+
+        assert_eq!(actual_db.expressions, expected_db.expressions);
+        assert_eq!(actual_db.type_expressions, expected_db.type_expressions);
+        assert_eq!(actual_db.declarations, expected_db.declarations);
     }
 
     #[test]

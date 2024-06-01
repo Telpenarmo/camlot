@@ -10,16 +10,15 @@ pub struct Module {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct LetDecl {
+pub struct DefDecl {
     pub name: String,
-    pub params: Box<[Param]>,
     pub defn: ExprIdx,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum Declaration {
     TypeDecl { name: String, defn: TypeExprIdx },
-    LetDecl(Box<LetDecl>),
+    DefDecl(Box<DefDecl>),
     OpenDecl { path: String },
 }
 
