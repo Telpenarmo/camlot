@@ -1,4 +1,5 @@
 use crate::{
+    event::ErrorPlacement,
     grammar::params::params,
     parser::{CompletedMarker, Parser},
     SyntaxKind,
@@ -27,7 +28,7 @@ pub(crate) fn expr(parser: &mut Parser) {
         }
 
         if prev_mark.is_none() {
-            parser.error("Expected expression".into());
+            parser.error("Expected expression".into(), ErrorPlacement::PrevTokenEnd);
         }
     };
 }

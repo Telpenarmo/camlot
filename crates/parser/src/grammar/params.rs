@@ -1,4 +1,5 @@
 use crate::{
+    event::ErrorPlacement,
     grammar::type_expr,
     parser::{CompletedMarker, Parser},
     SyntaxKind,
@@ -22,7 +23,10 @@ fn param(parser: &mut Parser) -> CompletedMarker {
         type_expr::type_expr(parser);
         parser.expect(SyntaxKind::R_PAREN);
     } else {
-        parser.error("Expected parameter".to_string());
+        parser.error(
+            "Expected parameter".to_string(),
+            ErrorPlacement::PrevTokenEnd,
+        );
     }
     parser.close(mark, SyntaxKind::PARAM)
 }
