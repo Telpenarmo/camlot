@@ -1,13 +1,13 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import * as lc from "vscode-languageclient/node";
-
 import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
 } from "vscode-languageclient/node";
+
+import { Ctx } from './ctx';
 import { syntaxTree } from './syntax_tree';
 
 let client: LanguageClient | undefined;
@@ -46,6 +46,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			};
 			// register syntax tree command
 			commands.push(vscode.commands.registerCommand('rideml-analyzer.syntaxTree', syntaxTree(ctx)));
+			commands.push(vscode.commands.registerCommand('rideml-analyzer.restartServer', restart(ctx)));
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err);
 		}
@@ -59,4 +60,9 @@ export function deactivate() {
 	}
 	commands.map((c) => c.dispose());
 	commands = [];
+}
+function restart(ctx: Ctx) {
+	return async () => {
+		await ctx.client.restart();
+	};
 }

@@ -30,6 +30,11 @@
         "command": "rideml-analyzer.syntaxTree",
         "title": "Show Syntax Tree",
         "category": "RideML"
+      },
+      {
+        "command": "rideml-analyzer.restartServer",
+        "title": "Restart Server",
+        "category": "RideML"
       }
     ]
   },

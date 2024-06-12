@@ -1,19 +1,10 @@
 import * as vscode from 'vscode';
 import * as lc from 'vscode-languageclient';
-import { LanguageClient } from 'vscode-languageclient/node';
-
-// import { Ctx } from '../ctx';
+import { Ctx } from './ctx';
 
 // Opens the virtual file that will show the syntax tree
 //
 // The contents of the file come from the `TextDocumentContentProvider`
-
-export interface Ctx {
-    pushCleanup(cleanup: vscode.Disposable): void;
-    subscriptions: vscode.Disposable[];
-    client: LanguageClient;
-}
-
 export function syntaxTree(ctx: Ctx) {
     const stcp = new SyntaxTreeContentProvider(ctx);
 
@@ -90,12 +81,6 @@ export class SyntaxTreeContentProvider
     provideTextDocumentContent(uri: vscode.Uri): vscode.ProviderResult<string> {
         const editor = vscode.window.activeTextEditor;
         if (editor === undefined) {
-            return '';
-        }
-        if (editor.document.isDirty) {
-            vscode.window.showInformationMessage(
-                'The syntax tree is only available for saved documents.',
-            );
             return '';
         }
 
