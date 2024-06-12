@@ -12,6 +12,7 @@ impl Document {
 
     pub fn update(&mut self, text: String) {
         self.text = text;
+        self.line_index = line_index::LineIndex::new(&self.text);
     }
 
     #[must_use]
