@@ -108,12 +108,6 @@ fn check_err(
 ) {
     let parse = parse_internal(input, entry_point);
     expected_tree.assert_eq(&parse.debug_tree());
-    for expected_error in expected_errors {
-        assert!(
-            parse.errors.iter().any(|it| it.message == *expected_error),
-            "expected error `{}`, found: {:?}",
-            expected_error,
-            parse.errors
-        );
-    }
+    let actual_errors: Vec<_> = parse.errors.iter().map(|it| it.message.as_str()).collect();
+    assert_eq!(actual_errors, expected_errors);
 }

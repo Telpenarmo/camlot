@@ -71,3 +71,71 @@ fn def_decl(parser: &mut Parser) {
 
     parser.close(mark, SyntaxKind::DEF_DECL);
 }
+
+#[cfg(test)]
+mod tests {
+    use expect_test::expect;
+
+    use crate::{check, check_err, PrefixEntryPoint};
+
+    #[test]
+    fn parse_decl() {
+        check(
+            PrefixEntryPoint::Module,
+            "def f = x;",
+            &expect![[r#"
+            MODULE@0..10
+              DEF_DECL@0..10
+                DEF_KW@0..3 "def"
+                WHITESPACE@3..4 " "
+                IDENT@4..5 "f"
+                WHITESPACE@5..6 " "
+                PARAMS@6..6
+                EQUAL@6..7 "="
+                WHITESPACE@7..8 " "
+                IDENT_EXPR@8..9
+                  IDENT@8..9 "x"
+                SEMICOLON@9..10 ";"
+        "#]],
+        );
+    }
+
+    #[test]
+    fn parse_def_missing_body() {
+        check_err(
+            PrefixEntryPoint::Module,
+            "def f =",
+            &expect![[r#"
+                MODULE@0..7
+                  DEF_DECL@0..7
+                    DEF_KW@0..3 "def"
+                    WHITESPACE@3..4 " "
+                    IDENT@4..5 "f"
+                    WHITESPACE@5..6 " "
+                    PARAMS@6..6
+                    EQUAL@6..7 "="
+            "#]],
+            &["Expected expression", "Expected SEMICOLON but found EOF"],
+        );
+    }
+
+    #[test]
+    fn parse_def_only() {
+        check_err(
+            PrefixEntryPoint::Module,
+            "def",
+            &expect![[r#"
+                MODULE@0..3
+                  DEF_DECL@0..3
+                    DEF_KW@0..3 "def"
+                    PARAMS@3..3
+            "#]],
+            &[
+                "Expected IDENT but found EOF",
+                "Expected EQUAL but found EOF",
+                "Expected expression",
+                "Expected SEMICOLON but found EOF",
+            ],
+        );
+    }
+}
