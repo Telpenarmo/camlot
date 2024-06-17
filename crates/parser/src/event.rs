@@ -9,7 +9,7 @@ pub(crate) enum ErrorPlacement {
 #[derive(PartialEq, Debug)]
 pub(crate) struct ParseError {
     pub message: String,
-    pub location: ErrorPlacement,
+    pub(crate) location: ErrorPlacement,
 }
 
 #[derive(Debug, PartialEq)]
