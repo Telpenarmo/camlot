@@ -3,7 +3,7 @@ use crate::{
     SyntaxKind,
 };
 
-pub(crate) fn type_expr(parser: &mut Parser) {
+pub(crate) fn type_expr(parser: &mut Parser) -> CompletedMarker {
     fn lhs(parser: &mut Parser) -> CompletedMarker {
         if parser.at(SyntaxKind::IDENT) {
             let mark = parser.open();
@@ -25,7 +25,9 @@ pub(crate) fn type_expr(parser: &mut Parser) {
     if parser.eat(SyntaxKind::ARROW) {
         let marker = parser.open_before(lhs_mark);
         type_expr(parser);
-        parser.close(marker, SyntaxKind::TYPE_ARROW);
+        parser.close(marker, SyntaxKind::TYPE_ARROW)
+    } else {
+        lhs_mark
     }
 }
 

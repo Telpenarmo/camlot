@@ -31,36 +31,6 @@ pub(crate) fn type_arrow_to(
         })
 }
 
-pub(crate) fn let_expr_def(parent: &rowan::SyntaxNode<crate::RideMLLanguage>) -> Option<Expr> {
-    parent
-        .children_with_tokens()
-        .skip_while(|child| match child {
-            rowan::NodeOrToken::Node(_) => false,
-            rowan::NodeOrToken::Token(t) => t.kind() != crate::SyntaxKind::LET_KW,
-        })
-        .take_while(|child| match child {
-            rowan::NodeOrToken::Node(_) => true,
-            rowan::NodeOrToken::Token(t) => t.kind() != crate::SyntaxKind::IN_KW,
-        })
-        .find_map(|child| match child {
-            rowan::NodeOrToken::Node(n) => Expr::cast(n),
-            rowan::NodeOrToken::Token(_) => None,
-        })
-}
-
-pub(crate) fn let_expr_body(parent: &rowan::SyntaxNode<crate::RideMLLanguage>) -> Option<Expr> {
-    parent
-        .children_with_tokens()
-        .skip_while(|child| match child {
-            rowan::NodeOrToken::Node(_) => true,
-            rowan::NodeOrToken::Token(t) => t.kind() != crate::SyntaxKind::IN_KW,
-        })
-        .find_map(|child| match child {
-            rowan::NodeOrToken::Node(n) => Expr::cast(n),
-            rowan::NodeOrToken::Token(_) => None,
-        })
-}
-
 pub(crate) fn binary_expr_lhs(parent: &rowan::SyntaxNode<crate::RideMLLanguage>) -> Option<Expr> {
     support::child(parent)
 }

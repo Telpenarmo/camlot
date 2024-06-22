@@ -8,6 +8,8 @@ type t4 = (a -> b) -> c;
 
 def x = 42;
 
+def x2 { 42 }
+
 def const_42 = \(x: t) -> 42;
 def const_42_2 (x: t) = 42;
 
@@ -20,8 +22,20 @@ def const3 = \x y -> x;
 def const4 = \x (y: t) -> x;
 def const5 = \x -> \y -> x;
 
-def f =
-    let a = 1 in
-    let f = \x y -> x in
-    let g x y = x in
+def f {
+    let a = 1;
+    ();
+    let f = \x y -> x;
+    let g a = ();
+    g a;
     f g a;
+}
+
+def g {
+    let const_5 = {
+        let a = 5;
+        const a
+    };
+    { const_5 } 0;
+    ()
+}

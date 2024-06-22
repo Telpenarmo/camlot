@@ -22,6 +22,10 @@ pub enum SyntaxKind {
     L_PAREN,
     #[token(")")]
     R_PAREN,
+    #[token("{")]
+    L_BRACE,
+    #[token("}")]
+    R_BRACE,
     #[token(":")]
     COLON,
     #[token(";")]
@@ -62,8 +66,6 @@ pub enum SyntaxKind {
     TYPE_KW,
     #[token("let")]
     LET_KW,
-    #[token("in")]
-    IN_KW,
     #[token("dummy")]
     DUMMY_KW,
     #[doc = r" Also acts as __LAST_TOKEN"]
@@ -75,20 +77,24 @@ pub enum SyntaxKind {
     OPEN_DECL,
     TYPE_DECL,
     PARAMS,
+    DEF_BODY,
+    BLOCK_EXPR,
     TYPE_IDENT,
     TYPE_ARROW,
     TYPE_PAREN,
+    EXPR_STMT,
+    LET_STMT,
     IDENT_EXPR,
     LITERAL_EXPR,
     APP_EXPR,
     LAMBDA_EXPR,
-    LET_EXPR,
     PAREN_EXPR,
     BINARY_EXPR,
     PARAM,
     DECL,
-    EXPR,
     TYPE_EXPR,
+    EXPR,
+    STMT,
     LITERAL,
     INFIX_SYMBOL,
     #[doc(hidden)]
@@ -99,22 +105,22 @@ impl SyntaxKind {
     #[must_use]
     pub fn is_keyword(self) -> bool {
         match self {
-            DEF_KW | OPEN_KW | TYPE_KW | LET_KW | IN_KW | DUMMY_KW => true,
+            DEF_KW | OPEN_KW | TYPE_KW | LET_KW | DUMMY_KW => true,
             _ => false,
         }
     }
     #[must_use]
     pub fn is_operator(self) -> bool {
         match self {
-            L_PAREN | R_PAREN | COLON | SEMICOLON | COMMA | EQUAL | ARROW | PLUS | MINUS | STAR
-            | SLASH | BACKSLASH | LAMBDA => true,
+            L_PAREN | R_PAREN | L_BRACE | R_BRACE | COLON | SEMICOLON | COMMA | EQUAL | ARROW
+            | PLUS | MINUS | STAR | SLASH | BACKSLASH | LAMBDA => true,
             _ => false,
         }
     }
     #[must_use]
     pub fn is_enum(self) -> bool {
         match self {
-            DECL | EXPR | TYPE_EXPR | LITERAL | INFIX_SYMBOL => true,
+            DECL | TYPE_EXPR | EXPR | STMT | LITERAL | INFIX_SYMBOL => true,
             _ => false,
         }
     }

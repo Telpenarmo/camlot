@@ -1,7 +1,6 @@
 use crate::{
     hir::{
-        Declaration, DeclarationIdx, Expr, ExprIdx, LetExpr, Literal, Module, Param, TypeExpr,
-        TypeExprIdx,
+        Declaration, DeclarationIdx, Expr, ExprIdx, Literal, Module, Param, TypeExpr, TypeExprIdx,
     },
     DefDecl,
 };
@@ -56,7 +55,7 @@ impl Database {
         Some(match ast {
             ast::Decl::DefDecl(ast) => {
                 let params = self.lower_params(ast.params());
-                let body = self.lower_expr(ast.expr());
+                let body = self.lower_expr(ast.def_body().and_then(|body| body.expr()));
 
                 let defn = if params.is_empty() {
                     body
@@ -169,24 +168,7 @@ impl Database {
 
                 self.curry(body, &params)
             }
-            ast::Expr::LetExpr(ast) => ast.ident_lit().map_or(Expr::Missing, |ident| {
-                let name = ident.text().into();
-
-                let params = self.lower_params(ast.params());
-
-                let defn = self.lower_expr(ast.def());
-                let defn = self.alloc_expr(defn);
-
-                let body = self.lower_expr(ast.body());
-                let body = self.alloc_expr(body);
-
-                Expr::LetExpr(Box::new(LetExpr {
-                    name,
-                    params,
-                    defn,
-                    body,
-                }))
-            }),
+            ast::Expr::BlockExpr(ast) => todo!("Block expressions are not yet supported"),
             ast::Expr::BinaryExpr(_) => todo!("Binary expressions are not yet supported"),
         }
     }
@@ -333,7 +315,13 @@ mod tests {
             body,
         })));
 
-        check_expr("let a b = c in d", &database);
+        let module_syntax = parser::parse("def x { let a b = c; d }").module();
+        let mut db = super::Database::default();
+
+        db.lower_module(&module_syntax);
+
+        assert_eq!(db.expressions, database.expressions);
+        assert_eq!(db.type_expressions, database.type_expressions);
     }
 
     #[test]
@@ -394,25 +382,6 @@ mod tests {
             body,
         })));
 
-        check_expr("let a b = in d", &database);
-    }
-
-    #[test]
-    fn lower_let_missing_body() {
-        let mut database = super::Database::default();
-        let param = Param {
-            name: "b".into(),
-            typ: None,
-        };
-        let params = vec![param].into_boxed_slice();
-        let defn = database.alloc_expr(Expr::IdentExpr { name: "c".into() });
-        database.alloc_expr(Expr::LetExpr(Box::new(crate::LetExpr {
-            name: "a".into(),
-            params,
-            defn,
-            body: missing_expr_id(),
-        })));
-
-        check_expr("let a b = c in", &database);
+        check_expr("{ let a b; d }", &database);
     }
 }

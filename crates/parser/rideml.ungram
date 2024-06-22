@@ -5,9 +5,13 @@ Decl =
 | OpenDecl
 | TypeDecl
 
-DefDecl = 'def' 'Ident' Params '=' Expr ';'
+DefDecl = 'def' 'Ident' Params DefBody
 OpenDecl = 'open' 'Ident' ';'
 TypeDecl = 'type' 'Ident' '=' TypeExpr ';'
+
+DefBody =
+  '=' Expr ';'
+| BlockExpr
 
 TypeExpr =
   TypeIdent
@@ -18,20 +22,32 @@ TypeIdent  = 'Ident'
 TypeArrow = from:TypeExpr '->' to:TypeExpr
 TypeParen = '(' TypeExpr ')'
 
+Stmt =
+  ExprStmt
+| LetStmt
+
+ExprStmt = Expr ';'
+LetStmt = 'let' 'Ident' Params '=' def:Expr ';'
+
 Expr =
   IdentExpr
 | LiteralExpr
 | AppExpr
 | LambdaExpr
-| LetExpr
 | ParenExpr
 | BinaryExpr
+| BlockExpr
+
+BlockExpr =
+  '{'
+    statements:Stmt*
+    tail_expr:Expr?
+  '}'
 
 IdentExpr = 'Ident'
 LiteralExpr = Literal
 AppExpr = func:Expr arg:Expr
 LambdaExpr = ('λ' | '\\') Params '->' body:Expr
-LetExpr = 'let' 'Ident' Params '=' def:Expr 'in' body:Expr
 ParenExpr = '(' Expr? ')'
 
 Literal =  'Int' | 'dummy'

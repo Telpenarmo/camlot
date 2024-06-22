@@ -1,5 +1,5 @@
+use super::{block::block, params::params};
 use crate::{
-    grammar::params::params,
     parser::{CompletedMarker, Parser},
     token_set::TokenSet,
     SyntaxKind,
@@ -8,15 +8,14 @@ use crate::{
 const LAMBDA_TOKENS: TokenSet = TokenSet::new(&[SyntaxKind::LAMBDA, SyntaxKind::BACKSLASH]);
 const LITERAL_EXPR_FIRST: TokenSet = TokenSet::new(&[SyntaxKind::INT]);
 const ATOM_EXPR_FIRST: TokenSet =
-    TokenSet::new(&[SyntaxKind::L_PAREN, SyntaxKind::IDENT]).union(LITERAL_EXPR_FIRST);
-const EXPR_FIRST: TokenSet =
-    TokenSet::new(&[SyntaxKind::LET_KW]).union(LAMBDA_TOKENS.union(ATOM_EXPR_FIRST));
+    TokenSet::new(&[SyntaxKind::L_PAREN, SyntaxKind::L_BRACE, SyntaxKind::IDENT])
+        .union(LITERAL_EXPR_FIRST);
 
-pub(crate) fn expr(parser: &mut Parser) {
-    if parser.at(SyntaxKind::LET_KW) {
-        let_expr(parser);
-    } else if parser.at_any(LAMBDA_TOKENS) {
-        lambda_expr(parser);
+pub(crate) const EXPR_FIRST: TokenSet = LAMBDA_TOKENS.union(ATOM_EXPR_FIRST);
+
+pub(crate) fn expr(parser: &mut Parser) -> CompletedMarker {
+    if parser.at_any(LAMBDA_TOKENS) {
+        lambda_expr(parser)
     } else {
         let mut prev_mark = None;
         while parser.at_any(ATOM_EXPR_FIRST) {
@@ -30,10 +29,11 @@ pub(crate) fn expr(parser: &mut Parser) {
             };
         }
 
-        if prev_mark.is_none() {
-            parser.error("Expected expression".into());
+        match prev_mark {
+            Some(prev) => prev,
+            None => parser.error("Expected expression".into()),
         }
-    };
+    }
 }
 
 fn delimited_expr(parser: &mut Parser) -> CompletedMarker {
@@ -43,6 +43,8 @@ fn delimited_expr(parser: &mut Parser) -> CompletedMarker {
         paren_expr(parser)
     } else if parser.at_any(LITERAL_EXPR_FIRST) {
         literal_expr(parser)
+    } else if parser.at(SyntaxKind::L_BRACE) {
+        block(parser)
     } else {
         unreachable!()
     }
@@ -77,21 +79,6 @@ fn lambda_expr(parser: &mut Parser) -> CompletedMarker {
     parser.close(mark, SyntaxKind::LAMBDA_EXPR)
 }
 
-fn let_expr(parser: &mut Parser) -> CompletedMarker {
-    assert!(parser.at(SyntaxKind::LET_KW));
-
-    let mark = parser.open();
-    parser.expect(SyntaxKind::LET_KW);
-    parser.expect(SyntaxKind::IDENT);
-    params(parser);
-    parser.expect(SyntaxKind::EQUAL);
-    expr(parser);
-    parser.expect(SyntaxKind::IN_KW);
-    expr(parser);
-
-    parser.close(mark, SyntaxKind::LET_EXPR)
-}
-
 fn paren_expr(parser: &mut Parser) -> CompletedMarker {
     assert!(parser.at(SyntaxKind::L_PAREN));
 
@@ -106,8 +93,8 @@ fn paren_expr(parser: &mut Parser) -> CompletedMarker {
 
 #[cfg(test)]
 mod tests {
-    use crate::{check, check_err, check_file, PrefixEntryPoint};
-    use expect_test::{expect, expect_file};
+    use crate::{check, PrefixEntryPoint};
+    use expect_test::expect;
 
     #[test]
     fn parse_lambda() {
@@ -126,15 +113,6 @@ mod tests {
                   IDENT_EXPR@6..7
                     IDENT@6..7 "x"
             "#]],
-        );
-    }
-
-    #[test]
-    fn parse_let() {
-        eprintln!("{}", std::env::current_dir().unwrap().display());
-        check_file(
-            r"def f = \x -> let y = x in y;",
-            &expect_file!["../../test_data/parse_let.rml_cst"],
         );
     }
 
@@ -233,85 +211,6 @@ mod tests {
                         IDENT@5..6 "z"
                     R_PAREN@6..7 ")"
             "#]],
-        );
-    }
-
-    #[test]
-    fn parse_let_nested() {
-        check_file(
-            r"def a = let x = 5 in let y = x in y;",
-            &expect_file!["../../test_data/parse_let_nested.rml_cst"],
-        );
-    }
-
-    #[test]
-    fn report_missing_let_defn() {
-        check_err(
-            PrefixEntryPoint::Expr,
-            r"let x = in x",
-            &expect![[r#"
-                LET_EXPR@0..12
-                  LET_KW@0..3 "let"
-                  WHITESPACE@3..4 " "
-                  IDENT@4..5 "x"
-                  WHITESPACE@5..6 " "
-                  PARAMS@6..6
-                  EQUAL@6..7 "="
-                  ERROR@7..7
-                  WHITESPACE@7..8 " "
-                  IN_KW@8..10 "in"
-                  WHITESPACE@10..11 " "
-                  IDENT_EXPR@11..12
-                    IDENT@11..12 "x"
-            "#]],
-            &["Expected expression"],
-        );
-    }
-
-    #[test]
-    fn report_missing_let_body() {
-        check_err(
-            PrefixEntryPoint::Expr,
-            r"let x = 5 in",
-            &expect![[r#"
-                LET_EXPR@0..12
-                  LET_KW@0..3 "let"
-                  WHITESPACE@3..4 " "
-                  IDENT@4..5 "x"
-                  WHITESPACE@5..6 " "
-                  PARAMS@6..6
-                  EQUAL@6..7 "="
-                  WHITESPACE@7..8 " "
-                  LITERAL_EXPR@8..10
-                    INT@8..9 "5"
-                    WHITESPACE@9..10 " "
-                  IN_KW@10..12 "in"
-                  ERROR@12..12
-            "#]],
-            &["Expected expression"],
-        );
-    }
-
-    #[test]
-    fn report_missing_in() {
-        check_err(
-            PrefixEntryPoint::Expr,
-            r"let x = 5",
-            &expect![[r#"
-                LET_EXPR@0..9
-                  LET_KW@0..3 "let"
-                  WHITESPACE@3..4 " "
-                  IDENT@4..5 "x"
-                  WHITESPACE@5..6 " "
-                  PARAMS@6..6
-                  EQUAL@6..7 "="
-                  WHITESPACE@7..8 " "
-                  LITERAL_EXPR@8..9
-                    INT@8..9 "5"
-                  ERROR@9..9
-                  ERROR@9..9
-            "#]],
-            &["Expected IN_KW but found EOF", "Expected expression"],
         );
     }
 }

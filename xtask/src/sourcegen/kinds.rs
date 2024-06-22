@@ -150,6 +150,8 @@ pub(crate) fn kinds() -> KindsSrc {
     define_kinds![kinds =
         "(" => "L_Paren";
         ")" => "R_Paren";
+        "{" => "L_Brace";
+        "}" => "R_Brace";
         ":" => "Colon";
         ";" => "Semicolon";
         "," => "Comma";

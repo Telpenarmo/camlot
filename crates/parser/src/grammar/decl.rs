@@ -1,9 +1,5 @@
-use crate::{
-    grammar::{expr, params, type_expr},
-    parser::Parser,
-    token_set::TokenSet,
-    SyntaxKind,
-};
+use super::{block, expr, params, type_expr};
+use crate::{parser::Parser, token_set::TokenSet, SyntaxKind};
 
 pub(crate) const DECL_START: TokenSet =
     TokenSet::new(&[SyntaxKind::DEF_KW, SyntaxKind::TYPE_KW, SyntaxKind::OPEN_KW]);
@@ -55,9 +51,15 @@ fn def_decl(parser: &mut Parser) {
     parser.expect(SyntaxKind::DEF_KW);
     parser.expect(SyntaxKind::IDENT);
     params::params(parser);
-    parser.expect(SyntaxKind::EQUAL);
-    expr::expr(parser);
-    parser.expect(SyntaxKind::SEMICOLON);
+
+    let body = parser.open();
+    if parser.eat(SyntaxKind::EQUAL) {
+        expr::expr(parser);
+        parser.expect(SyntaxKind::SEMICOLON);
+    } else if parser.at(SyntaxKind::L_BRACE) {
+        block::block(parser);
+    }
+    parser.close(body, SyntaxKind::DEF_BODY);
 
     parser.close(mark, SyntaxKind::DEF_DECL);
 }
@@ -81,11 +83,12 @@ mod tests {
                 IDENT@4..5 "f"
                 WHITESPACE@5..6 " "
                 PARAMS@6..6
-                EQUAL@6..7 "="
-                WHITESPACE@7..8 " "
-                IDENT_EXPR@8..9
-                  IDENT@8..9 "x"
-                SEMICOLON@9..10 ";"
+                DEF_BODY@6..10
+                  EQUAL@6..7 "="
+                  WHITESPACE@7..8 " "
+                  IDENT_EXPR@8..9
+                    IDENT@8..9 "x"
+                  SEMICOLON@9..10 ";"
         "#]],
         );
     }
@@ -103,9 +106,10 @@ mod tests {
                     IDENT@4..5 "f"
                     WHITESPACE@5..6 " "
                     PARAMS@6..6
-                    EQUAL@6..7 "="
-                    ERROR@7..7
-                    ERROR@7..7
+                    DEF_BODY@6..7
+                      EQUAL@6..7 "="
+                      ERROR@7..7
+                      ERROR@7..7
             "#]],
             &["Expected expression", "Expected SEMICOLON but found EOF"],
         );
@@ -122,16 +126,9 @@ mod tests {
                     DEF_KW@0..3 "def"
                     ERROR@3..3
                     PARAMS@3..3
-                    ERROR@3..3
-                    ERROR@3..3
-                    ERROR@3..3
+                    DEF_BODY@3..3
             "#]],
-            &[
-                "Expected IDENT but found EOF",
-                "Expected EQUAL but found EOF",
-                "Expected expression",
-                "Expected SEMICOLON but found EOF",
-            ],
+            &["Expected IDENT but found EOF"],
         );
     }
 }

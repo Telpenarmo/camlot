@@ -112,10 +112,10 @@ fn get_semantic_token_type(token: &SyntaxToken) -> Option<lsp_types::SemanticTok
             Some(SyntaxKind::OPEN_DECL) => Some(lsp_types::SemanticTokenType::NAMESPACE),
             Some(SyntaxKind::PARAM) => Some(lsp_types::SemanticTokenType::PARAMETER),
             Some(SyntaxKind::DEF_DECL) => Some(lsp_types::SemanticTokenType::FUNCTION),
-            Some(SyntaxKind::LET_EXPR)
+            Some(SyntaxKind::LET_STMT)
                 if parent.is_some_and(|n| {
-                    nodes::LetExpr::cast(n.clone()).is_some_and(|let_expr| {
-                        let_expr
+                    nodes::LetStmt::cast(n.clone()).is_some_and(|let_stmt| {
+                        let_stmt
                             .params()
                             .is_some_and(|params| params.params().next().is_some())
                     })
