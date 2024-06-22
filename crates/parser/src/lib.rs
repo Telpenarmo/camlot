@@ -8,6 +8,7 @@ mod lexer;
 mod parser;
 mod sink;
 mod source;
+mod token_set;
 
 use std::ops::Range;
 

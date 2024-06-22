@@ -1,6 +1,7 @@
 use crate::{
     event::{ErrorPlacement, Event, ParseError},
     source::Source,
+    token_set::TokenSet,
     SyntaxKind,
 };
 
@@ -67,6 +68,11 @@ impl<'t, 'input> Parser<'t, 'input> {
         self.current() == kind
     }
 
+    /// Check if the current token is any of the given kinds
+    pub(crate) fn at_any(&mut self, kinds: TokenSet) -> bool {
+        kinds.contains(self.current())
+    }
+
     /// Get the current token, ignoring trivia
     fn current(&mut self) -> SyntaxKind {
         self.source.current()
@@ -81,6 +87,16 @@ impl<'t, 'input> Parser<'t, 'input> {
     /// Advance if the current token is the given kind
     pub(crate) fn eat(&mut self, kind: SyntaxKind) -> bool {
         if self.at(kind) {
+            self.advance();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Advance if the current token is any of the given kinds
+    pub(crate) fn eat_any(&mut self, kinds: TokenSet) -> bool {
+        if self.at_any(kinds) {
             self.advance();
             true
         } else {
@@ -104,10 +120,22 @@ impl<'t, 'input> Parser<'t, 'input> {
             .push(Event::Error(ParseError { message, location }));
     }
 
-    pub(crate) fn unexpected(&mut self) {
+    fn unexpected(&mut self) {
         let msg = format!("Unexpected token: {:#?}", self.current());
         self.error(msg, ErrorPlacement::NextToken);
         self.advance();
+    }
+
+    pub(crate) fn eat_error_until(&mut self, delimiters: TokenSet) -> CompletedMarker {
+        let marker = self.open();
+        let delimiters = delimiters.union(TokenSet::new(&[SyntaxKind::EOF]));
+        loop {
+            if delimiters.contains(self.current()) {
+                break;
+            }
+            self.unexpected();
+        }
+        self.close(marker, SyntaxKind::ERROR)
     }
 }
 
@@ -140,7 +168,6 @@ impl Drop for Marker {
         );
     }
 }
-
 #[derive(Clone, Copy)]
 pub(crate) struct CompletedMarker {
     pub(crate) pos: usize,

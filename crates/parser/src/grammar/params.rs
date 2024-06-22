@@ -2,12 +2,15 @@ use crate::{
     event::ErrorPlacement,
     grammar::type_expr,
     parser::{CompletedMarker, Parser},
+    token_set::TokenSet,
     SyntaxKind,
 };
 
+const PARAM_START: TokenSet = TokenSet::new(&[SyntaxKind::IDENT, SyntaxKind::L_PAREN]);
+
 pub(crate) fn params(parser: &mut Parser) -> CompletedMarker {
     let mark = parser.open();
-    while parser.at(SyntaxKind::IDENT) || parser.at(SyntaxKind::L_PAREN) {
+    while parser.at_any(PARAM_START) {
         param(parser);
     }
     parser.close(mark, SyntaxKind::PARAMS)

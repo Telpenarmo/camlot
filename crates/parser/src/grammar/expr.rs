@@ -2,21 +2,27 @@ use crate::{
     event::ErrorPlacement,
     grammar::params::params,
     parser::{CompletedMarker, Parser},
+    token_set::TokenSet,
     SyntaxKind,
 };
+
+const LAMBDA_TOKENS: TokenSet = TokenSet::new(&[SyntaxKind::LAMBDA, SyntaxKind::BACKSLASH]);
+const ATOM_EXPR_FIRST: TokenSet = TokenSet::new(&[
+    SyntaxKind::L_PAREN,
+    SyntaxKind::IDENT,
+    SyntaxKind::INT,
+    SyntaxKind::EMPTY_PAREN,
+]);
+const LITERAL_EXPR_FIRST: TokenSet = TokenSet::new(&[SyntaxKind::INT, SyntaxKind::EMPTY_PAREN]);
 
 pub(crate) fn expr(parser: &mut Parser) {
     if parser.at(SyntaxKind::LET_KW) {
         let_expr(parser);
-    } else if parser.at(SyntaxKind::LAMBDA) || parser.at(SyntaxKind::BACKSLASH) {
+    } else if parser.at_any(LAMBDA_TOKENS) {
         lambda_expr(parser);
     } else {
         let mut prev_mark = None;
-        while parser.at(SyntaxKind::L_PAREN)
-            || parser.at(SyntaxKind::IDENT)
-            || parser.at(SyntaxKind::INT)
-            || parser.at(SyntaxKind::EMPTY_PAREN)
-        {
+        while parser.at_any(ATOM_EXPR_FIRST) {
             match prev_mark {
                 Some(prev) => {
                     let marker = parser.open_before(prev);
@@ -38,7 +44,7 @@ fn delimited_expr(parser: &mut Parser) -> CompletedMarker {
         ident_expr(parser)
     } else if parser.at(SyntaxKind::L_PAREN) {
         paren_expr(parser)
-    } else if parser.at(SyntaxKind::INT) || parser.at(SyntaxKind::EMPTY_PAREN) {
+    } else if parser.at_any(LITERAL_EXPR_FIRST) {
         literal_expr(parser)
     } else {
         unreachable!()
@@ -55,7 +61,7 @@ fn ident_expr(parser: &mut Parser) -> CompletedMarker {
 
 fn literal_expr(parser: &mut Parser) -> CompletedMarker {
     let mark = parser.open();
-    if parser.at(SyntaxKind::INT) || parser.at(SyntaxKind::EMPTY_PAREN) {
+    if parser.at_any(LITERAL_EXPR_FIRST) {
         parser.advance();
     } else {
         unreachable!();
@@ -64,10 +70,10 @@ fn literal_expr(parser: &mut Parser) -> CompletedMarker {
 }
 
 fn lambda_expr(parser: &mut Parser) -> CompletedMarker {
-    assert!(parser.at(SyntaxKind::LAMBDA) || parser.at(SyntaxKind::BACKSLASH));
+    assert!(parser.at_any(LAMBDA_TOKENS));
 
     let mark = parser.open();
-    let _ = parser.eat(SyntaxKind::LAMBDA) || parser.eat(SyntaxKind::BACKSLASH);
+    let _ = parser.eat_any(LAMBDA_TOKENS);
     params(parser);
     parser.expect(SyntaxKind::ARROW);
     expr(parser);
