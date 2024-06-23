@@ -1,5 +1,4 @@
 use crate::{
-    event::ErrorPlacement,
     parser::{CompletedMarker, Parser},
     SyntaxKind,
 };
@@ -17,10 +16,7 @@ pub(crate) fn type_expr(parser: &mut Parser) {
             parser.expect(SyntaxKind::R_PAREN);
             Some(parser.close(mark, SyntaxKind::TYPE_PAREN))
         } else {
-            parser.error(
-                "Expected type expression".into(),
-                ErrorPlacement::PrevTokenEnd,
-            );
+            parser.error("Expected type expression".into());
             None
         }
     }

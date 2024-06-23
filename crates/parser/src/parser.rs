@@ -1,9 +1,4 @@
-use crate::{
-    event::{ErrorPlacement, Event, ParseError},
-    source::Source,
-    token_set::TokenSet,
-    SyntaxKind,
-};
+use crate::{event::Event, source::Source, token_set::TokenSet, SyntaxKind};
 
 #[allow(dead_code)]
 pub(crate) struct Parser<'t, 'input> {
@@ -112,17 +107,16 @@ impl<'t, 'input> Parser<'t, 'input> {
 
         let msg = format!("Expected {:#?} but found {:?}", kind, self.current());
         eprintln!("{msg}");
-        self.error(msg, ErrorPlacement::PrevTokenEnd);
+        self.error(msg);
     }
 
-    pub(crate) fn error(&mut self, message: String, location: ErrorPlacement) {
-        self.events
-            .push(Event::Error(ParseError { message, location }));
+    pub(crate) fn error(&mut self, message: String) {
+        self.events.push(Event::Error(message));
     }
 
     fn unexpected(&mut self) {
         let msg = format!("Unexpected token: {:#?}", self.current());
-        self.error(msg, ErrorPlacement::NextToken);
+        self.error(msg);
         self.advance();
     }
 

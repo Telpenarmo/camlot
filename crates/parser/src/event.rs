@@ -1,16 +1,6 @@
 use crate::SyntaxKind;
 
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub(crate) enum ErrorPlacement {
-    PrevTokenEnd,
-    NextToken,
-}
-
-#[derive(PartialEq, Debug)]
-pub(crate) struct ParseError {
-    pub message: String,
-    pub(crate) location: ErrorPlacement,
-}
+pub(crate) type ParseError = String;
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum Event {

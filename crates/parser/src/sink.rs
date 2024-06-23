@@ -1,6 +1,5 @@
-use crate::event::{ErrorPlacement, ParseError};
-use crate::source::Token;
 use crate::{event::Event, RideMLLanguage};
+use crate::source::Token;
 use crate::{Parse, SyntaxError};
 use rowan::{GreenNodeBuilder, Language};
 use std::mem;
@@ -9,7 +8,6 @@ pub(crate) struct Sink<'t, 'input> {
     builder: GreenNodeBuilder<'static>,
     tokens: &'t [Token<'input>],
     cursor: usize,
-    prev: usize,
     events: Vec<Event>,
     errors: Vec<SyntaxError>,
 }
@@ -20,7 +18,6 @@ impl<'t, 'input> Sink<'t, 'input> {
             builder: GreenNodeBuilder::new(),
             tokens,
             cursor: 0,
-            prev: 0,
             events,
             errors: Vec::new(),
         }
@@ -61,10 +58,7 @@ impl<'t, 'input> Sink<'t, 'input> {
                         self.builder.start_node(RideMLLanguage::kind_to_raw(kind));
                     }
                 }
-                Event::Advance => {
-                    self.prev = self.cursor;
-                    self.token();
-                }
+                Event::Advance => self.token(),
                 Event::Close => self.builder.finish_node(),
                 Event::Error(error) => self.error(error),
                 Event::UnmatchedOpen => {}
@@ -97,31 +91,14 @@ impl<'t, 'input> Sink<'t, 'input> {
         self.cursor += 1;
     }
 
-    fn error(&mut self, err: ParseError) {
-        fn get_range(s: &Sink<'_, '_>, err_pos: ErrorPlacement) -> std::ops::Range<usize> {
-            match err_pos {
-                ErrorPlacement::PrevTokenEnd => {
-                    if let Some(Token { range, .. }) = s.tokens.get(s.prev) {
-                        range.end..range.end
-                    } else {
-                        0..0
-                    }
-                }
-                ErrorPlacement::NextToken => {
-                    if let Some(Token { range, .. }) = s.tokens.get(s.cursor) {
-                        range.clone()
-                    } else {
-                        let end = s.tokens.last().unwrap().range.end;
-                        end..end
-                    }
-                }
+    fn error(&mut self, message: String) {
+        let range = match &self.tokens.get(self.cursor) {
+            Some(Token { range, .. }) => range.clone(),
+            None => {
+                let end = self.tokens.last().unwrap().range.end;
+                end..end
             }
-        }
-
-        let range = get_range(self, err.location);
-        self.errors.push(SyntaxError {
-            message: err.message,
-            range,
-        });
+        };
+        self.errors.push(SyntaxError { message, range });
     }
 }
