@@ -10,8 +10,6 @@ mod sink;
 mod source;
 mod token_set;
 
-use std::ops::Range;
-
 pub use ast::{AstChildren, AstNode, AstToken};
 pub use generated::{nodes, syntax_kinds::SyntaxKind};
 pub use language::*;
@@ -21,7 +19,6 @@ use rowan::GreenNode;
 #[derive(Debug, PartialEq)]
 pub struct SyntaxError {
     pub message: String,
-    pub range: Range<usize>,
 }
 
 pub struct Parse {

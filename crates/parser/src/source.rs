@@ -1,11 +1,10 @@
-use std::{cell::Cell, ops::Range};
+use std::cell::Cell;
 
 use crate::SyntaxKind;
 
 pub(crate) struct Token<'input> {
     pub(crate) kind: SyntaxKind,
     pub(crate) text: &'input str,
-    pub(crate) range: Range<usize>,
 }
 
 pub(crate) struct Source<'t, 'input> {

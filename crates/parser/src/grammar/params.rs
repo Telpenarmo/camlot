@@ -25,7 +25,7 @@ fn param(parser: &mut Parser) -> CompletedMarker {
         type_expr::type_expr(parser);
         parser.expect(SyntaxKind::R_PAREN);
     } else {
-        parser.error("Expected parameter".to_string());
+        unreachable!();
     }
     parser.close(mark, SyntaxKind::PARAM)
 }

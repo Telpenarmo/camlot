@@ -4,24 +4,23 @@ use crate::{
 };
 
 pub(crate) fn type_expr(parser: &mut Parser) {
-    fn lhs(parser: &mut Parser) -> Option<CompletedMarker> {
+    fn lhs(parser: &mut Parser) -> CompletedMarker {
         if parser.at(SyntaxKind::IDENT) {
             let mark = parser.open();
             parser.advance();
-            Some(parser.close(mark, SyntaxKind::TYPE_IDENT))
+            parser.close(mark, SyntaxKind::TYPE_IDENT)
         } else if parser.at(SyntaxKind::L_PAREN) {
             let mark = parser.open();
             parser.advance();
             type_expr(parser);
             parser.expect(SyntaxKind::R_PAREN);
-            Some(parser.close(mark, SyntaxKind::TYPE_PAREN))
+            parser.close(mark, SyntaxKind::TYPE_PAREN)
         } else {
-            parser.error("Expected type expression".into());
-            None
+            parser.error("Expected type expression".into())
         }
     }
 
-    let Some(lhs_mark) = lhs(parser) else { return };
+    let lhs_mark = lhs(parser);
 
     if parser.eat(SyntaxKind::ARROW) {
         let marker = parser.open_before(lhs_mark);
@@ -32,7 +31,7 @@ pub(crate) fn type_expr(parser: &mut Parser) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{check, PrefixEntryPoint};
+    use crate::{check, check_err, PrefixEntryPoint};
     use expect_test::expect;
 
     #[test]
@@ -128,6 +127,23 @@ mod tests {
                   TYPE_IDENT@12..13
                     IDENT@12..13 "c"
             "#]],
+        );
+    }
+
+    #[test]
+    fn parse_type_arrow_without_lhs() {
+        check_err(
+            PrefixEntryPoint::TypeExpr,
+            "-> a",
+            &expect![[r#"
+                TYPE_ARROW@0..4
+                  ERROR@0..0
+                  ARROW@0..2 "->"
+                  WHITESPACE@2..3 " "
+                  TYPE_IDENT@3..4
+                    IDENT@3..4 "a"
+            "#]],
+            &["Expected type expression"],
         );
     }
 }

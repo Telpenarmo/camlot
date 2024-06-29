@@ -258,6 +258,7 @@ mod tests {
                   PARAMS@6..6
                   EQUAL@6..7 "="
                   WHITESPACE@7..8 " "
+                  ERROR@8..8
                   IN_KW@8..10 "in"
                   WHITESPACE@10..11 " "
                   IDENT_EXPR@11..12
@@ -285,6 +286,7 @@ mod tests {
                     INT@8..9 "5"
                     WHITESPACE@9..10 " "
                   IN_KW@10..12 "in"
+                  ERROR@12..12
             "#]],
             &["Expected expression"],
         );
@@ -306,6 +308,8 @@ mod tests {
                   WHITESPACE@7..8 " "
                   LITERAL_EXPR@8..9
                     INT@8..9 "5"
+                  ERROR@9..9
+                  ERROR@9..9
             "#]],
             &["Expected IN_KW but found EOF", "Expected expression"],
         );

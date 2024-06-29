@@ -33,7 +33,13 @@ impl<'t, 'input> Sink<'t, 'input> {
                 } => self.open_node(idx, kind, forward_parent),
                 Event::Advance => self.token(),
                 Event::Close => self.builder.finish_node(),
-                Event::Error(error) => self.error(error),
+                Event::OpenError {
+                    error,
+                    forward_parent,
+                } => {
+                    self.open_node(idx, SyntaxKind::ERROR, forward_parent);
+                    self.errors.push(SyntaxError { message: error });
+                }
                 Event::UnmatchedOpen => {}
             }
 
@@ -91,16 +97,5 @@ impl<'t, 'input> Sink<'t, 'input> {
         self.builder.token(RideMLLanguage::kind_to_raw(kind), text);
 
         self.cursor += 1;
-    }
-
-    fn error(&mut self, message: String) {
-        let range = match &self.tokens.get(self.cursor) {
-            Some(Token { range, .. }) => range.clone(),
-            None => {
-                let end = self.tokens.last().unwrap().range.end;
-                end..end
-            }
-        };
-        self.errors.push(SyntaxError { message, range });
     }
 }

@@ -28,6 +28,12 @@ impl<'t, 'input> Parser<'t, 'input> {
 
     /// Close a node
     pub(crate) fn close(&mut self, marker: Marker, kind: SyntaxKind) -> CompletedMarker {
+        assert_ne!(
+            kind,
+            SyntaxKind::ERROR,
+            "For opening error nodes call `open_error` instead"
+        );
+
         let event_at_pos = &mut self.events[marker.pos];
         assert_eq!(*event_at_pos, Event::UnmatchedOpen);
 
@@ -46,6 +52,10 @@ impl<'t, 'input> Parser<'t, 'input> {
         let new_m = self.open();
 
         if let Event::Open {
+            ref mut forward_parent,
+            ..
+        }
+        | Event::OpenError {
             ref mut forward_parent,
             ..
         } = self.events[marker.pos]
@@ -107,21 +117,43 @@ impl<'t, 'input> Parser<'t, 'input> {
 
         let msg = format!("Expected {:#?} but found {:?}", kind, self.current());
         eprintln!("{msg}");
-        self.error(msg);
+        let marker = self.open_error(msg);
+        self.close_error(marker);
     }
 
-    pub(crate) fn error(&mut self, message: String) {
-        self.events.push(Event::Error(message));
+    fn open_error(&mut self, message: String) -> Marker {
+        let pos = self.events.len();
+        self.events.push(Event::OpenError {
+            error: message,
+            forward_parent: None,
+        });
+        Marker::new(pos)
+    }
+
+    fn close_error(&mut self, marker: Marker) -> CompletedMarker {
+        self.events.push(Event::Close);
+        marker.complete()
+    }
+
+    pub(crate) fn error(&mut self, message: String) -> CompletedMarker {
+        let marker = self.open_error(message);
+        self.close_error(marker)
     }
 
     fn unexpected(&mut self) {
         let msg = format!("Unexpected token: {:#?}", self.current());
-        self.error(msg);
+        eprintln!("{msg}");
+        let marker = self.open_error(msg);
         self.advance();
+        self.close_error(marker);
     }
 
-    pub(crate) fn eat_error_until(&mut self, delimiters: TokenSet) -> CompletedMarker {
-        let marker = self.open();
+    pub(crate) fn eat_error_until(
+        &mut self,
+        delimiters: TokenSet,
+        err_message: String,
+    ) -> CompletedMarker {
+        let marker = self.open_error(err_message);
         let delimiters = delimiters.union(TokenSet::new(&[SyntaxKind::EOF]));
         loop {
             if delimiters.contains(self.current()) {
@@ -129,7 +161,7 @@ impl<'t, 'input> Parser<'t, 'input> {
             }
             self.unexpected();
         }
-        self.close(marker, SyntaxKind::ERROR)
+        self.close_error(marker)
     }
 }
 
@@ -162,6 +194,7 @@ impl Drop for Marker {
         );
     }
 }
+
 #[derive(Clone, Copy)]
 pub(crate) struct CompletedMarker {
     pub(crate) pos: usize,

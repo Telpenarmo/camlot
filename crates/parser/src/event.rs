@@ -8,8 +8,11 @@ pub(crate) enum Event {
         kind: SyntaxKind,
         forward_parent: Option<usize>,
     },
+    OpenError {
+        error: ParseError,
+        forward_parent: Option<usize>,
+    },
     Advance,
     Close,
-    Error(ParseError),
     UnmatchedOpen,
 }

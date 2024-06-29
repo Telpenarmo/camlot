@@ -22,8 +22,6 @@ impl<'a> Iterator for Lexer<'a> {
         let kind = self.inner.next()?;
         let text = self.inner.slice();
 
-        let range = self.inner.span();
-
-        Some(Self::Item { kind, text, range })
+        Some(Self::Item { kind, text })
     }
 }

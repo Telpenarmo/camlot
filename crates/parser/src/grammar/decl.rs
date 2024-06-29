@@ -17,7 +17,7 @@ pub(crate) fn decl(parser: &mut Parser) {
     } else if parser.at(SyntaxKind::OPEN_KW) {
         open_decl(parser);
     } else {
-        parser.eat_error_until(DECL_START.union(DECL_END));
+        parser.eat_error_until(DECL_START.union(DECL_END), "Expected declaration".into());
         if parser.at_any(DECL_END) {
             assert!(parser.eat(SyntaxKind::SEMICOLON));
         }
@@ -104,6 +104,8 @@ mod tests {
                     WHITESPACE@5..6 " "
                     PARAMS@6..6
                     EQUAL@6..7 "="
+                    ERROR@7..7
+                    ERROR@7..7
             "#]],
             &["Expected expression", "Expected SEMICOLON but found EOF"],
         );
@@ -118,7 +120,11 @@ mod tests {
                 MODULE@0..3
                   DEF_DECL@0..3
                     DEF_KW@0..3 "def"
+                    ERROR@3..3
                     PARAMS@3..3
+                    ERROR@3..3
+                    ERROR@3..3
+                    ERROR@3..3
             "#]],
             &[
                 "Expected IDENT but found EOF",

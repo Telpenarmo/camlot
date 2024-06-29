@@ -1,26 +1,42 @@
+use line_index::TextRange;
+use parser::SyntaxKind;
+
 use crate::{offset_to_position, Document};
 
+/// # Panics
+///
+/// Panics if parser produced different number of error nodes than messages.
 #[must_use]
 pub fn get_diagnostics(doc: &Document) -> Vec<lsp_types::Diagnostic> {
-    doc.parsed()
-        .errors
-        .iter()
-        .map(|error| syntax_error_to_diagnostic(error, doc))
+    let mut error_idx = 0;
+    let parsed = doc.parsed();
+    parsed
+        .syntax()
+        .descendants()
+        .filter(|node| node.kind() == SyntaxKind::ERROR)
+        .map(|node| {
+            let msg = &parsed
+                .errors
+                .get(error_idx)
+                .expect("Missing error message")
+                .message;
+            error_idx += 1;
+            syntax_error_to_diagnostic(msg, node.text_range(), doc)
+        })
         .collect()
 }
 
 fn syntax_error_to_diagnostic(
-    error: &parser::SyntaxError,
+    message: &str,
+    range: TextRange,
     doc: &Document,
 ) -> lsp_types::Diagnostic {
     let line_index = &doc.get_line_index();
-    let start = u32::try_from(error.range.start).expect("Over u32::MAX characters in file?");
-    let start = offset_to_position(line_index, start);
-    let end = u32::try_from(error.range.end).expect("Over u32::MAX characters in file?");
-    let end = offset_to_position(line_index, end);
+    let start = offset_to_position(line_index, range.start().into());
+    let end = offset_to_position(line_index, range.end().into());
     let range = lsp_types::Range::new(start, end);
 
-    let mut diagnostic = lsp_types::Diagnostic::new_simple(range, error.message.clone());
+    let mut diagnostic = lsp_types::Diagnostic::new_simple(range, message.to_string());
     diagnostic.source = Some("RideML".into());
     diagnostic
 }
