@@ -1,8 +1,9 @@
-use crate::{event::Event, RideMLLanguage};
-use crate::source::Token;
-use crate::{Parse, SyntaxError};
 use rowan::{GreenNodeBuilder, Language};
 use std::mem;
+
+use crate::source::Token;
+use crate::{event::Event, RideMLLanguage};
+use crate::{Parse, SyntaxError, SyntaxKind};
 
 pub(crate) struct Sink<'t, 'input> {
     builder: GreenNodeBuilder<'static>,
@@ -29,35 +30,7 @@ impl<'t, 'input> Sink<'t, 'input> {
                 Event::Open {
                     kind,
                     forward_parent,
-                } => {
-                    let mut kinds = vec![kind];
-
-                    let mut idx = idx;
-                    let mut forward_parent = forward_parent;
-
-                    // Walk through the forward parent of the forward parent and the forward parent
-                    // of that, and of that, etc. until we reach a StartNode event without a forward
-                    // parent.
-                    while let Some(fp) = forward_parent {
-                        idx += fp;
-
-                        forward_parent = if let Event::Open {
-                            kind,
-                            forward_parent,
-                        } =
-                            mem::replace(&mut self.events[idx], Event::UnmatchedOpen)
-                        {
-                            kinds.push(kind);
-                            forward_parent
-                        } else {
-                            unreachable!()
-                        };
-                    }
-
-                    for kind in kinds.into_iter().rev() {
-                        self.builder.start_node(RideMLLanguage::kind_to_raw(kind));
-                    }
-                }
+                } => self.open_node(idx, kind, forward_parent),
                 Event::Advance => self.token(),
                 Event::Close => self.builder.finish_node(),
                 Event::Error(error) => self.error(error),
@@ -70,6 +43,35 @@ impl<'t, 'input> Sink<'t, 'input> {
         Parse {
             green_node: self.builder.finish(),
             errors: self.errors,
+        }
+    }
+
+    fn open_node(&mut self, idx: usize, kind: SyntaxKind, forward_parent: Option<usize>) {
+        let mut kinds = vec![kind];
+
+        let mut idx = idx;
+        let mut forward_parent = forward_parent;
+
+        // Walk through the forward parent of the forward parent and the forward parent
+        // of that, and of that, etc. until we reach a StartNode event without a forward
+        // parent.
+        while let Some(fp) = forward_parent {
+            idx += fp;
+
+            forward_parent = if let Event::Open {
+                kind,
+                forward_parent,
+            } = mem::replace(&mut self.events[idx], Event::UnmatchedOpen)
+            {
+                kinds.push(kind);
+                forward_parent
+            } else {
+                unreachable!()
+            };
+        }
+
+        for kind in kinds.into_iter().rev() {
+            self.builder.start_node(RideMLLanguage::kind_to_raw(kind));
         }
     }
 
