@@ -25,14 +25,15 @@ impl<'t, 'input> Sink<'t, 'input> {
     }
 
     pub(crate) fn finish(mut self) -> Parse {
-        for idx in 0..self.events.len() {
+        let mut idx = 0;
+        while idx < self.events.len() {
             match mem::replace(&mut self.events[idx], Event::UnmatchedOpen) {
                 Event::Open {
                     kind,
                     forward_parent,
                 } => self.open_node(idx, kind, forward_parent),
                 Event::Advance => self.token(),
-                Event::Close => self.builder.finish_node(),
+                Event::Close | Event::CloseError => self.builder.finish_node(),
                 Event::OpenError {
                     error,
                     forward_parent,
@@ -42,8 +43,11 @@ impl<'t, 'input> Sink<'t, 'input> {
                 }
                 Event::UnmatchedOpen => {}
             }
+            idx += 1;
 
-            self.eat_trivia();
+            if self.is_good_place_for_trivia(idx) {
+                self.eat_trivia();
+            }
         }
 
         Parse {
@@ -97,5 +101,21 @@ impl<'t, 'input> Sink<'t, 'input> {
         self.builder.token(RideMLLanguage::kind_to_raw(kind), text);
 
         self.cursor += 1;
+    }
+
+    // This function implements a heuristic for errors location.
+    // In normal cases trivia are appended to the last opened node.
+    // However, errors often are related to the preceding nodes.
+    // For this reason we try to delay eating trivia until after the error.
+    fn is_good_place_for_trivia(&self, idx: usize) -> bool {
+        for event in &self.events[idx..] {
+            match event {
+                Event::Open { .. } | Event::UnmatchedOpen | Event::Advance => return true,
+                Event::OpenError { .. } | Event::CloseError => return false,
+                Event::Close => continue,
+            }
+        }
+
+        true
     }
 }

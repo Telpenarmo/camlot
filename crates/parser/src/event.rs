@@ -14,5 +14,6 @@ pub(crate) enum Event {
     },
     Advance,
     Close,
+    CloseError,
     UnmatchedOpen,
 }

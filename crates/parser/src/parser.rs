@@ -131,7 +131,7 @@ impl<'t, 'input> Parser<'t, 'input> {
     }
 
     fn close_error(&mut self, marker: Marker) -> CompletedMarker {
-        self.events.push(Event::Close);
+        self.events.push(Event::CloseError);
         marker.complete()
     }
 
