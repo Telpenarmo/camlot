@@ -259,7 +259,6 @@ mod tests {
                   EQUAL@6..7 "="
                   ERROR@7..7
                   WHITESPACE@7..8 " "
-                  ERROR@8..8
                   IN_KW@8..10 "in"
                   WHITESPACE@10..11 " "
                   IDENT_EXPR@11..12
