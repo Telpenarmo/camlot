@@ -6,13 +6,11 @@ use crate::{
 };
 
 const LAMBDA_TOKENS: TokenSet = TokenSet::new(&[SyntaxKind::LAMBDA, SyntaxKind::BACKSLASH]);
-const ATOM_EXPR_FIRST: TokenSet = TokenSet::new(&[
-    SyntaxKind::L_PAREN,
-    SyntaxKind::IDENT,
-    SyntaxKind::INT,
-    SyntaxKind::EMPTY_PAREN,
-]);
-const LITERAL_EXPR_FIRST: TokenSet = TokenSet::new(&[SyntaxKind::INT, SyntaxKind::EMPTY_PAREN]);
+const LITERAL_EXPR_FIRST: TokenSet = TokenSet::new(&[SyntaxKind::INT]);
+const ATOM_EXPR_FIRST: TokenSet =
+    TokenSet::new(&[SyntaxKind::L_PAREN, SyntaxKind::IDENT]).union(LITERAL_EXPR_FIRST);
+const EXPR_FIRST: TokenSet =
+    TokenSet::new(&[SyntaxKind::LET_KW]).union(LAMBDA_TOKENS.union(ATOM_EXPR_FIRST));
 
 pub(crate) fn expr(parser: &mut Parser) {
     if parser.at(SyntaxKind::LET_KW) {
@@ -99,8 +97,10 @@ fn paren_expr(parser: &mut Parser) -> CompletedMarker {
 
     let mark = parser.open();
     parser.expect(SyntaxKind::L_PAREN);
-    expr(parser);
-    parser.expect(SyntaxKind::R_PAREN);
+    if !parser.eat(SyntaxKind::R_PAREN) {
+        expr(parser);
+        parser.expect(SyntaxKind::R_PAREN);
+    }
     parser.close(mark, SyntaxKind::PAREN_EXPR)
 }
 

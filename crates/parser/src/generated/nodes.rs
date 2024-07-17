@@ -358,7 +358,7 @@ pub struct Literal {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LiteralKind {
     Int,
-    EmptyParen,
+    DummyKw,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -775,7 +775,7 @@ impl AstToken for Literal {
 impl LiteralKind {
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            INT | EMPTY_PAREN => true,
+            INT | DUMMY_KW => true,
             _ => false,
         }
     }
@@ -783,7 +783,7 @@ impl LiteralKind {
     pub fn cast(kind: SyntaxKind) -> Option<Self> {
         let res = match kind {
             INT => Self::Int,
-            EMPTY_PAREN => Self::EmptyParen,
+            DUMMY_KW => Self::DummyKw,
             _ => return None,
         };
         Some(res)

@@ -159,7 +159,7 @@ impl Database {
                         lit.syntax().text().parse().expect("Invalid int literal"),
                     ),
 
-                    ast::LiteralKind::EmptyParen => Literal::UnitLiteral,
+                    ast::LiteralKind::DummyKw => unreachable!(),
                 })
             }),
             ast::Expr::LambdaExpr(ast) => {

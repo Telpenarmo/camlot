@@ -32,9 +32,9 @@ LiteralExpr = Literal
 AppExpr = func:Expr arg:Expr
 LambdaExpr = ('λ' | '\\') Params '->' body:Expr
 LetExpr = 'let' 'Ident' Params '=' def:Expr 'in' body:Expr
-ParenExpr = '(' Expr ')'
+ParenExpr = '(' Expr? ')'
 
-Literal =  'Int' | '()'
+Literal =  'Int' | 'dummy'
 
 Params = Param*
 Param = 'Ident' | '(' 'Ident' ':' TypeExpr ')'

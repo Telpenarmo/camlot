@@ -52,7 +52,6 @@ pub enum TypeExpr {
 pub enum Literal {
     IntLiteral(i64),
     BoolLiteral(bool),
-    UnitLiteral,
 }
 
 #[allow(unused)]

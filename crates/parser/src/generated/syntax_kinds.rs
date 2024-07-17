@@ -32,8 +32,6 @@ pub enum SyntaxKind {
     EQUAL,
     #[token("->")]
     ARROW,
-    #[token("()")]
-    EMPTY_PAREN,
     #[token("+")]
     PLUS,
     #[token("-")]
@@ -66,6 +64,8 @@ pub enum SyntaxKind {
     LET_KW,
     #[token("in")]
     IN_KW,
+    #[token("dummy")]
+    DUMMY_KW,
     #[doc = r" Also acts as __LAST_TOKEN"]
     #[error]
     LEXING_ERROR,
@@ -99,15 +99,15 @@ impl SyntaxKind {
     #[must_use]
     pub fn is_keyword(self) -> bool {
         match self {
-            DEF_KW | OPEN_KW | TYPE_KW | LET_KW | IN_KW => true,
+            DEF_KW | OPEN_KW | TYPE_KW | LET_KW | IN_KW | DUMMY_KW => true,
             _ => false,
         }
     }
     #[must_use]
     pub fn is_operator(self) -> bool {
         match self {
-            L_PAREN | R_PAREN | COLON | SEMICOLON | COMMA | EQUAL | ARROW | EMPTY_PAREN | PLUS
-            | MINUS | STAR | SLASH | BACKSLASH | LAMBDA => true,
+            L_PAREN | R_PAREN | COLON | SEMICOLON | COMMA | EQUAL | ARROW | PLUS | MINUS | STAR
+            | SLASH | BACKSLASH | LAMBDA => true,
             _ => false,
         }
     }

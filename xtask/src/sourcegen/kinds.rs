@@ -155,7 +155,6 @@ pub(crate) fn kinds() -> KindsSrc {
         "," => "Comma";
         "=" => "Equal";
         "->" => "Arrow";
-        "()" => "Empty_Paren";
         "+" => "Plus";
         "-" => "Minus";
         "*" => "Star";
