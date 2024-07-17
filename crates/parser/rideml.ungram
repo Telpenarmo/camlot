@@ -32,7 +32,6 @@ LetStmt = 'let' 'Ident' Params '=' def:Expr ';'
 Expr =
   IdentExpr
 | LiteralExpr
-| AppExpr
 | LambdaExpr
 | ParenExpr
 | BinaryExpr
@@ -46,9 +45,9 @@ BlockExpr =
 
 IdentExpr = 'Ident'
 LiteralExpr = Literal
-AppExpr = func:Expr arg:Expr
+AppExpr = (func:Expr | app_func:AppExpr) arg:Expr
 LambdaExpr = ('λ' | '\\') Params '->' body:Expr
-ParenExpr = '(' Expr? ')'
+ParenExpr = '(' Expr? | AppExpr ')'
 
 Literal =  'Int' | 'dummy'
 

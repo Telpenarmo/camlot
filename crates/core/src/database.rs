@@ -150,15 +150,12 @@ impl Database {
                         name: ident.text().into(),
                     })
             }
-            ast::Expr::ParenExpr(ast) => self.lower_expr(ast.expr()),
-            ast::Expr::AppExpr(ast) => {
-                let func = self.lower_expr(ast.func());
-                let func = self.alloc_expr(func);
-
-                let arg = self.lower_expr(ast.arg());
-                let arg = self.alloc_expr(arg);
-
-                Expr::AppExpr { func, arg }
+            ast::Expr::ParenExpr(ast) => {
+                if let Some(app) = ast.app_expr() {
+                    self.lower_app(&app)
+                } else {
+                    self.lower_expr(ast.expr())
+                }
             }
             ast::Expr::LiteralExpr(ast) => ast.literal().map_or(Expr::Missing, |lit| {
                 Expr::LiteralExpr(match lit.kind() {
@@ -179,6 +176,22 @@ impl Database {
             ast::Expr::BlockExpr(ast) => self.lower_block(&ast),
             ast::Expr::BinaryExpr(_) => todo!("Binary expressions are not yet supported"),
         }
+    }
+
+    fn lower_app(&mut self, app: &ast::AppExpr) -> Expr {
+        let func = {
+            if let Some(app) = app.app_func() {
+                self.lower_app(&app)
+            } else {
+                self.lower_expr(app.func())
+            }
+        };
+        let func = self.alloc_expr(func);
+
+        let arg = self.lower_expr(app.arg());
+        let arg = self.alloc_expr(arg);
+
+        Expr::AppExpr { func, arg }
     }
 
     fn lower_ident(ident: Option<parser::SyntaxToken>) -> Option<String> {
@@ -350,7 +363,18 @@ mod tests {
         let func = database.alloc_expr(Expr::IdentExpr { name: "f".into() });
         let arg = database.alloc_expr(Expr::IdentExpr { name: "y".into() });
         database.alloc_expr(Expr::AppExpr { func, arg });
-        check_expr("f y", &database);
+        check_expr("(f y)", &database);
+    }
+
+    #[test]
+    fn lower_nested_app() {
+        let mut database = super::Database::default();
+        let func = database.alloc_expr(Expr::IdentExpr { name: "f".into() });
+        let arg = database.alloc_expr(Expr::IdentExpr { name: "y".into() });
+        let func = database.alloc_expr(Expr::AppExpr { func, arg });
+        let arg = database.alloc_expr(Expr::IdentExpr { name: "z".into() });
+        database.alloc_expr(Expr::AppExpr { func, arg });
+        check_expr("(f y z)", &database);
     }
 
     #[test]

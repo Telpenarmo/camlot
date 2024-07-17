@@ -1,5 +1,6 @@
 use super::{block::block, params::params};
 use crate::{
+    grammar::decl,
     parser::{CompletedMarker, Parser},
     token_set::TokenSet,
     SyntaxKind,
@@ -16,26 +17,12 @@ pub(crate) const EXPR_FIRST: TokenSet = LAMBDA_TOKENS.union(ATOM_EXPR_FIRST);
 pub(crate) fn expr(parser: &mut Parser) -> CompletedMarker {
     if parser.at_any(LAMBDA_TOKENS) {
         lambda_expr(parser)
+    } else if parser.at_any(ATOM_EXPR_FIRST) {
+        delimited_expr(parser)
     } else {
-        let mut prev_mark = None;
-        while parser.at_any(ATOM_EXPR_FIRST) {
-            match prev_mark {
-                Some(prev) => {
-                    let marker = parser.open_before(prev);
-                    delimited_expr(parser);
-                    prev_mark = Some(parser.close(marker, SyntaxKind::APP_EXPR));
-                }
-                None => prev_mark = Some(delimited_expr(parser)),
-            };
-        }
-
-        match prev_mark {
-            Some(prev) => prev,
-            None => parser.error("Expected expression".into()),
-        }
+        parser.error("Expected expression".into())
     }
 }
-
 fn delimited_expr(parser: &mut Parser) -> CompletedMarker {
     if parser.at(SyntaxKind::IDENT) {
         ident_expr(parser)
@@ -83,12 +70,42 @@ fn paren_expr(parser: &mut Parser) -> CompletedMarker {
     assert!(parser.at(SyntaxKind::L_PAREN));
 
     let mark = parser.open();
-    parser.expect(SyntaxKind::L_PAREN);
-    if !parser.eat(SyntaxKind::R_PAREN) {
-        expr(parser);
-        parser.expect(SyntaxKind::R_PAREN);
-    }
+    parser.advance();
+
+    let paren_expr_end = TokenSet::new(&[SyntaxKind::R_PAREN])
+        .union(decl::DECL_END)
+        .union(decl::DECL_START)
+        .union(TokenSet::new(&[SyntaxKind::EOF]));
+
+    if parser.at_any(LAMBDA_TOKENS) {
+        lambda_expr(parser);
+    } else {
+        let mut prev_mark = None;
+        while !parser.at_any(paren_expr_end) {
+            if parser.at_any(ATOM_EXPR_FIRST) {
+                prev_mark = Some(parse_app_part(parser, prev_mark));
+            } else {
+                parser.eat_error_until(
+                    ATOM_EXPR_FIRST.union(paren_expr_end),
+                    "Expected expression".into(),
+                );
+            }
+        }
+    };
+
+    parser.expect(SyntaxKind::R_PAREN);
     parser.close(mark, SyntaxKind::PAREN_EXPR)
+}
+
+fn parse_app_part(parser: &mut Parser, prev_mark: Option<CompletedMarker>) -> CompletedMarker {
+    match prev_mark {
+        Some(prev) => {
+            let marker = parser.open_before(prev);
+            delimited_expr(parser);
+            parser.close(marker, SyntaxKind::APP_EXPR)
+        }
+        None => delimited_expr(parser),
+    }
 }
 
 #[cfg(test)]
@@ -159,14 +176,17 @@ mod tests {
     fn parse_app() {
         check(
             PrefixEntryPoint::Expr,
-            r"x y",
+            r"(x y)",
             &expect![[r#"
-                APP_EXPR@0..3
-                  IDENT_EXPR@0..2
-                    IDENT@0..1 "x"
-                    WHITESPACE@1..2 " "
-                  IDENT_EXPR@2..3
-                    IDENT@2..3 "y"
+                PAREN_EXPR@0..5
+                  L_PAREN@0..1 "("
+                  APP_EXPR@1..4
+                    IDENT_EXPR@1..3
+                      IDENT@1..2 "x"
+                      WHITESPACE@2..3 " "
+                    IDENT_EXPR@3..4
+                      IDENT@3..4 "y"
+                  R_PAREN@4..5 ")"
             "#]],
         );
     }
@@ -175,18 +195,21 @@ mod tests {
     fn app_is_left_associative() {
         check(
             PrefixEntryPoint::Expr,
-            r"x y z",
+            r"(x y z)",
             &expect![[r#"
-                APP_EXPR@0..5
-                  APP_EXPR@0..4
-                    IDENT_EXPR@0..2
-                      IDENT@0..1 "x"
-                      WHITESPACE@1..2 " "
-                    IDENT_EXPR@2..4
-                      IDENT@2..3 "y"
-                      WHITESPACE@3..4 " "
-                  IDENT_EXPR@4..5
-                    IDENT@4..5 "z"
+                PAREN_EXPR@0..7
+                  L_PAREN@0..1 "("
+                  APP_EXPR@1..6
+                    APP_EXPR@1..5
+                      IDENT_EXPR@1..3
+                        IDENT@1..2 "x"
+                        WHITESPACE@2..3 " "
+                      IDENT_EXPR@3..5
+                        IDENT@3..4 "y"
+                        WHITESPACE@4..5 " "
+                    IDENT_EXPR@5..6
+                      IDENT@5..6 "z"
+                  R_PAREN@6..7 ")"
             "#]],
         );
     }
@@ -195,21 +218,24 @@ mod tests {
     fn parse_app_nested() {
         check(
             PrefixEntryPoint::Expr,
-            r"x (y z)",
+            r"(x (y z))",
             &expect![[r#"
-                APP_EXPR@0..7
-                  IDENT_EXPR@0..2
-                    IDENT@0..1 "x"
-                    WHITESPACE@1..2 " "
-                  PAREN_EXPR@2..7
-                    L_PAREN@2..3 "("
-                    APP_EXPR@3..6
-                      IDENT_EXPR@3..5
-                        IDENT@3..4 "y"
-                        WHITESPACE@4..5 " "
-                      IDENT_EXPR@5..6
-                        IDENT@5..6 "z"
-                    R_PAREN@6..7 ")"
+                PAREN_EXPR@0..9
+                  L_PAREN@0..1 "("
+                  APP_EXPR@1..8
+                    IDENT_EXPR@1..3
+                      IDENT@1..2 "x"
+                      WHITESPACE@2..3 " "
+                    PAREN_EXPR@3..8
+                      L_PAREN@3..4 "("
+                      APP_EXPR@4..7
+                        IDENT_EXPR@4..6
+                          IDENT@4..5 "y"
+                          WHITESPACE@5..6 " "
+                        IDENT_EXPR@6..7
+                          IDENT@6..7 "z"
+                      R_PAREN@7..8 ")"
+                  R_PAREN@8..9 ")"
             "#]],
         );
     }

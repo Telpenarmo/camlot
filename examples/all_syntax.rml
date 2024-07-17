@@ -1,6 +1,5 @@
 open a;
 open b;
-
 type t = a;
 type t2 = a -> b;
 type t3 = a -> b -> c;
@@ -24,18 +23,18 @@ def const5 = \x -> \y -> x;
 
 def f {
     let a = 1;
-    ();
+    ( );
     let f = \x y -> x;
     let g a = ();
-    g a;
-    f g a;
+    (g a);
+    (f g a);
 }
 
 def g {
     let const_5 = {
         let a = 5;
-        const a
+        (const a)
     };
-    { const_5 } 0;
+    ({ const_5 } 0);
     ()
 }

@@ -3,7 +3,7 @@ use crate::{parser::Parser, token_set::TokenSet, SyntaxKind};
 
 pub(crate) const DECL_START: TokenSet =
     TokenSet::new(&[SyntaxKind::DEF_KW, SyntaxKind::TYPE_KW, SyntaxKind::OPEN_KW]);
-pub(crate) const DECL_END: TokenSet = TokenSet::new(&[SyntaxKind::SEMICOLON]);
+pub(crate) const DECL_END: TokenSet = TokenSet::new(&[SyntaxKind::SEMICOLON, SyntaxKind::R_BRACE]);
 
 pub(crate) fn decl(parser: &mut Parser) {
     if parser.at(SyntaxKind::DEF_KW) {
