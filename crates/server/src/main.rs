@@ -50,4 +50,5 @@ fn parse_input() {
     std::io::stdin().read_to_string(&mut input).expect("stdin");
     let parse = parser::parse(&input);
     println!("{}\n", parse.debug_tree());
+    println!("Errors: {:?}", parse.errors);
 }
