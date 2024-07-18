@@ -6,6 +6,7 @@ members = ["xtask", "crates/*"]
 
 [workspace.dependencies]
 parser = { path = "./crates/parser", version = "0.1.0" }
+core = { path = "./crates/core", version = "0.1.0" }
 analysis = { path = "./crates/analysis", version = "0.1.0" }
 
 anyhow = "1.0.75"

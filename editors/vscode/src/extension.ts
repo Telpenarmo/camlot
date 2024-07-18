@@ -16,7 +16,6 @@ let commands: vscode.Disposable[] = [];
 async function initLanguageClient() {
 	const serverOptions: ServerOptions = {
 		command: "rideml-server",
-		args: ["lsp"],
 	};
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: "file", language: "rideml" }],
