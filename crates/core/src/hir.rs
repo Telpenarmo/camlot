@@ -4,6 +4,8 @@ pub(crate) type ExprIdx = Idx<Expr>;
 pub(crate) type TypeExprIdx = Idx<TypeExpr>;
 pub(crate) type DeclarationIdx = Idx<Declaration>;
 
+pub(crate) type Name = String;
+
 #[allow(unused)]
 pub struct Module {
     pub declarations: Box<[DeclarationIdx]>,
@@ -11,19 +13,19 @@ pub struct Module {
 
 #[derive(PartialEq, Debug)]
 pub struct DefDecl {
-    pub name: String,
+    pub name: Name,
     pub defn: ExprIdx,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum Declaration {
-    TypeDecl { name: String, defn: TypeExprIdx },
+    TypeDecl { name: Name, defn: TypeExprIdx },
     DefDecl(DefDecl),
-    OpenDecl { path: String },
+    OpenDecl { path: Name },
 }
 
 impl Declaration {
-    pub(crate) fn def_decl(name: String, defn: ExprIdx) -> Self {
+    pub(crate) fn def_decl(name: Name, defn: ExprIdx) -> Self {
         Self::DefDecl(DefDecl { name, defn })
     }
 }
@@ -32,7 +34,7 @@ impl Declaration {
 pub enum Expr {
     Missing,
     LetExpr(Box<LetExpr>),
-    IdentExpr { name: String },
+    IdentExpr { name: Name },
     LambdaExpr(Box<LambdaExpr>),
     AppExpr { func: ExprIdx, arg: ExprIdx },
     LiteralExpr(Literal),
@@ -40,7 +42,7 @@ pub enum Expr {
 
 impl Expr {
     pub(crate) fn let_expr(
-        name: String,
+        name: Name,
         params: Box<[Param]>,
         return_type: TypeExprIdx,
         defn: ExprIdx,
@@ -63,7 +65,7 @@ impl Expr {
         }))
     }
 
-    pub(crate) fn ident_expr<T: Into<String>>(name: T) -> Self {
+    pub(crate) fn ident_expr<T: Into<Name>>(name: T) -> Self {
         Self::IdentExpr { name: name.into() }
     }
 
@@ -80,7 +82,7 @@ impl Expr {
 #[allow(unused)]
 #[derive(PartialEq, Debug)]
 pub struct LetExpr {
-    pub name: String,
+    pub name: Name,
     pub params: Box<[Param]>,
     pub return_type: TypeExprIdx,
     pub defn: ExprIdx,
@@ -98,7 +100,7 @@ pub struct LambdaExpr {
 #[derive(PartialEq, Debug)]
 pub enum TypeExpr {
     Missing,
-    IdentTypeExpr { name: String },
+    IdentTypeExpr { name: Name },
     TypeArrow { from: TypeExprIdx, to: TypeExprIdx },
 }
 
@@ -111,6 +113,6 @@ pub enum Literal {
 #[allow(unused)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Param {
-    pub(crate) name: String,
+    pub(crate) name: Name,
     pub(crate) typ: TypeExprIdx,
 }
