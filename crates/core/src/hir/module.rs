@@ -199,7 +199,7 @@ impl Module {
         self.names.lookup(name)
     }
 
-    pub(super) fn iter_definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> {
+    pub(crate) fn iter_definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> {
         self.definitions.iter()
     }
 
