@@ -2,6 +2,8 @@ use crate::hir::{Definition, Expr, ExprIdx, Open, Param, TypeDefinition, TypeExp
 use crate::{intern::Interner, Name};
 use la_arena::Arena;
 
+use super::{DefinitionIdx, OpenIdx, TypeDefinitionIdx};
+
 #[derive(Debug)]
 #[allow(unused)]
 pub struct Module {
@@ -143,5 +145,29 @@ impl Module {
             type_definitions: Arena::new(),
             names: Interner::new(),
         }
+    }
+
+    pub(crate) fn get_expr(&self, idx: ExprIdx) -> &Expr {
+        &self.expressions[idx]
+    }
+
+    pub(crate) fn get_type_expr(&self, idx: TypeExprIdx) -> &TypeExpr {
+        &self.type_expressions[idx]
+    }
+
+    pub(crate) fn get_definition(&self, idx: DefinitionIdx) -> &Definition {
+        &self.definitions[idx]
+    }
+
+    pub(crate) fn get_open(&self, idx: OpenIdx) -> &Open {
+        &self.opens[idx]
+    }
+
+    pub(crate) fn get_type_definition(&self, idx: TypeDefinitionIdx) -> &TypeDefinition {
+        &self.type_definitions[idx]
+    }
+
+    pub fn definitions(&self) -> impl Iterator<Item = &Definition> + '_ {
+        self.definitions.values()
     }
 }

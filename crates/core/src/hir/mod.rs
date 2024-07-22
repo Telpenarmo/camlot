@@ -106,8 +106,9 @@ pub enum TypeExpr {
     TypeArrow { from: TypeExprIdx, to: TypeExprIdx },
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Literal {
+    Unit,
     IntLiteral(i64),
     BoolLiteral(bool),
 }

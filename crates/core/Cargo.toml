@@ -10,6 +10,8 @@ parser.workspace = true
 
 la-arena.workspace = true
 indexmap.workspace = true
+ena = "0.14.3"
+im = "15.1.0"
 
 [lints]
 workspace = true

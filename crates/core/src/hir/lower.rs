@@ -1,6 +1,5 @@
 use crate::hir::{
-    Definition, DefinitionIdx, Expr, ExprIdx, Open, OpenIdx, Param, TypeDefinition,
-    TypeDefinitionIdx, TypeExpr, TypeExprIdx,
+    Definition, Expr, ExprIdx, Literal, Open, Param, TypeDefinition, TypeExpr, TypeExprIdx,
 };
 use crate::Name;
 use parser::{nodes as ast, AstToken};
@@ -130,6 +129,14 @@ impl Module {
         })
     }
 
+    fn lower_expr_defaulting_to_unit(&mut self, expr: Option<ast::Expr>) -> Expr {
+        if expr.is_some() {
+            self.lower_expr(expr)
+        } else {
+            Expr::LiteralExpr(Literal::Unit)
+        }
+    }
+
     fn lower_expr(&mut self, expr: Option<ast::Expr>) -> Expr {
         if expr.is_none() {
             return Expr::Missing;
@@ -142,7 +149,7 @@ impl Module {
                 if let Some(app) = ast.app_expr() {
                     self.lower_app(&app)
                 } else {
-                    self.lower_expr(ast.expr())
+                    self.lower_expr_defaulting_to_unit(ast.expr())
                 }
             }
             ast::Expr::LiteralExpr(ast) => {
@@ -194,7 +201,7 @@ impl Module {
     fn lower_stmt(&mut self, ast: ast::Stmt, cont: ExprIdx) -> Expr {
         match ast {
             ast::Stmt::ExprStmt(ast) => {
-                let expr = self.lower_expr(ast.expr());
+                let expr = self.lower_expr_defaulting_to_unit(ast.expr());
                 let expr = self.alloc_expr(expr);
                 Expr::let_expr(
                     self.empty_name(),
@@ -221,7 +228,8 @@ impl Module {
     }
 
     fn lower_block(&mut self, ast: &ast::BlockExpr) -> Expr {
-        let tail_expr = self.lower_expr(ast.tail_expr());
+        let tail_expr = self.lower_expr_defaulting_to_unit(ast.tail_expr());
+        self.lower_expr(ast.tail_expr());
 
         let stmts: Vec<_> = ast.statements().collect();
         stmts.iter().rev().fold(tail_expr, |body, stmt| {
@@ -253,26 +261,6 @@ impl Module {
     fn name<S: Into<String>>(&mut self, name: S) -> Name {
         self.names.intern(name.into())
     }
-
-    pub(crate) fn get_expr(&self, idx: ExprIdx) -> &Expr {
-        &self.expressions[idx]
-    }
-
-    pub(crate) fn get_type_expr(&self, idx: TypeExprIdx) -> &TypeExpr {
-        &self.type_expressions[idx]
-    }
-
-    pub(crate) fn get_definition(&self, idx: DefinitionIdx) -> &Definition {
-        &self.definitions[idx]
-    }
-
-    pub(crate) fn get_open(&self, idx: OpenIdx) -> &Open {
-        &self.opens[idx]
-    }
-
-    pub(crate) fn get_type_definition(&self, idx: TypeDefinitionIdx) -> &TypeDefinition {
-        &self.type_definitions[idx]
-    }
 }
 
 const MISSING_EXPR_ID: ExprIdx = {
@@ -288,6 +276,7 @@ const MISSING_TYPE_EXPR_ID: TypeExprIdx = {
 #[cfg(test)]
 mod tests {
     use crate::hir::module::{expr_deep_eq, type_expr_deep_eq};
+    use crate::Literal;
 
     use super::{Definition, Expr, Param, TypeExpr};
     use super::{Module, MISSING_EXPR_ID as MISSING_EXPR, MISSING_TYPE_EXPR_ID as MISSING_TYPE};
@@ -620,5 +609,50 @@ mod tests {
         expected_module.definitions.alloc(definition);
 
         assert_eq!(actual_module, expected_module);
+    }
+
+    #[test]
+    fn lower_empty_parentheses() {
+        let mut database = Module::default();
+        database.alloc_expr(Expr::LiteralExpr(Literal::Unit));
+
+        check_expr("()", &database);
+        check_expr("( )", &database);
+    }
+
+    #[test]
+    fn lower_empty_braces() {
+        let mut database = Module::default();
+        database.alloc_expr(Expr::LiteralExpr(Literal::Unit));
+
+        check_expr("{}", &database);
+        check_expr("{ }", &database);
+    }
+
+    #[test]
+    fn lower_block_with_only_expr_stmt() {
+        let mut database = Module::default();
+
+        let body = database.alloc_expr(Expr::LiteralExpr(Literal::Unit));
+        let defn = database.alloc_expr(Expr::int_expr(42));
+
+        let name = database.empty_name();
+
+        database.alloc_expr(Expr::let_expr(name, Box::new([]), MISSING_TYPE, defn, body));
+
+        check_expr("{ 42; }", &database);
+    }
+
+    #[test]
+    fn lower_block_with_only_let_stmt() {
+        let mut database = Module::default();
+
+        let body = database.alloc_expr(Expr::LiteralExpr(Literal::Unit));
+        let defn = database.alloc_expr(Expr::int_expr(42));
+        let x = database.name("x");
+
+        database.alloc_expr(Expr::let_expr(x, Box::new([]), MISSING_TYPE, defn, body));
+
+        check_expr("{ let x = 42; }", &database);
     }
 }
