@@ -1,8 +1,5 @@
-use crate::{
-    hir::{
-        Declaration, DeclarationIdx, Expr, ExprIdx, Literal, Module, Param, TypeExpr, TypeExprIdx,
-    },
-    DefDecl, LetExpr,
+use crate::hir::{
+    Declaration, DeclarationIdx, Expr, ExprIdx, Module, Param, TypeExpr, TypeExprIdx,
 };
 use la_arena::Arena;
 use parser::{nodes as ast, AstToken};
@@ -73,10 +70,7 @@ impl Database {
                 };
                 let defn = self.alloc_expr(defn);
 
-                Declaration::DefDecl(Box::new(DefDecl {
-                    name: Self::lower_ident(ast.ident_lit())?,
-                    defn,
-                }))
+                Declaration::def_decl(Self::lower_ident(ast.ident_lit())?, defn)
             }
             ast::Decl::OpenDecl(ast) => Declaration::OpenDecl {
                 path: Self::lower_ident(ast.ident_lit())?,
@@ -98,8 +92,8 @@ impl Database {
     }
 
     fn lower_param(&mut self, ast: &ast::Param) -> Param {
-        let typ = ast.type_expr().map(|typ| self.lower_type_expr(Some(typ)));
-        let typ = typ.map(|typ| self.alloc_type_expr(typ));
+        let typ = self.lower_type_expr(ast.type_expr());
+        let typ = self.alloc_type_expr(typ);
         Param {
             name: ast.ident_lit().expect("Empty param. How?").text().into(),
             typ,
@@ -128,14 +122,18 @@ impl Database {
     }
 
     fn curry(&mut self, body: ExprIdx, params: &[Param]) -> Expr {
-        let tail_param = params.last().cloned().unwrap_or(Param::empty());
-        let param = Box::new(tail_param);
+        let empty_param = Param {
+            name: String::new(),
+            typ: MISSING_TYPE_EXPR_ID,
+        };
+        let tail_param = params.last().cloned().unwrap_or(empty_param);
 
-        let body = Expr::LambdaExpr { param, body };
+        let body = Expr::lambda_expr(tail_param, body);
+
         params.iter().rev().skip(1).fold(body, |body, param| {
             let body = self.alloc_expr(body);
-            let param = Box::new(param.clone());
-            Expr::LambdaExpr { param, body }
+
+            Expr::lambda_expr(param.clone(), body)
         })
     }
 
@@ -144,12 +142,9 @@ impl Database {
             return Expr::Missing;
         }
         match expr.unwrap() {
-            ast::Expr::IdentExpr(ast) => {
-                ast.ident_lit()
-                    .map_or(Expr::Missing, |ident| Expr::IdentExpr {
-                        name: ident.text().into(),
-                    })
-            }
+            ast::Expr::IdentExpr(ast) => ast
+                .ident_lit()
+                .map_or(Expr::Missing, |ident| Expr::ident_expr(ident.text())),
             ast::Expr::ParenExpr(ast) => {
                 if let Some(app) = ast.app_expr() {
                     self.lower_app(&app)
@@ -157,15 +152,15 @@ impl Database {
                     self.lower_expr(ast.expr())
                 }
             }
-            ast::Expr::LiteralExpr(ast) => ast.literal().map_or(Expr::Missing, |lit| {
-                Expr::LiteralExpr(match lit.kind() {
-                    ast::LiteralKind::Int => Literal::IntLiteral(
-                        lit.syntax().text().parse().expect("Invalid int literal"),
-                    ),
+            ast::Expr::LiteralExpr(ast) => {
+                ast.literal().map_or(Expr::Missing, |lit| match lit.kind() {
+                    ast::LiteralKind::Int => {
+                        Expr::int_expr(lit.syntax().text().parse().expect("Invalid int literal"))
+                    }
 
                     ast::LiteralKind::DummyKw => unreachable!(),
                 })
-            }),
+            }
             ast::Expr::LambdaExpr(ast) => {
                 let params = self.lower_params(ast.params());
                 let body = self.lower_expr(ast.body());
@@ -203,24 +198,14 @@ impl Database {
             ast::Stmt::ExprStmt(ast) => {
                 let expr = self.lower_expr(ast.expr());
                 let expr = self.alloc_expr(expr);
-                Expr::LetExpr(Box::new(LetExpr {
-                    name: String::new(),
-                    params: vec![].into(),
-                    defn: expr,
-                    body: cont,
-                }))
+                Expr::let_expr(String::new(), vec![].into(), expr, cont)
             }
             ast::Stmt::LetStmt(ast) => {
                 let params = self.lower_params(ast.params());
                 let defn = self.lower_expr(ast.def());
                 let defn = self.alloc_expr(defn);
                 let name = Self::lower_ident(ast.ident_lit()).unwrap_or(String::new());
-                Expr::LetExpr(Box::new(LetExpr {
-                    name,
-                    params,
-                    defn,
-                    body: cont,
-                }))
+                Expr::let_expr(name, params, defn, cont)
             }
         }
     }
@@ -237,7 +222,7 @@ impl Database {
 
     fn alloc_expr(&mut self, expr: Expr) -> ExprIdx {
         if let Expr::Missing = expr {
-            missing_expr_id()
+            MISSING_EXPR_ID
         } else {
             self.expressions.alloc(expr)
         }
@@ -245,26 +230,34 @@ impl Database {
 
     fn alloc_type_expr(&mut self, type_expr: TypeExpr) -> TypeExprIdx {
         if let TypeExpr::Missing = type_expr {
-            missing_type_expr_id()
+            MISSING_TYPE_EXPR_ID
         } else {
             self.type_expressions.alloc(type_expr)
         }
     }
 }
 
-pub(crate) fn missing_expr_id() -> ExprIdx {
+const MISSING_EXPR_ID: ExprIdx = {
     let raw = la_arena::RawIdx::from_u32(0);
     ExprIdx::from_raw(raw)
-}
+};
 
-fn missing_type_expr_id() -> TypeExprIdx {
+const MISSING_TYPE_EXPR_ID: TypeExprIdx = {
     let raw = la_arena::RawIdx::from_u32(0);
     TypeExprIdx::from_raw(raw)
-}
+};
 
 #[cfg(test)]
 mod tests {
-    use crate::{missing_expr_id, Declaration, Expr, Param};
+    use super::{MISSING_EXPR_ID as MISSING_EXPR, MISSING_TYPE_EXPR_ID as MISSING_TYPE};
+    use crate::{Declaration, Expr, Param};
+
+    fn unannotated_param(name: &str) -> Param {
+        Param {
+            name: name.into(),
+            typ: MISSING_TYPE,
+        }
+    }
 
     fn check_expr(text: &str, expected_database: &super::Database) {
         let module_syntax = parser::parse(&format!("def x = {text};")).module();
@@ -284,29 +277,11 @@ mod tests {
         actual_db.lower_module(&module);
 
         let mut expected_db = super::Database::default();
-        let body = expected_db.alloc_expr(Expr::LiteralExpr(super::Literal::IntLiteral(42)));
+        let body = expected_db.alloc_expr(Expr::int_expr(42));
 
-        let param = Box::new(Param {
-            name: "x".into(),
-            typ: None,
-        });
-
-        let param2 = Box::new(Param {
-            name: "y".into(),
-            typ: None,
-        });
-
-        let body = expected_db.alloc_expr(Expr::LambdaExpr {
-            param: param2,
-            body,
-        });
-
-        let defn = expected_db.alloc_expr(Expr::LambdaExpr { param, body });
-
-        let def_decl = Declaration::DefDecl(Box::new(super::DefDecl {
-            name: String::from("f"),
-            defn,
-        }));
+        let body = expected_db.alloc_expr(Expr::lambda_expr(unannotated_param("y"), body));
+        let defn = expected_db.alloc_expr(Expr::lambda_expr(unannotated_param("x"), body));
+        let def_decl = Declaration::def_decl(String::from("f"), defn);
 
         expected_db.declarations.alloc(def_decl);
 
@@ -322,29 +297,14 @@ mod tests {
         actual_db.lower_module(&module);
 
         let mut expected_db = super::Database::default();
-        let body = expected_db.alloc_expr(Expr::LiteralExpr(super::Literal::IntLiteral(42)));
+        let body = expected_db.alloc_expr(Expr::int_expr(42));
 
-        let param = Box::new(Param {
-            name: "x".into(),
-            typ: None,
-        });
+        let body = expected_db.alloc_expr(Expr::lambda_expr(unannotated_param("y"), body));
 
-        let param2 = Box::new(Param {
-            name: "y".into(),
-            typ: None,
-        });
-
-        let body = expected_db.alloc_expr(Expr::LambdaExpr {
-            param: param2,
-            body,
-        });
-
-        let defn = expected_db.alloc_expr(Expr::LambdaExpr { param, body });
-        let def_decl = Declaration::DefDecl(Box::new(super::DefDecl {
-            name: String::from("f"),
-            defn,
-        }));
+        let defn = expected_db.alloc_expr(Expr::lambda_expr(unannotated_param("x"), body));
+        let def_decl = Declaration::def_decl(String::from("f"), defn);
         expected_db.declarations.alloc(def_decl);
+
         assert_eq!(actual_db.expressions, expected_db.expressions);
         assert_eq!(actual_db.type_expressions, expected_db.type_expressions);
         assert_eq!(actual_db.declarations, expected_db.declarations);
@@ -353,50 +313,42 @@ mod tests {
     #[test]
     fn lower_ident() {
         let mut database = super::Database::default();
-        database.alloc_expr(Expr::IdentExpr { name: "x".into() });
+        database.alloc_expr(Expr::ident_expr("x"));
         check_expr("x", &database);
     }
 
     #[test]
     fn lower_app() {
         let mut database = super::Database::default();
-        let func = database.alloc_expr(Expr::IdentExpr { name: "f".into() });
-        let arg = database.alloc_expr(Expr::IdentExpr { name: "y".into() });
+
+        let func = database.alloc_expr(Expr::ident_expr("f"));
+        let arg = database.alloc_expr(Expr::ident_expr("y"));
         database.alloc_expr(Expr::AppExpr { func, arg });
+
         check_expr("(f y)", &database);
     }
 
     #[test]
     fn lower_nested_app() {
         let mut database = super::Database::default();
-        let func = database.alloc_expr(Expr::IdentExpr { name: "f".into() });
-        let arg = database.alloc_expr(Expr::IdentExpr { name: "y".into() });
+
+        let func = database.alloc_expr(Expr::ident_expr("f"));
+        let arg = database.alloc_expr(Expr::ident_expr("y"));
+
         let func = database.alloc_expr(Expr::AppExpr { func, arg });
-        let arg = database.alloc_expr(Expr::IdentExpr { name: "z".into() });
+        let arg = database.alloc_expr(Expr::ident_expr("z"));
         database.alloc_expr(Expr::AppExpr { func, arg });
+
         check_expr("(f y z)", &database);
     }
 
     #[test]
     fn lower_lambda() {
         let mut database = super::Database::default();
-        let param = Param {
-            name: "x".into(),
-            typ: None,
-        };
-        let param2 = Param {
-            name: "y".into(),
-            typ: None,
-        };
-        let body = database.alloc_expr(Expr::IdentExpr { name: "x".into() });
-        let inner = database.alloc_expr(Expr::LambdaExpr {
-            param: Box::new(param2),
-            body,
-        });
-        let _outer = database.alloc_expr(Expr::LambdaExpr {
-            param: Box::new(param),
-            body: inner,
-        });
+
+        let body = database.alloc_expr(Expr::ident_expr("x"));
+        let inner = database.alloc_expr(Expr::lambda_expr(unannotated_param("y"), body));
+        let _outer = database.alloc_expr(Expr::lambda_expr(unannotated_param("x"), inner));
 
         check_expr("\\x y -> x", &database);
     }
@@ -404,20 +356,16 @@ mod tests {
     #[test]
     fn lower_let() {
         let mut database = super::Database::default();
-        let param = Param {
-            name: "b".into(),
-            typ: None,
-        };
-        let params = vec![param].into_boxed_slice();
-        let body = database.alloc_expr(Expr::IdentExpr { name: "d".into() });
-        let defn = database.alloc_expr(Expr::IdentExpr { name: "c".into() });
 
-        database.alloc_expr(Expr::LetExpr(Box::new(crate::LetExpr {
-            name: "a".into(),
-            params,
+        let body = database.alloc_expr(Expr::ident_expr("d"));
+        let defn = database.alloc_expr(Expr::ident_expr("c"));
+
+        database.alloc_expr(Expr::let_expr(
+            "a".into(),
+            vec![unannotated_param("b")].into_boxed_slice(),
             defn,
             body,
-        })));
+        ));
 
         let module_syntax = parser::parse("def x { let a b = c; d }").module();
         let mut db = super::Database::default();
@@ -431,15 +379,9 @@ mod tests {
     #[test]
     fn lower_lambda_missing_type() {
         let mut database = super::Database::default();
-        let param = Param {
-            name: "x".into(),
-            typ: None,
-        };
-        let body = database.alloc_expr(Expr::IdentExpr { name: "x".into() });
-        database.alloc_expr(Expr::LambdaExpr {
-            param: Box::new(param),
-            body,
-        });
+
+        let body = database.alloc_expr(Expr::ident_expr("x"));
+        database.alloc_expr(Expr::lambda_expr(unannotated_param("x"), body));
 
         check_expr("\\x -> x", &database);
     }
@@ -447,15 +389,8 @@ mod tests {
     #[test]
     fn lower_lambda_missing_body() {
         let mut database = super::Database::default();
-        let param = Param {
-            name: "x".into(),
-            typ: None,
-        };
 
-        database.alloc_expr(Expr::LambdaExpr {
-            param: Box::new(param),
-            body: missing_expr_id(),
-        });
+        database.alloc_expr(Expr::lambda_expr(unannotated_param("x"), MISSING_EXPR));
 
         check_expr("\\x ->", &database);
     }
@@ -463,9 +398,9 @@ mod tests {
     #[test]
     fn lower_lambda_missing_params() {
         let mut database = super::Database::default();
-        let body = database.alloc_expr(Expr::IdentExpr { name: "x".into() });
-        let param = Box::new(Param::empty());
-        database.alloc_expr(Expr::LambdaExpr { param, body });
+
+        let body = database.alloc_expr(Expr::ident_expr("x"));
+        database.alloc_expr(Expr::lambda_expr(unannotated_param(""), body));
 
         check_expr("\\-> x", &database);
     }
@@ -473,18 +408,11 @@ mod tests {
     #[test]
     fn lower_let_missing_defn() {
         let mut database = super::Database::default();
-        let param = Param {
-            name: "b".into(),
-            typ: None,
-        };
-        let params = vec![param].into_boxed_slice();
-        let body = database.alloc_expr(Expr::IdentExpr { name: "d".into() });
-        database.alloc_expr(Expr::LetExpr(Box::new(crate::LetExpr {
-            name: "a".into(),
-            params,
-            defn: missing_expr_id(),
-            body,
-        })));
+
+        let params = vec![unannotated_param("b")].into_boxed_slice();
+        let body = database.alloc_expr(Expr::ident_expr("d"));
+
+        database.alloc_expr(Expr::let_expr("a".into(), params, MISSING_EXPR, body));
 
         check_expr("{ let a b; d }", &database);
     }
