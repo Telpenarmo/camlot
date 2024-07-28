@@ -51,6 +51,7 @@ fn def_decl(parser: &mut Parser) {
     parser.expect(SyntaxKind::DEF_KW);
     parser.expect(SyntaxKind::IDENT);
     params::params(parser);
+    type_expr::type_annotation(parser);
 
     let body = parser.open();
     if parser.eat(SyntaxKind::EQUAL) {
@@ -129,6 +130,34 @@ mod tests {
                     DEF_BODY@3..3
             "#]],
             &["Expected IDENT but found EOF"],
+        );
+    }
+
+    #[test]
+    fn parse_def_with_return_type_annotation() {
+        check(
+            PrefixEntryPoint::Module,
+            "def f: Int = 42;",
+            &expect![[r#"
+                MODULE@0..16
+                  DEF_DECL@0..16
+                    DEF_KW@0..3 "def"
+                    WHITESPACE@3..4 " "
+                    IDENT@4..5 "f"
+                    PARAMS@5..5
+                    TYPE_ANNOTATION@5..11
+                      COLON@5..6 ":"
+                      WHITESPACE@6..7 " "
+                      TYPE_IDENT@7..11
+                        IDENT@7..10 "Int"
+                        WHITESPACE@10..11 " "
+                    DEF_BODY@11..16
+                      EQUAL@11..12 "="
+                      WHITESPACE@12..13 " "
+                      LITERAL_EXPR@13..15
+                        INT@13..15 "42"
+                      SEMICOLON@15..16 ";"
+            "#]],
         );
     }
 }

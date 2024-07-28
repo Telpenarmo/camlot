@@ -44,6 +44,10 @@ impl DefDecl {
     pub fn ident_lit(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, IDENT)
     }
+    #[must_use]
+    pub fn type_annotation(&self) -> Option<TypeAnnotation> {
+        support::child(&self.syntax)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -100,6 +104,21 @@ impl Params {
     #[must_use]
     pub fn params(&self) -> AstChildren<Param> {
         support::children(&self.syntax)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeAnnotation {
+    pub(crate) syntax: SyntaxNode,
+}
+impl TypeAnnotation {
+    #[must_use]
+    pub fn colon_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, COLON)
+    }
+    #[must_use]
+    pub fn type_expr(&self) -> Option<TypeExpr> {
+        support::child(&self.syntax)
     }
 }
 
@@ -242,6 +261,10 @@ impl LetStmt {
     pub fn semicolon_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, SEMICOLON)
     }
+    #[must_use]
+    pub fn type_annotation(&self) -> Option<TypeAnnotation> {
+        support::child(&self.syntax)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -290,6 +313,10 @@ impl LambdaExpr {
     #[must_use]
     pub fn arrow_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, ARROW)
+    }
+    #[must_use]
+    pub fn type_annotation(&self) -> Option<TypeAnnotation> {
+        support::child(&self.syntax)
     }
 }
 
@@ -368,15 +395,11 @@ impl Param {
         support::token(&self.syntax, L_PAREN)
     }
     #[must_use]
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, COLON)
-    }
-    #[must_use]
     pub fn r_paren_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, R_PAREN)
     }
     #[must_use]
-    pub fn type_expr(&self) -> Option<TypeExpr> {
+    pub fn type_annotation(&self) -> Option<TypeAnnotation> {
         support::child(&self.syntax)
     }
 }
@@ -499,6 +522,21 @@ impl AstNode for TypeDecl {
 impl AstNode for Params {
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == PARAMS
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for TypeAnnotation {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == TYPE_ANNOTATION
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -1014,6 +1052,11 @@ impl std::fmt::Display for TypeDecl {
     }
 }
 impl std::fmt::Display for Params {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for TypeAnnotation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

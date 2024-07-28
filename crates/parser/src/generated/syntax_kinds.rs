@@ -77,6 +77,7 @@ pub enum SyntaxKind {
     OPEN_DECL,
     TYPE_DECL,
     PARAMS,
+    TYPE_ANNOTATION,
     DEF_BODY,
     BLOCK_EXPR,
     TYPE_IDENT,

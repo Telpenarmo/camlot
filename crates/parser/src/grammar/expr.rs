@@ -1,6 +1,6 @@
 use super::{block::block, params::params};
 use crate::{
-    grammar::decl,
+    grammar::{decl, type_expr},
     parser::{CompletedMarker, Parser},
     token_set::TokenSet,
     SyntaxKind,
@@ -60,7 +60,14 @@ fn lambda_expr(parser: &mut Parser) -> CompletedMarker {
 
     let mark = parser.open();
     let _ = parser.eat_any(LAMBDA_TOKENS);
+
     params(parser);
+    if parser.at(SyntaxKind::COLON) {
+        let annotation_mark = parser.open();
+        parser.advance();
+        type_expr::delimited_type_expr(parser);
+        parser.close(annotation_mark, SyntaxKind::TYPE_ANNOTATION);
+    }
     parser.expect(SyntaxKind::ARROW);
     expr(parser);
     parser.close(mark, SyntaxKind::LAMBDA_EXPR)
@@ -236,6 +243,73 @@ mod tests {
                           IDENT@6..7 "z"
                       R_PAREN@7..8 ")"
                   R_PAREN@8..9 ")"
+            "#]],
+        );
+    }
+
+    #[test]
+    fn lambda_with_return_type_annotation() {
+        check(
+            PrefixEntryPoint::Expr,
+            r"\x: Int -> 10",
+            &expect![[r#"
+                LAMBDA_EXPR@0..13
+                  BACKSLASH@0..1 "\\"
+                  PARAMS@1..2
+                    PARAM@1..2
+                      IDENT@1..2 "x"
+                  TYPE_ANNOTATION@2..8
+                    COLON@2..3 ":"
+                    WHITESPACE@3..4 " "
+                    TYPE_IDENT@4..8
+                      IDENT@4..7 "Int"
+                      WHITESPACE@7..8 " "
+                  ARROW@8..10 "->"
+                  WHITESPACE@10..11 " "
+                  LITERAL_EXPR@11..13
+                    INT@11..13 "10"
+            "#]],
+        );
+    }
+
+    #[test]
+    fn lambda_with_return_type_annotation_in_paren() {
+        check(
+            PrefixEntryPoint::Expr,
+            r"\x: (a -> a) -> \y -> y",
+            &expect![[r#"
+                LAMBDA_EXPR@0..23
+                  BACKSLASH@0..1 "\\"
+                  PARAMS@1..2
+                    PARAM@1..2
+                      IDENT@1..2 "x"
+                  TYPE_ANNOTATION@2..13
+                    COLON@2..3 ":"
+                    WHITESPACE@3..4 " "
+                    TYPE_PAREN@4..13
+                      L_PAREN@4..5 "("
+                      TYPE_ARROW@5..11
+                        TYPE_IDENT@5..7
+                          IDENT@5..6 "a"
+                          WHITESPACE@6..7 " "
+                        ARROW@7..9 "->"
+                        WHITESPACE@9..10 " "
+                        TYPE_IDENT@10..11
+                          IDENT@10..11 "a"
+                      R_PAREN@11..12 ")"
+                      WHITESPACE@12..13 " "
+                  ARROW@13..15 "->"
+                  WHITESPACE@15..16 " "
+                  LAMBDA_EXPR@16..23
+                    BACKSLASH@16..17 "\\"
+                    PARAMS@17..19
+                      PARAM@17..19
+                        IDENT@17..18 "y"
+                        WHITESPACE@18..19 " "
+                    ARROW@19..21 "->"
+                    WHITESPACE@21..22 " "
+                    IDENT_EXPR@22..23
+                      IDENT@22..23 "y"
             "#]],
         );
     }

@@ -5,9 +5,11 @@ Decl =
 | OpenDecl
 | TypeDecl
 
-DefDecl = 'def' 'Ident' Params DefBody
+DefDecl = 'def' 'Ident' Params TypeAnnotation? DefBody
 OpenDecl = 'open' 'Ident' ';'
 TypeDecl = 'type' 'Ident' '=' TypeExpr ';'
+
+TypeAnnotation = ':' TypeExpr
 
 DefBody =
   '=' Expr ';'
@@ -27,7 +29,7 @@ Stmt =
 | LetStmt
 
 ExprStmt = Expr ';'
-LetStmt = 'let' 'Ident' Params '=' def:Expr ';'
+LetStmt = 'let' 'Ident' Params TypeAnnotation? '=' def:Expr ';'
 
 Expr =
   IdentExpr
@@ -46,13 +48,13 @@ BlockExpr =
 IdentExpr = 'Ident'
 LiteralExpr = Literal
 AppExpr = (func:Expr | app_func:AppExpr) arg:Expr
-LambdaExpr = ('λ' | '\\') Params '->' body:Expr
+LambdaExpr = ('λ' | '\\') Params TypeAnnotation? '->' body:Expr
 ParenExpr = '(' Expr? | AppExpr ')'
 
 Literal =  'Int' | 'dummy'
 
 Params = Param*
-Param = 'Ident' | '(' 'Ident' ':' TypeExpr ')'
+Param = 'Ident' | '(' 'Ident' TypeAnnotation? ')'
 
 BinaryExpr = lhs:Expr InfixSymbol rhs:Expr
 InfixSymbol = '+' | '-' | '*' | '/'

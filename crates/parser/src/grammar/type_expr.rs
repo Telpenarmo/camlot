@@ -3,24 +3,24 @@ use crate::{
     SyntaxKind,
 };
 
-pub(crate) fn type_expr(parser: &mut Parser) -> CompletedMarker {
-    fn lhs(parser: &mut Parser) -> CompletedMarker {
-        if parser.at(SyntaxKind::IDENT) {
-            let mark = parser.open();
-            parser.advance();
-            parser.close(mark, SyntaxKind::TYPE_IDENT)
-        } else if parser.at(SyntaxKind::L_PAREN) {
-            let mark = parser.open();
-            parser.advance();
-            type_expr(parser);
-            parser.expect(SyntaxKind::R_PAREN);
-            parser.close(mark, SyntaxKind::TYPE_PAREN)
-        } else {
-            parser.error("Expected type expression".into())
-        }
+pub(crate) fn delimited_type_expr(parser: &mut Parser) -> CompletedMarker {
+    if parser.at(SyntaxKind::IDENT) {
+        let mark = parser.open();
+        parser.advance();
+        parser.close(mark, SyntaxKind::TYPE_IDENT)
+    } else if parser.at(SyntaxKind::L_PAREN) {
+        let mark = parser.open();
+        parser.advance();
+        type_expr(parser);
+        parser.expect(SyntaxKind::R_PAREN);
+        parser.close(mark, SyntaxKind::TYPE_PAREN)
+    } else {
+        parser.error("Expected type expression".into())
     }
+}
 
-    let lhs_mark = lhs(parser);
+pub(crate) fn type_expr(parser: &mut Parser) -> CompletedMarker {
+    let lhs_mark = delimited_type_expr(parser);
 
     if parser.eat(SyntaxKind::ARROW) {
         let marker = parser.open_before(lhs_mark);
@@ -28,6 +28,17 @@ pub(crate) fn type_expr(parser: &mut Parser) -> CompletedMarker {
         parser.close(marker, SyntaxKind::TYPE_ARROW)
     } else {
         lhs_mark
+    }
+}
+
+pub(crate) fn type_annotation(parser: &mut Parser) -> Option<CompletedMarker> {
+    if parser.at(SyntaxKind::COLON) {
+        let marker = parser.open();
+        parser.advance();
+        type_expr(parser);
+        Some(parser.close(marker, SyntaxKind::TYPE_ANNOTATION))
+    } else {
+        None
     }
 }
 

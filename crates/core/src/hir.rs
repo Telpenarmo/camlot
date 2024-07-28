@@ -33,7 +33,7 @@ pub enum Expr {
     Missing,
     LetExpr(Box<LetExpr>),
     IdentExpr { name: String },
-    LambdaExpr { param: Param, body: ExprIdx },
+    LambdaExpr(Box<LambdaExpr>),
     AppExpr { func: ExprIdx, arg: ExprIdx },
     LiteralExpr(Literal),
 }
@@ -42,19 +42,25 @@ impl Expr {
     pub(crate) fn let_expr(
         name: String,
         params: Box<[Param]>,
+        return_type: TypeExprIdx,
         defn: ExprIdx,
         body: ExprIdx,
     ) -> Self {
         Self::LetExpr(Box::new(LetExpr {
             name,
             params,
+            return_type,
             defn,
             body,
         }))
     }
 
-    pub(crate) fn lambda_expr(param: Param, body: ExprIdx) -> Self {
-        Self::LambdaExpr { param, body }
+    pub(crate) fn lambda_expr(param: Param, return_type: TypeExprIdx, body: ExprIdx) -> Self {
+        Self::LambdaExpr(Box::new(LambdaExpr {
+            param,
+            return_type,
+            body,
+        }))
     }
 
     pub(crate) fn ident_expr<T: Into<String>>(name: T) -> Self {
@@ -76,7 +82,16 @@ impl Expr {
 pub struct LetExpr {
     pub name: String,
     pub params: Box<[Param]>,
+    pub return_type: TypeExprIdx,
     pub defn: ExprIdx,
+    pub body: ExprIdx,
+}
+
+#[allow(unused)]
+#[derive(PartialEq, Debug)]
+pub struct LambdaExpr {
+    pub param: Param,
+    pub return_type: TypeExprIdx,
     pub body: ExprIdx,
 }
 

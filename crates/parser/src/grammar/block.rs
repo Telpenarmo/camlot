@@ -4,6 +4,7 @@ use super::{
     params::params,
 };
 use crate::{
+    grammar::type_expr,
     parser::{CompletedMarker, Parser},
     token_set::TokenSet,
     SyntaxKind,
@@ -45,6 +46,7 @@ fn let_stmt(parser: &mut Parser) -> CompletedMarker {
     parser.expect(SyntaxKind::LET_KW);
     parser.expect(SyntaxKind::IDENT);
     params(parser);
+    type_expr::type_annotation(parser);
     parser.expect(SyntaxKind::EQUAL);
     expr(parser);
     parser.expect(SyntaxKind::SEMICOLON);
@@ -181,6 +183,37 @@ mod tests {
                   ERROR@1..1
             "#]],
             &["Expected R_BRACE but found EOF"],
+        );
+    }
+
+    #[test]
+    fn let_stmt_with_return_type_annotation() {
+        check(
+            PrefixEntryPoint::Expr,
+            "{ let x: Int = 42; }",
+            &expect![[r#"
+                BLOCK_EXPR@0..20
+                  L_BRACE@0..1 "{"
+                  WHITESPACE@1..2 " "
+                  LET_STMT@2..19
+                    LET_KW@2..5 "let"
+                    WHITESPACE@5..6 " "
+                    IDENT@6..7 "x"
+                    PARAMS@7..7
+                    TYPE_ANNOTATION@7..13
+                      COLON@7..8 ":"
+                      WHITESPACE@8..9 " "
+                      TYPE_IDENT@9..13
+                        IDENT@9..12 "Int"
+                        WHITESPACE@12..13 " "
+                    EQUAL@13..14 "="
+                    WHITESPACE@14..15 " "
+                    LITERAL_EXPR@15..17
+                      INT@15..17 "42"
+                    SEMICOLON@17..18 ";"
+                    WHITESPACE@18..19 " "
+                  R_BRACE@19..20 "}"
+            "#]],
         );
     }
 }

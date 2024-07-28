@@ -5,7 +5,7 @@ type t2 = a -> b;
 type t3 = a -> b -> c;
 type t4 = (a -> b) -> c;
 
-def x = 42;
+def x : Int = 42;
 
 def x2 { 42 }
 
@@ -17,7 +17,7 @@ def id2 x = x;
 
 def const x y = x;
 def const2 x = \x -> x;
-def const3 = \x y -> x;
+def const3 : a -> b -> a = \x y: a -> x;
 def const4 = \x (y: t) -> x;
 def const5 = \x -> \y -> x;
 
