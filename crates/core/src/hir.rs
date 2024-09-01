@@ -2,32 +2,35 @@ use la_arena::Idx;
 
 pub(crate) type ExprIdx = Idx<Expr>;
 pub(crate) type TypeExprIdx = Idx<TypeExpr>;
-pub(crate) type DeclarationIdx = Idx<Declaration>;
+pub(crate) type DefinitionIdx = Idx<Definition>;
+pub(crate) type OpenDeclarationIdx = Idx<OpenDeclaration>;
+pub(crate) type TypeDeclarationIdx = Idx<TypeDeclaration>;
 
 pub(crate) type Name = String;
 
 #[allow(unused)]
+#[derive(PartialEq, Debug)]
 pub struct Module {
-    pub declarations: Box<[DeclarationIdx]>,
+    pub definitions: Box<[DefinitionIdx]>,
+    pub open_decls: Box<[OpenDeclarationIdx]>,
+    pub type_decls: Box<[TypeDeclarationIdx]>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct DefDecl {
+pub struct Definition {
     pub name: Name,
     pub defn: ExprIdx,
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Declaration {
-    TypeDecl { name: Name, defn: TypeExprIdx },
-    DefDecl(DefDecl),
-    OpenDecl { path: Name },
+pub struct OpenDeclaration {
+    pub path: Name,
 }
 
-impl Declaration {
-    pub(crate) fn def_decl(name: Name, defn: ExprIdx) -> Self {
-        Self::DefDecl(DefDecl { name, defn })
-    }
+#[derive(PartialEq, Debug)]
+pub struct TypeDeclaration {
+    pub name: Name,
+    pub defn: TypeExprIdx,
 }
 
 #[derive(PartialEq, Debug)]
