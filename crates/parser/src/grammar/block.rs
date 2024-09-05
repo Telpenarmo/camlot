@@ -1,5 +1,5 @@
 use super::{
-    decl::MODULE_ITEM_START,
+    module_item::MODULE_ITEM_START,
     expr::{self, expr},
     params::params,
 };
