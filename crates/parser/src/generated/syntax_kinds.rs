@@ -73,9 +73,9 @@ pub enum SyntaxKind {
     LEXING_ERROR,
     ERROR,
     MODULE,
-    DEF_DECL,
-    OPEN_DECL,
-    TYPE_DECL,
+    DEFINITION,
+    OPEN,
+    TYPE_DEFINITION,
     PARAMS,
     TYPE_ANNOTATION,
     DEF_BODY,
@@ -92,7 +92,7 @@ pub enum SyntaxKind {
     BINARY_EXPR,
     APP_EXPR,
     PARAM,
-    DECL,
+    MODULE_ITEM,
     TYPE_EXPR,
     EXPR,
     STMT,
@@ -121,7 +121,7 @@ impl SyntaxKind {
     #[must_use]
     pub fn is_enum(self) -> bool {
         match self {
-            DECL | TYPE_EXPR | EXPR | STMT | LITERAL | INFIX_SYMBOL => true,
+            MODULE_ITEM | TYPE_EXPR | EXPR | STMT | LITERAL | INFIX_SYMBOL => true,
             _ => false,
         }
     }

@@ -13,7 +13,7 @@ pub(crate) fn module(parser: &mut Parser) -> parser::CompletedMarker {
     let marker = parser.open();
 
     while !parser.at(crate::SyntaxKind::EOF) {
-        decl::decl(parser);
+        decl::module_item(parser);
     }
 
     parser.close(marker, crate::SyntaxKind::MODULE)
@@ -26,7 +26,6 @@ pub(crate) fn parse(mut parser: Parser, entry_point: PrefixEntryPoint) -> Vec<cr
         PrefixEntryPoint::TypeExpr => type_expr::type_expr(&mut parser),
         #[cfg(test)]
         PrefixEntryPoint::Expr => expr::expr(&mut parser),
-        // PrefixEntryPoint::Decl => decl(&mut parser),
     };
     parser.finish()
 }
@@ -37,19 +36,19 @@ mod tests {
     use expect_test::expect;
 
     #[test]
-    fn parse_multiple_declarations() {
+    fn parse_multiple_module_items() {
         check(
             PrefixEntryPoint::Module,
             "open a; type t = a;",
             &expect![[r#"
                 MODULE@0..19
-                  OPEN_DECL@0..8
+                  OPEN@0..8
                     OPEN_KW@0..4 "open"
                     WHITESPACE@4..5 " "
                     IDENT@5..6 "a"
                     SEMICOLON@6..7 ";"
                     WHITESPACE@7..8 " "
-                  TYPE_DECL@8..19
+                  TYPE_DEFINITION@8..19
                     TYPE_KW@8..12 "type"
                     WHITESPACE@12..13 " "
                     IDENT@13..14 "t"

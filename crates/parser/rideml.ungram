@@ -1,13 +1,13 @@
-Module = Decl*
+Module = ModuleItem*
 
-Decl =
-  DefDecl
-| OpenDecl
-| TypeDecl
+ModuleItem =
+  Definition
+| Open
+| TypeDefinition
 
-DefDecl = 'def' 'Ident' Params TypeAnnotation? DefBody
-OpenDecl = 'open' 'Ident' ';'
-TypeDecl = 'type' 'Ident' '=' TypeExpr ';'
+Definition = 'def' 'Ident' Params TypeAnnotation? DefBody
+Open = 'open' 'Ident' ';'
+TypeDefinition = 'type' 'Ident' '=' TypeExpr ';'
 
 TypeAnnotation = ':' TypeExpr
 

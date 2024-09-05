@@ -1,5 +1,5 @@
 use super::{
-    decl::DECL_START,
+    decl::MODULE_ITEM_START,
     expr::{self, expr},
     params::params,
 };
@@ -11,7 +11,7 @@ use crate::{
 };
 
 const BLOCK_END: TokenSet =
-    DECL_START.union(TokenSet::new(&[SyntaxKind::R_BRACE, SyntaxKind::EOF]));
+    MODULE_ITEM_START.union(TokenSet::new(&[SyntaxKind::R_BRACE, SyntaxKind::EOF]));
 const STMT_FIRST: TokenSet = TokenSet::new(&[SyntaxKind::LET_KW]).union(expr::EXPR_FIRST);
 
 pub(crate) fn block(parser: &mut Parser) -> CompletedMarker {

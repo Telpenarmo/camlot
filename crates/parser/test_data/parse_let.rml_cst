@@ -1,5 +1,5 @@
 MODULE@0..29
-  DEF_DECL@0..29
+  DEFINITION@0..29
     DEF_KW@0..3 "def"
     WHITESPACE@3..4 " "
     IDENT@4..5 "f"

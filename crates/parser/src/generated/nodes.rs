@@ -18,16 +18,16 @@ pub struct Module {
 }
 impl Module {
     #[must_use]
-    pub fn decls(&self) -> AstChildren<Decl> {
+    pub fn module_items(&self) -> AstChildren<ModuleItem> {
         support::children(&self.syntax)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DefDecl {
+pub struct Definition {
     pub(crate) syntax: SyntaxNode,
 }
-impl DefDecl {
+impl Definition {
     #[must_use]
     pub fn def_body(&self) -> Option<DefBody> {
         support::child(&self.syntax)
@@ -51,10 +51,10 @@ impl DefDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct OpenDecl {
+pub struct Open {
     pub(crate) syntax: SyntaxNode,
 }
-impl OpenDecl {
+impl Open {
     #[must_use]
     pub fn open_kw_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, OPEN_KW)
@@ -70,10 +70,10 @@ impl OpenDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeDecl {
+pub struct TypeDefinition {
     pub(crate) syntax: SyntaxNode,
 }
-impl TypeDecl {
+impl TypeDefinition {
     #[must_use]
     pub fn type_kw_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, TYPE_KW)
@@ -405,10 +405,10 @@ impl Param {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Decl {
-    DefDecl(DefDecl),
-    OpenDecl(OpenDecl),
-    TypeDecl(TypeDecl),
+pub enum ModuleItem {
+    Definition(Definition),
+    Open(Open),
+    TypeDefinition(TypeDefinition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -474,9 +474,9 @@ impl AstNode for Module {
         &self.syntax
     }
 }
-impl AstNode for DefDecl {
+impl AstNode for Definition {
     fn can_cast(kind: SyntaxKind) -> bool {
-        kind == DEF_DECL
+        kind == DEFINITION
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -489,9 +489,9 @@ impl AstNode for DefDecl {
         &self.syntax
     }
 }
-impl AstNode for OpenDecl {
+impl AstNode for Open {
     fn can_cast(kind: SyntaxKind) -> bool {
-        kind == OPEN_DECL
+        kind == OPEN
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -504,9 +504,9 @@ impl AstNode for OpenDecl {
         &self.syntax
     }
 }
-impl AstNode for TypeDecl {
+impl AstNode for TypeDefinition {
     fn can_cast(kind: SyntaxKind) -> bool {
-        kind == TYPE_DECL
+        kind == TYPE_DEFINITION
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -759,42 +759,42 @@ impl AstNode for Param {
         &self.syntax
     }
 }
-impl From<DefDecl> for Decl {
-    fn from(node: DefDecl) -> Decl {
-        Decl::DefDecl(node)
+impl From<Definition> for ModuleItem {
+    fn from(node: Definition) -> ModuleItem {
+        ModuleItem::Definition(node)
     }
 }
-impl From<OpenDecl> for Decl {
-    fn from(node: OpenDecl) -> Decl {
-        Decl::OpenDecl(node)
+impl From<Open> for ModuleItem {
+    fn from(node: Open) -> ModuleItem {
+        ModuleItem::Open(node)
     }
 }
-impl From<TypeDecl> for Decl {
-    fn from(node: TypeDecl) -> Decl {
-        Decl::TypeDecl(node)
+impl From<TypeDefinition> for ModuleItem {
+    fn from(node: TypeDefinition) -> ModuleItem {
+        ModuleItem::TypeDefinition(node)
     }
 }
-impl AstNode for Decl {
+impl AstNode for ModuleItem {
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            DEF_DECL | OPEN_DECL | TYPE_DECL => true,
+            DEFINITION | OPEN | TYPE_DEFINITION => true,
             _ => false,
         }
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
-            DEF_DECL => Decl::DefDecl(DefDecl { syntax }),
-            OPEN_DECL => Decl::OpenDecl(OpenDecl { syntax }),
-            TYPE_DECL => Decl::TypeDecl(TypeDecl { syntax }),
+            DEFINITION => ModuleItem::Definition(Definition { syntax }),
+            OPEN => ModuleItem::Open(Open { syntax }),
+            TYPE_DEFINITION => ModuleItem::TypeDefinition(TypeDefinition { syntax }),
             _ => return None,
         };
         Some(res)
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Decl::DefDecl(it) => &it.syntax,
-            Decl::OpenDecl(it) => &it.syntax,
-            Decl::TypeDecl(it) => &it.syntax,
+            ModuleItem::Definition(it) => &it.syntax,
+            ModuleItem::Open(it) => &it.syntax,
+            ModuleItem::TypeDefinition(it) => &it.syntax,
         }
     }
 }
@@ -1011,7 +1011,7 @@ impl std::fmt::Display for InfixSymbol {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for Decl {
+impl std::fmt::Display for ModuleItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -1036,17 +1036,17 @@ impl std::fmt::Display for Module {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for DefDecl {
+impl std::fmt::Display for Definition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for OpenDecl {
+impl std::fmt::Display for Open {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for TypeDecl {
+impl std::fmt::Display for TypeDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

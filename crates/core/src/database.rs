@@ -1,6 +1,6 @@
 use crate::hir::{
-    Definition, DefinitionIdx, Expr, ExprIdx, Module, OpenDeclaration, OpenDeclarationIdx,
-    Param, TypeDeclaration, TypeDeclarationIdx, TypeExpr, TypeExprIdx,
+    Definition, DefinitionIdx, Expr, ExprIdx, Module, Open, OpenIdx, Param, TypeDefinition,
+    TypeDefinitionIdx, TypeExpr, TypeExprIdx,
 };
 use la_arena::Arena;
 use parser::{nodes as ast, AstToken};
@@ -8,8 +8,8 @@ use parser::{nodes as ast, AstToken};
 #[allow(unused)]
 pub struct Database {
     definitions: Arena<Definition>,
-    open_declarations: Arena<OpenDeclaration>,
-    type_declarations: Arena<TypeDeclaration>,
+    opens: Arena<Open>,
+    type_definitions: Arena<TypeDefinition>,
     expressions: Arena<Expr>,
     type_expressions: Arena<TypeExpr>,
 }
@@ -35,43 +35,43 @@ impl Database {
             expressions,
             type_expressions,
             definitions: Arena::new(),
-            open_declarations: Arena::new(),
-            type_declarations: Arena::new(),
+            opens: Arena::new(),
+            type_definitions: Arena::new(),
         }
     }
 
     pub fn lower_module(&mut self, ast: &ast::Module) -> Module {
         let mut definitions: Vec<DefinitionIdx> = Vec::new();
-        let mut open_decls: Vec<OpenDeclarationIdx> = Vec::new();
-        let mut type_decls: Vec<TypeDeclarationIdx> = Vec::new();
+        let mut opens: Vec<OpenIdx> = Vec::new();
+        let mut types: Vec<TypeDefinitionIdx> = Vec::new();
 
-        ast.decls().for_each(|ast| match ast {
-            ast::Decl::DefDecl(ast) => {
-                let decl = self.lower_def_decl(&ast);
-                definitions.push(self.definitions.alloc(decl));
+        ast.module_items().for_each(|ast| match ast {
+            ast::ModuleItem::Definition(ast) => {
+                let definition = self.lower_definition(&ast);
+                definitions.push(self.definitions.alloc(definition));
             }
-            ast::Decl::OpenDecl(ast) => {
-                let decl = Self::lower_open_decl(&ast);
-                open_decls.push(self.open_declarations.alloc(decl));
+            ast::ModuleItem::Open(ast) => {
+                let open = Self::lower_open(&ast);
+                opens.push(self.opens.alloc(open));
             }
-            ast::Decl::TypeDecl(ast) => {
-                let decl = self.lower_type_decl(&ast);
-                type_decls.push(self.type_declarations.alloc(decl));
+            ast::ModuleItem::TypeDefinition(ast) => {
+                let type_definition = self.lower_type_definition(&ast);
+                types.push(self.type_definitions.alloc(type_definition));
             }
         });
 
         let definitions = definitions.into_boxed_slice();
-        let open_decls = open_decls.into_boxed_slice();
-        let type_decls = type_decls.into_boxed_slice();
+        let opens = opens.into_boxed_slice();
+        let type_definitions = types.into_boxed_slice();
 
         Module {
             definitions,
-            open_decls,
-            type_decls,
+            opens,
+            type_definitions,
         }
     }
 
-    fn lower_def_decl(&mut self, ast: &ast::DefDecl) -> Definition {
+    fn lower_definition(&mut self, ast: &ast::Definition) -> Definition {
         let params = self.lower_params(ast.params());
         let body = ast.def_body();
         let body = {
@@ -99,16 +99,16 @@ impl Database {
         }
     }
 
-    fn lower_open_decl(ast: &ast::OpenDecl) -> OpenDeclaration {
-        OpenDeclaration {
+    fn lower_open(ast: &ast::Open) -> Open {
+        Open {
             path: Self::lower_ident(ast.ident_lit()),
         }
     }
 
-    fn lower_type_decl(&mut self, ast: &ast::TypeDecl) -> TypeDeclaration {
+    fn lower_type_definition(&mut self, ast: &ast::TypeDefinition) -> TypeDefinition {
         let defn = self.lower_type_expr(ast.type_expr());
         let defn = self.alloc_type_expr(defn);
-        TypeDeclaration {
+        TypeDefinition {
             name: Self::lower_ident(ast.ident_lit()),
             defn,
         }
@@ -297,12 +297,12 @@ impl Database {
         &self.definitions[idx]
     }
 
-    pub(crate) fn get_open_declaration(&self, idx: OpenDeclarationIdx) -> &OpenDeclaration {
-        &self.open_declarations[idx]
+    pub(crate) fn get_open(&self, idx: OpenIdx) -> &Open {
+        &self.opens[idx]
     }
 
-    pub(crate) fn get_type_declaration(&self, idx: TypeDeclarationIdx) -> &TypeDeclaration {
-        &self.type_declarations[idx]
+    pub(crate) fn get_type_definition(&self, idx: TypeDefinitionIdx) -> &TypeDefinition {
+        &self.type_definitions[idx]
     }
 }
 
@@ -358,12 +358,12 @@ mod tests {
             MISSING_TYPE,
             body,
         ));
-        let def_decl = Definition {
+        let definition = Definition {
             name: String::from("f"),
             defn,
         };
 
-        expected_db.definitions.alloc(def_decl);
+        expected_db.definitions.alloc(definition);
 
         assert_eq!(actual_db.expressions, expected_db.expressions);
         assert_eq!(actual_db.type_expressions, expected_db.type_expressions);
@@ -390,11 +390,11 @@ mod tests {
             MISSING_TYPE,
             body,
         ));
-        let def_decl = Definition {
+        let definition = Definition {
             name: String::from("f"),
             defn,
         };
-        expected_db.definitions.alloc(def_decl);
+        expected_db.definitions.alloc(definition);
 
         assert_eq!(actual_db.expressions, expected_db.expressions);
         assert_eq!(actual_db.type_expressions, expected_db.type_expressions);
@@ -549,11 +549,11 @@ mod tests {
             MISSING_TYPE,
             body,
         ));
-        let def_decl = Definition {
+        let definition = Definition {
             name: String::from("f"),
             defn,
         };
-        expected_db.definitions.alloc(def_decl);
+        expected_db.definitions.alloc(definition);
 
         assert_eq!(actual_db.expressions, expected_db.expressions);
         assert_eq!(actual_db.type_expressions, expected_db.type_expressions);
@@ -583,11 +583,11 @@ mod tests {
             tail_expr,
         ));
 
-        let def_decl = Definition {
+        let definition = Definition {
             name: String::from("f"),
             defn,
         };
-        expected_db.definitions.alloc(def_decl);
+        expected_db.definitions.alloc(definition);
 
         assert_eq!(actual_db.expressions, expected_db.expressions);
         assert_eq!(actual_db.type_expressions, expected_db.type_expressions);

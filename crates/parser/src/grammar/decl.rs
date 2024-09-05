@@ -1,26 +1,26 @@
 use super::{block, expr, params, type_expr};
 use crate::{parser::Parser, token_set::TokenSet, SyntaxKind};
 
-pub(crate) const DECL_START: TokenSet =
+pub(crate) const MODULE_ITEM_START: TokenSet =
     TokenSet::new(&[SyntaxKind::DEF_KW, SyntaxKind::TYPE_KW, SyntaxKind::OPEN_KW]);
-pub(crate) const DECL_END: TokenSet = TokenSet::new(&[SyntaxKind::SEMICOLON, SyntaxKind::R_BRACE]);
+pub(crate) const MODULE_ITEM_END: TokenSet = TokenSet::new(&[SyntaxKind::SEMICOLON, SyntaxKind::R_BRACE]);
 
-pub(crate) fn decl(parser: &mut Parser) {
+pub(crate) fn module_item(parser: &mut Parser) {
     if parser.at(SyntaxKind::DEF_KW) {
-        def_decl(parser);
+        def(parser);
     } else if parser.at(SyntaxKind::TYPE_KW) {
-        type_decl(parser);
+        type_definition(parser);
     } else if parser.at(SyntaxKind::OPEN_KW) {
-        open_decl(parser);
+        open(parser);
     } else {
-        parser.eat_error_until(DECL_START.union(DECL_END), "Expected declaration".into());
-        if parser.at_any(DECL_END) {
+        parser.eat_error_until(MODULE_ITEM_START.union(MODULE_ITEM_END), "Expected declaration".into());
+        if parser.at_any(MODULE_ITEM_END) {
             assert!(parser.eat(SyntaxKind::SEMICOLON));
         }
     }
 }
 
-fn open_decl(parser: &mut Parser) {
+fn open(parser: &mut Parser) {
     assert!(parser.at(SyntaxKind::OPEN_KW));
 
     let mark = parser.open();
@@ -28,10 +28,10 @@ fn open_decl(parser: &mut Parser) {
     parser.expect(SyntaxKind::IDENT);
     parser.expect(SyntaxKind::SEMICOLON);
 
-    parser.close(mark, SyntaxKind::OPEN_DECL);
+    parser.close(mark, SyntaxKind::OPEN);
 }
 
-fn type_decl(parser: &mut Parser) {
+fn type_definition(parser: &mut Parser) {
     assert!(parser.at(SyntaxKind::TYPE_KW));
 
     let mark = parser.open();
@@ -41,10 +41,10 @@ fn type_decl(parser: &mut Parser) {
     type_expr::type_expr(parser);
     parser.expect(SyntaxKind::SEMICOLON);
 
-    parser.close(mark, SyntaxKind::TYPE_DECL);
+    parser.close(mark, SyntaxKind::TYPE_DEFINITION);
 }
 
-fn def_decl(parser: &mut Parser) {
+fn def(parser: &mut Parser) {
     assert!(parser.at(SyntaxKind::DEF_KW));
 
     let mark = parser.open();
@@ -62,7 +62,7 @@ fn def_decl(parser: &mut Parser) {
     }
     parser.close(body, SyntaxKind::DEF_BODY);
 
-    parser.close(mark, SyntaxKind::DEF_DECL);
+    parser.close(mark, SyntaxKind::DEFINITION);
 }
 
 #[cfg(test)]
@@ -72,13 +72,13 @@ mod tests {
     use crate::{check, check_err, PrefixEntryPoint};
 
     #[test]
-    fn parse_decl() {
+    fn parse_definition() {
         check(
             PrefixEntryPoint::Module,
             "def f = x;",
             &expect![[r#"
             MODULE@0..10
-              DEF_DECL@0..10
+              DEFINITION@0..10
                 DEF_KW@0..3 "def"
                 WHITESPACE@3..4 " "
                 IDENT@4..5 "f"
@@ -101,7 +101,7 @@ mod tests {
             "def f =",
             &expect![[r#"
                 MODULE@0..7
-                  DEF_DECL@0..7
+                  DEFINITION@0..7
                     DEF_KW@0..3 "def"
                     WHITESPACE@3..4 " "
                     IDENT@4..5 "f"
@@ -123,7 +123,7 @@ mod tests {
             "def",
             &expect![[r#"
                 MODULE@0..3
-                  DEF_DECL@0..3
+                  DEFINITION@0..3
                     DEF_KW@0..3 "def"
                     ERROR@3..3
                     PARAMS@3..3
@@ -140,7 +140,7 @@ mod tests {
             "def f: Int = 42;",
             &expect![[r#"
                 MODULE@0..16
-                  DEF_DECL@0..16
+                  DEFINITION@0..16
                     DEF_KW@0..3 "def"
                     WHITESPACE@3..4 " "
                     IDENT@4..5 "f"

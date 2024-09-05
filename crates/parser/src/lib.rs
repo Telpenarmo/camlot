@@ -48,7 +48,6 @@ pub(crate) enum PrefixEntryPoint {
     TypeExpr,
     #[cfg(test)]
     Expr,
-    // Decl,
 }
 
 impl Parse {

@@ -80,8 +80,8 @@ fn paren_expr(parser: &mut Parser) -> CompletedMarker {
     parser.advance();
 
     let paren_expr_end = TokenSet::new(&[SyntaxKind::R_PAREN])
-        .union(decl::DECL_END)
-        .union(decl::DECL_START)
+        .union(decl::MODULE_ITEM_END)
+        .union(decl::MODULE_ITEM_START)
         .union(TokenSet::new(&[SyntaxKind::EOF]));
 
     if parser.at_any(LAMBDA_TOKENS) {

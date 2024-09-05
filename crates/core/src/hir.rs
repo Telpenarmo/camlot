@@ -3,8 +3,8 @@ use la_arena::Idx;
 pub(crate) type ExprIdx = Idx<Expr>;
 pub(crate) type TypeExprIdx = Idx<TypeExpr>;
 pub(crate) type DefinitionIdx = Idx<Definition>;
-pub(crate) type OpenDeclarationIdx = Idx<OpenDeclaration>;
-pub(crate) type TypeDeclarationIdx = Idx<TypeDeclaration>;
+pub(crate) type OpenIdx = Idx<Open>;
+pub(crate) type TypeDefinitionIdx = Idx<TypeDefinition>;
 
 pub(crate) type Name = String;
 
@@ -12,8 +12,8 @@ pub(crate) type Name = String;
 #[derive(PartialEq, Debug)]
 pub struct Module {
     pub definitions: Box<[DefinitionIdx]>,
-    pub open_decls: Box<[OpenDeclarationIdx]>,
-    pub type_decls: Box<[TypeDeclarationIdx]>,
+    pub opens: Box<[OpenIdx]>,
+    pub type_definitions: Box<[TypeDefinitionIdx]>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -23,12 +23,12 @@ pub struct Definition {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct OpenDeclaration {
+pub struct Open {
     pub path: Name,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct TypeDeclaration {
+pub struct TypeDefinition {
     pub name: Name,
     pub defn: TypeExprIdx,
 }

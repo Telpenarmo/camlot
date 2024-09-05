@@ -106,12 +106,12 @@ fn get_semantic_token_type(token: &SyntaxToken) -> Option<lsp_types::SemanticTok
         SyntaxKind::INT => Some(lsp_types::SemanticTokenType::NUMBER),
         SyntaxKind::STRING => Some(lsp_types::SemanticTokenType::STRING),
         SyntaxKind::IDENT => match parent.map(SyntaxNode::kind) {
-            Some(SyntaxKind::TYPE_IDENT | SyntaxKind::TYPE_DECL) => {
+            Some(SyntaxKind::TYPE_IDENT | SyntaxKind::TYPE_DEFINITION) => {
                 Some(lsp_types::SemanticTokenType::TYPE)
             }
-            Some(SyntaxKind::OPEN_DECL) => Some(lsp_types::SemanticTokenType::NAMESPACE),
+            Some(SyntaxKind::OPEN) => Some(lsp_types::SemanticTokenType::NAMESPACE),
             Some(SyntaxKind::PARAM) => Some(lsp_types::SemanticTokenType::PARAMETER),
-            Some(SyntaxKind::DEF_DECL) => Some(lsp_types::SemanticTokenType::FUNCTION),
+            Some(SyntaxKind::DEFINITION) => Some(lsp_types::SemanticTokenType::FUNCTION),
             Some(SyntaxKind::LET_STMT)
                 if parent.is_some_and(|n| {
                     nodes::LetStmt::cast(n.clone()).is_some_and(|let_stmt| {
