@@ -4,8 +4,8 @@ use crate::{
 };
 
 mod block;
-mod decl;
 mod expr;
+mod module_item;
 mod params;
 mod type_expr;
 
@@ -13,7 +13,7 @@ pub(crate) fn module(parser: &mut Parser) -> parser::CompletedMarker {
     let marker = parser.open();
 
     while !parser.at(crate::SyntaxKind::EOF) {
-        decl::module_item(parser);
+        module_item::module_item(parser);
     }
 
     parser.close(marker, crate::SyntaxKind::MODULE)

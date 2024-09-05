@@ -3,7 +3,8 @@ use crate::{parser::Parser, token_set::TokenSet, SyntaxKind};
 
 pub(crate) const MODULE_ITEM_START: TokenSet =
     TokenSet::new(&[SyntaxKind::DEF_KW, SyntaxKind::TYPE_KW, SyntaxKind::OPEN_KW]);
-pub(crate) const MODULE_ITEM_END: TokenSet = TokenSet::new(&[SyntaxKind::SEMICOLON, SyntaxKind::R_BRACE]);
+pub(crate) const MODULE_ITEM_END: TokenSet =
+    TokenSet::new(&[SyntaxKind::SEMICOLON, SyntaxKind::R_BRACE]);
 
 pub(crate) fn module_item(parser: &mut Parser) {
     if parser.at(SyntaxKind::DEF_KW) {
@@ -13,7 +14,10 @@ pub(crate) fn module_item(parser: &mut Parser) {
     } else if parser.at(SyntaxKind::OPEN_KW) {
         open(parser);
     } else {
-        parser.eat_error_until(MODULE_ITEM_START.union(MODULE_ITEM_END), "Expected declaration".into());
+        parser.eat_error_until(
+            MODULE_ITEM_START.union(MODULE_ITEM_END),
+            "Expected declaration".into(),
+        );
         if parser.at_any(MODULE_ITEM_END) {
             assert!(parser.eat(SyntaxKind::SEMICOLON));
         }
