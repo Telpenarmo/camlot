@@ -8,14 +8,6 @@ pub(crate) type TypeDefinitionIdx = Idx<TypeDefinition>;
 
 pub(crate) type Name = String;
 
-#[allow(unused)]
-#[derive(PartialEq, Debug)]
-pub struct Module {
-    pub definitions: Box<[DefinitionIdx]>,
-    pub opens: Box<[OpenIdx]>,
-    pub type_definitions: Box<[TypeDefinitionIdx]>,
-}
-
 #[derive(PartialEq, Debug)]
 pub struct Definition {
     pub name: Name,

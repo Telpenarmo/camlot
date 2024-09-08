@@ -1,13 +1,13 @@
 use crate::hir::{
-        Definition, DefinitionIdx, Expr, ExprIdx, Module, Open, OpenIdx, Param, TypeDefinition,
-        TypeDefinitionIdx, TypeExpr, TypeExprIdx,
-    };
+    Definition, DefinitionIdx, Expr, ExprIdx, Open, OpenIdx, Param, TypeDefinition,
+    TypeDefinitionIdx, TypeExpr, TypeExprIdx,
+};
 use la_arena::Arena;
 use parser::{nodes as ast, AstToken};
 
 #[derive(Debug)]
 #[allow(unused)]
-pub struct Database {
+pub struct Module {
     definitions: Arena<Definition>,
     opens: Arena<Open>,
     type_definitions: Arena<TypeDefinition>,
@@ -15,12 +15,12 @@ pub struct Database {
     type_expressions: Arena<TypeExpr>,
 }
 
-fn param_deep_eq(a_db: &Database, b_db: &Database, a: &Param, b: &Param) -> bool {
-    a.name == b.name && type_expr_deep_eq(a_db, b_db, a.typ, b.typ)
+fn param_deep_eq(a_module: &Module, b_module: &Module, a: &Param, b: &Param) -> bool {
+    a.name == b.name && type_expr_deep_eq(a_module, b_module, a.typ, b.typ)
 }
-fn type_expr_deep_eq(a_db: &Database, b_db: &Database, a: TypeExprIdx, b: TypeExprIdx) -> bool {
-    let a = a_db.get_type_expr(a);
-    let b = b_db.get_type_expr(b);
+fn type_expr_deep_eq(a_module: &Module, b_module: &Module, a: TypeExprIdx, b: TypeExprIdx) -> bool {
+    let a = a_module.get_type_expr(a);
+    let b = b_module.get_type_expr(b);
     match (a, b) {
         (TypeExpr::Missing, TypeExpr::Missing) => true,
         (TypeExpr::IdentTypeExpr { name: a }, TypeExpr::IdentTypeExpr { name: b }) => a == b,
@@ -31,15 +31,15 @@ fn type_expr_deep_eq(a_db: &Database, b_db: &Database, a: TypeExprIdx, b: TypeEx
                 to: b_to,
             },
         ) => {
-            type_expr_deep_eq(a_db, b_db, *from, *b_from)
-                && type_expr_deep_eq(a_db, b_db, *to, *b_to)
+            type_expr_deep_eq(a_module, b_module, *from, *b_from)
+                && type_expr_deep_eq(a_module, b_module, *to, *b_to)
         }
         _ => false,
     }
 }
-fn expr_deep_eq(a_db: &Database, b_db: &Database, a: ExprIdx, b: ExprIdx) -> bool {
-    let a = a_db.get_expr(a);
-    let b = b_db.get_expr(b);
+fn expr_deep_eq(a_module: &Module, b_module: &Module, a: ExprIdx, b: ExprIdx) -> bool {
+    let a = a_module.get_expr(a);
+    let b = b_module.get_expr(b);
     match (a, b) {
         (Expr::Missing, Expr::Missing) => true,
         (Expr::LiteralExpr(a), Expr::LiteralExpr(b)) => a == b,
@@ -50,28 +50,36 @@ fn expr_deep_eq(a_db: &Database, b_db: &Database, a: ExprIdx, b: ExprIdx) -> boo
                 func: b_func,
                 arg: b_arg,
             },
-        ) => expr_deep_eq(a_db, b_db, *func, *b_func) && expr_deep_eq(a_db, b_db, *arg, *b_arg),
+        ) => {
+            expr_deep_eq(a_module, b_module, *func, *b_func)
+                && expr_deep_eq(a_module, b_module, *arg, *b_arg)
+        }
         (Expr::LambdaExpr(l_lambda), Expr::LambdaExpr(b_lambda)) => {
-            param_deep_eq(a_db, b_db, &l_lambda.param, &b_lambda.param)
-                && expr_deep_eq(a_db, b_db, l_lambda.body, b_lambda.body)
-                && type_expr_deep_eq(a_db, b_db, l_lambda.return_type, b_lambda.return_type)
+            param_deep_eq(a_module, b_module, &l_lambda.param, &b_lambda.param)
+                && expr_deep_eq(a_module, b_module, l_lambda.body, b_lambda.body)
+                && type_expr_deep_eq(
+                    a_module,
+                    b_module,
+                    l_lambda.return_type,
+                    b_lambda.return_type,
+                )
         }
         (Expr::LetExpr(l_let), Expr::LetExpr(b_let)) => {
             l_let.name == b_let.name
-                && type_expr_deep_eq(a_db, b_db, l_let.return_type, b_let.return_type)
-                && expr_deep_eq(a_db, b_db, l_let.body, b_let.body)
-                && expr_deep_eq(a_db, b_db, l_let.defn, b_let.defn)
+                && type_expr_deep_eq(a_module, b_module, l_let.return_type, b_let.return_type)
+                && expr_deep_eq(a_module, b_module, l_let.body, b_let.body)
+                && expr_deep_eq(a_module, b_module, l_let.defn, b_let.defn)
                 && l_let
                     .params
                     .iter()
                     .zip(b_let.params.iter())
-                    .all(|(a, b)| param_deep_eq(a_db, b_db, a, b))
+                    .all(|(a, b)| param_deep_eq(a_module, b_module, a, b))
         }
         _ => false,
     }
 }
 
-impl PartialEq for Database {
+impl PartialEq for Module {
     fn eq(&self, other: &Self) -> bool {
         self.definitions
             .values()
@@ -91,14 +99,14 @@ impl PartialEq for Database {
 }
 
 #[allow(unreachable_code, unused)]
-impl Default for Database {
+impl Default for Module {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[allow(unused)]
-impl Database {
+impl Module {
     #[must_use]
     pub fn new() -> Self {
         let mut expressions = Arena::new();
@@ -116,35 +124,21 @@ impl Database {
         }
     }
 
-    pub fn lower_module(&mut self, ast: &ast::Module) -> Module {
-        let mut definitions: Vec<DefinitionIdx> = Vec::new();
-        let mut opens: Vec<OpenIdx> = Vec::new();
-        let mut types: Vec<TypeDefinitionIdx> = Vec::new();
-
+    pub fn lower_module(&mut self, ast: &ast::Module) {
         ast.module_items().for_each(|ast| match ast {
             ast::ModuleItem::Definition(ast) => {
                 let definition = self.lower_definition(&ast);
-                definitions.push(self.definitions.alloc(definition));
+                self.definitions.alloc(definition);
             }
             ast::ModuleItem::Open(ast) => {
                 let open = Self::lower_open(&ast);
-                opens.push(self.opens.alloc(open));
+                self.opens.alloc(open);
             }
             ast::ModuleItem::TypeDefinition(ast) => {
                 let type_definition = self.lower_type_definition(&ast);
-                types.push(self.type_definitions.alloc(type_definition));
+                self.type_definitions.alloc(type_definition);
             }
         });
-
-        let definitions = definitions.into_boxed_slice();
-        let opens = opens.into_boxed_slice();
-        let type_definitions = types.into_boxed_slice();
-
-        Module {
-            definitions,
-            opens,
-            type_definitions,
-        }
     }
 
     fn lower_definition(&mut self, ast: &ast::Definition) -> Definition {
@@ -394,7 +388,7 @@ const MISSING_TYPE_EXPR_ID: TypeExprIdx = {
 
 #[cfg(test)]
 mod tests {
-    use super::{MISSING_EXPR_ID as MISSING_EXPR, MISSING_TYPE_EXPR_ID as MISSING_TYPE};
+    use super::{Module, MISSING_EXPR_ID as MISSING_EXPR, MISSING_TYPE_EXPR_ID as MISSING_TYPE};
     use crate::hir::{Definition, Expr, Param, TypeExpr};
 
     fn unannotated_param(name: &str) -> Param {
@@ -404,32 +398,32 @@ mod tests {
         }
     }
 
-    fn check_expr(text: &str, expected_database: &super::Database) {
+    fn check_expr(text: &str, expected_module: &Module) {
         let module_syntax = parser::parse(&format!("def x = {text};")).module();
-        let mut db = super::Database::default();
+        let mut module = Module::default();
 
-        db.lower_module(&module_syntax);
+        module.lower_module(&module_syntax);
 
-        assert_eq!(db.expressions, expected_database.expressions);
-        assert_eq!(db.type_expressions, expected_database.type_expressions);
+        assert_eq!(module.expressions, expected_module.expressions);
+        assert_eq!(module.type_expressions, expected_module.type_expressions);
     }
 
     #[test]
     fn lower_def_func_as_expr() {
         let module = parser::parse("def f x y = 42;").module();
-        let mut actual_db = super::Database::default();
+        let mut actual_module = Module::default();
 
-        actual_db.lower_module(&module);
+        actual_module.lower_module(&module);
 
-        let mut expected_db = super::Database::default();
-        let body = expected_db.alloc_expr(Expr::int_expr(42));
+        let mut expected_module = Module::default();
+        let body = expected_module.alloc_expr(Expr::int_expr(42));
 
-        let body = expected_db.alloc_expr(Expr::lambda_expr(
+        let body = expected_module.alloc_expr(Expr::lambda_expr(
             unannotated_param("y"),
             MISSING_TYPE,
             body,
         ));
-        let defn = expected_db.alloc_expr(Expr::lambda_expr(
+        let defn = expected_module.alloc_expr(Expr::lambda_expr(
             unannotated_param("x"),
             MISSING_TYPE,
             body,
@@ -439,27 +433,27 @@ mod tests {
             defn,
         };
 
-        expected_db.definitions.alloc(definition);
+        expected_module.definitions.alloc(definition);
 
-        assert_eq!(actual_db, expected_db);
+        assert_eq!(actual_module, expected_module);
     }
 
     #[test]
     fn lower_def_func_block() {
         let module = parser::parse("def f x y { 42 };").module();
-        let mut actual_db = super::Database::default();
-        actual_db.lower_module(&module);
+        let mut actual_module = Module::default();
+        actual_module.lower_module(&module);
 
-        let mut expected_db = super::Database::default();
-        let body = expected_db.alloc_expr(Expr::int_expr(42));
+        let mut expected_module = Module::default();
+        let body = expected_module.alloc_expr(Expr::int_expr(42));
 
-        let body = expected_db.alloc_expr(Expr::lambda_expr(
+        let body = expected_module.alloc_expr(Expr::lambda_expr(
             unannotated_param("y"),
             MISSING_TYPE,
             body,
         ));
 
-        let defn = expected_db.alloc_expr(Expr::lambda_expr(
+        let defn = expected_module.alloc_expr(Expr::lambda_expr(
             unannotated_param("x"),
             MISSING_TYPE,
             body,
@@ -468,70 +462,70 @@ mod tests {
             name: String::from("f"),
             defn,
         };
-        expected_db.definitions.alloc(definition);
+        expected_module.definitions.alloc(definition);
 
-        assert_eq!(actual_db, expected_db);
+        assert_eq!(actual_module, expected_module);
     }
 
     #[test]
     fn lower_ident() {
-        let mut database = super::Database::default();
-        database.alloc_expr(Expr::ident_expr("x"));
-        check_expr("x", &database);
+        let mut module = Module::default();
+        module.alloc_expr(Expr::ident_expr("x"));
+        check_expr("x", &module);
     }
 
     #[test]
     fn lower_app() {
-        let mut database = super::Database::default();
+        let mut module = Module::default();
 
-        let func = database.alloc_expr(Expr::ident_expr("f"));
-        let arg = database.alloc_expr(Expr::ident_expr("y"));
-        database.alloc_expr(Expr::AppExpr { func, arg });
+        let func = module.alloc_expr(Expr::ident_expr("f"));
+        let arg = module.alloc_expr(Expr::ident_expr("y"));
+        module.alloc_expr(Expr::AppExpr { func, arg });
 
-        check_expr("(f y)", &database);
+        check_expr("(f y)", &module);
     }
 
     #[test]
     fn lower_nested_app() {
-        let mut database = super::Database::default();
+        let mut module = Module::default();
 
-        let func = database.alloc_expr(Expr::ident_expr("f"));
-        let arg = database.alloc_expr(Expr::ident_expr("y"));
+        let func = module.alloc_expr(Expr::ident_expr("f"));
+        let arg = module.alloc_expr(Expr::ident_expr("y"));
 
-        let func = database.alloc_expr(Expr::AppExpr { func, arg });
-        let arg = database.alloc_expr(Expr::ident_expr("z"));
-        database.alloc_expr(Expr::AppExpr { func, arg });
+        let func = module.alloc_expr(Expr::AppExpr { func, arg });
+        let arg = module.alloc_expr(Expr::ident_expr("z"));
+        module.alloc_expr(Expr::AppExpr { func, arg });
 
-        check_expr("(f y z)", &database);
+        check_expr("(f y z)", &module);
     }
 
     #[test]
     fn lower_lambda() {
-        let mut database = super::Database::default();
+        let mut module = Module::default();
 
-        let body = database.alloc_expr(Expr::ident_expr("x"));
-        let inner = database.alloc_expr(Expr::lambda_expr(
+        let body = module.alloc_expr(Expr::ident_expr("x"));
+        let inner = module.alloc_expr(Expr::lambda_expr(
             unannotated_param("y"),
             MISSING_TYPE,
             body,
         ));
-        let _outer = database.alloc_expr(Expr::lambda_expr(
+        let _outer = module.alloc_expr(Expr::lambda_expr(
             unannotated_param("x"),
             MISSING_TYPE,
             inner,
         ));
 
-        check_expr("\\x y -> x", &database);
+        check_expr("\\x y -> x", &module);
     }
 
     #[test]
     fn lower_let() {
-        let mut database = super::Database::default();
+        let mut module = Module::default();
 
-        let body = database.alloc_expr(Expr::ident_expr("d"));
-        let defn = database.alloc_expr(Expr::ident_expr("c"));
+        let body = module.alloc_expr(Expr::ident_expr("d"));
+        let defn = module.alloc_expr(Expr::ident_expr("c"));
 
-        database.alloc_expr(Expr::let_expr(
+        module.alloc_expr(Expr::let_expr(
             "a".into(),
             vec![unannotated_param("b")].into_boxed_slice(),
             MISSING_TYPE,
@@ -540,59 +534,59 @@ mod tests {
         ));
 
         let module_syntax = parser::parse("def x { let a b = c; d }").module();
-        let mut db = super::Database::default();
+        let mut module = Module::default();
 
-        db.lower_module(&module_syntax);
+        module.lower_module(&module_syntax);
 
-        assert_eq!(db.expressions, database.expressions);
-        assert_eq!(db.type_expressions, database.type_expressions);
+        assert_eq!(module.expressions, module.expressions);
+        assert_eq!(module.type_expressions, module.type_expressions);
     }
 
     #[test]
     fn lower_lambda_missing_type() {
-        let mut database = super::Database::default();
+        let mut module = Module::default();
 
-        let body = database.alloc_expr(Expr::ident_expr("x"));
-        database.alloc_expr(Expr::lambda_expr(
+        let body = module.alloc_expr(Expr::ident_expr("x"));
+        module.alloc_expr(Expr::lambda_expr(
             unannotated_param("x"),
             MISSING_TYPE,
             body,
         ));
 
-        check_expr("\\x -> x", &database);
+        check_expr("\\x -> x", &module);
     }
 
     #[test]
     fn lower_lambda_missing_body() {
-        let mut database = super::Database::default();
+        let mut module = Module::default();
 
-        database.alloc_expr(Expr::lambda_expr(
+        module.alloc_expr(Expr::lambda_expr(
             unannotated_param("x"),
             MISSING_TYPE,
             MISSING_EXPR,
         ));
 
-        check_expr("\\x ->", &database);
+        check_expr("\\x ->", &module);
     }
 
     #[test]
     fn lower_lambda_missing_params() {
-        let mut database = super::Database::default();
+        let mut module = Module::default();
 
-        let body = database.alloc_expr(Expr::ident_expr("x"));
-        database.alloc_expr(Expr::lambda_expr(unannotated_param(""), MISSING_TYPE, body));
+        let body = module.alloc_expr(Expr::ident_expr("x"));
+        module.alloc_expr(Expr::lambda_expr(unannotated_param(""), MISSING_TYPE, body));
 
-        check_expr("\\-> x", &database);
+        check_expr("\\-> x", &module);
     }
 
     #[test]
     fn lower_let_missing_defn() {
-        let mut database = super::Database::default();
+        let mut module = Module::default();
 
         let params = vec![unannotated_param("b")].into_boxed_slice();
-        let body = database.alloc_expr(Expr::ident_expr("d"));
+        let body = module.alloc_expr(Expr::ident_expr("d"));
 
-        database.alloc_expr(Expr::let_expr(
+        module.alloc_expr(Expr::let_expr(
             "a".into(),
             params,
             MISSING_TYPE,
@@ -600,23 +594,26 @@ mod tests {
             body,
         ));
 
-        check_expr("{ let a b; d }", &database);
+        check_expr("{ let a b; d }", &module);
     }
 
     #[test]
     fn lower_def_func_with_return_type() {
         let module = parser::parse("def f x y : Int = 42;").module();
-        let mut actual_db = super::Database::default();
+        let mut actual_module = Module::default();
 
-        actual_db.lower_module(&module);
+        actual_module.lower_module(&module);
 
-        let mut expected_db = super::Database::default();
-        let body = expected_db.alloc_expr(Expr::int_expr(42));
+        let mut expected_module = Module::default();
+        let body = expected_module.alloc_expr(Expr::int_expr(42));
         let return_type =
-            expected_db.alloc_type_expr(TypeExpr::IdentTypeExpr { name: "Int".into() });
-        let body =
-            expected_db.alloc_expr(Expr::lambda_expr(unannotated_param("y"), return_type, body));
-        let defn = expected_db.alloc_expr(Expr::lambda_expr(
+            expected_module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: "Int".into() });
+        let body = expected_module.alloc_expr(Expr::lambda_expr(
+            unannotated_param("y"),
+            return_type,
+            body,
+        ));
+        let defn = expected_module.alloc_expr(Expr::lambda_expr(
             unannotated_param("x"),
             MISSING_TYPE,
             body,
@@ -625,27 +622,27 @@ mod tests {
             name: String::from("f"),
             defn,
         };
-        expected_db.definitions.alloc(definition);
+        expected_module.definitions.alloc(definition);
 
-        assert_eq!(actual_db, expected_db);
+        assert_eq!(actual_module, expected_module);
     }
 
     #[test]
     fn lower_let_with_return_type() {
         let module = parser::parse("def f { let x : Int = 42; x }").module();
-        let mut actual_db = super::Database::default();
+        let mut actual_module = Module::default();
 
-        actual_db.lower_module(&module);
+        actual_module.lower_module(&module);
 
-        let mut expected_db = super::Database::default();
+        let mut expected_module = Module::default();
 
         let return_type =
-            expected_db.alloc_type_expr(TypeExpr::IdentTypeExpr { name: "Int".into() });
+            expected_module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: "Int".into() });
 
-        let tail_expr = expected_db.alloc_expr(Expr::ident_expr("x"));
-        let let_body = expected_db.alloc_expr(Expr::int_expr(42));
+        let tail_expr = expected_module.alloc_expr(Expr::ident_expr("x"));
+        let let_body = expected_module.alloc_expr(Expr::int_expr(42));
 
-        let defn = expected_db.alloc_expr(Expr::let_expr(
+        let defn = expected_module.alloc_expr(Expr::let_expr(
             "x".into(),
             vec![].into_boxed_slice(),
             return_type,
@@ -657,8 +654,8 @@ mod tests {
             name: String::from("f"),
             defn,
         };
-        expected_db.definitions.alloc(definition);
+        expected_module.definitions.alloc(definition);
 
-        assert_eq!(actual_db, expected_db);
+        assert_eq!(actual_module, expected_module);
     }
 }
