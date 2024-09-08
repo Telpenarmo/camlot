@@ -1,3 +1,8 @@
+mod lower;
+mod module;
+
+pub use module::Module;
+
 use la_arena::Idx;
 
 use crate::intern::Interned;
