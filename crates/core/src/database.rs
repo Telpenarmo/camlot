@@ -1,10 +1,11 @@
 use crate::hir::{
-    Definition, DefinitionIdx, Expr, ExprIdx, Module, Open, OpenIdx, Param, TypeDefinition,
-    TypeDefinitionIdx, TypeExpr, TypeExprIdx,
-};
+        Definition, DefinitionIdx, Expr, ExprIdx, Module, Open, OpenIdx, Param, TypeDefinition,
+        TypeDefinitionIdx, TypeExpr, TypeExprIdx,
+    };
 use la_arena::Arena;
 use parser::{nodes as ast, AstToken};
 
+#[derive(Debug)]
 #[allow(unused)]
 pub struct Database {
     definitions: Arena<Definition>,
@@ -12,6 +13,81 @@ pub struct Database {
     type_definitions: Arena<TypeDefinition>,
     expressions: Arena<Expr>,
     type_expressions: Arena<TypeExpr>,
+}
+
+fn param_deep_eq(a_db: &Database, b_db: &Database, a: &Param, b: &Param) -> bool {
+    a.name == b.name && type_expr_deep_eq(a_db, b_db, a.typ, b.typ)
+}
+fn type_expr_deep_eq(a_db: &Database, b_db: &Database, a: TypeExprIdx, b: TypeExprIdx) -> bool {
+    let a = a_db.get_type_expr(a);
+    let b = b_db.get_type_expr(b);
+    match (a, b) {
+        (TypeExpr::Missing, TypeExpr::Missing) => true,
+        (TypeExpr::IdentTypeExpr { name: a }, TypeExpr::IdentTypeExpr { name: b }) => a == b,
+        (
+            TypeExpr::TypeArrow { from, to },
+            TypeExpr::TypeArrow {
+                from: b_from,
+                to: b_to,
+            },
+        ) => {
+            type_expr_deep_eq(a_db, b_db, *from, *b_from)
+                && type_expr_deep_eq(a_db, b_db, *to, *b_to)
+        }
+        _ => false,
+    }
+}
+fn expr_deep_eq(a_db: &Database, b_db: &Database, a: ExprIdx, b: ExprIdx) -> bool {
+    let a = a_db.get_expr(a);
+    let b = b_db.get_expr(b);
+    match (a, b) {
+        (Expr::Missing, Expr::Missing) => true,
+        (Expr::LiteralExpr(a), Expr::LiteralExpr(b)) => a == b,
+        (Expr::IdentExpr { name: a }, Expr::IdentExpr { name: b }) => a == b,
+        (
+            Expr::AppExpr { func, arg },
+            Expr::AppExpr {
+                func: b_func,
+                arg: b_arg,
+            },
+        ) => expr_deep_eq(a_db, b_db, *func, *b_func) && expr_deep_eq(a_db, b_db, *arg, *b_arg),
+        (Expr::LambdaExpr(l_lambda), Expr::LambdaExpr(b_lambda)) => {
+            param_deep_eq(a_db, b_db, &l_lambda.param, &b_lambda.param)
+                && expr_deep_eq(a_db, b_db, l_lambda.body, b_lambda.body)
+                && type_expr_deep_eq(a_db, b_db, l_lambda.return_type, b_lambda.return_type)
+        }
+        (Expr::LetExpr(l_let), Expr::LetExpr(b_let)) => {
+            l_let.name == b_let.name
+                && type_expr_deep_eq(a_db, b_db, l_let.return_type, b_let.return_type)
+                && expr_deep_eq(a_db, b_db, l_let.body, b_let.body)
+                && expr_deep_eq(a_db, b_db, l_let.defn, b_let.defn)
+                && l_let
+                    .params
+                    .iter()
+                    .zip(b_let.params.iter())
+                    .all(|(a, b)| param_deep_eq(a_db, b_db, a, b))
+        }
+        _ => false,
+    }
+}
+
+impl PartialEq for Database {
+    fn eq(&self, other: &Self) -> bool {
+        self.definitions
+            .values()
+            .zip(other.definitions.values())
+            .all(|(a, b)| expr_deep_eq(self, other, a.defn, b.defn) && a.name == b.name)
+            && self
+                .opens
+                .values()
+                .zip(other.opens.values())
+                .all(|(a, b)| a.path == b.path)
+            && self
+                .type_definitions
+                .values()
+                .zip(other.type_definitions.values())
+                .all(|(a, b)| a.name == b.name && type_expr_deep_eq(self, other, a.defn, b.defn))
+    }
 }
 
 #[allow(unreachable_code, unused)]
@@ -365,9 +441,7 @@ mod tests {
 
         expected_db.definitions.alloc(definition);
 
-        assert_eq!(actual_db.expressions, expected_db.expressions);
-        assert_eq!(actual_db.type_expressions, expected_db.type_expressions);
-        assert_eq!(actual_db.definitions, expected_db.definitions);
+        assert_eq!(actual_db, expected_db);
     }
 
     #[test]
@@ -396,9 +470,7 @@ mod tests {
         };
         expected_db.definitions.alloc(definition);
 
-        assert_eq!(actual_db.expressions, expected_db.expressions);
-        assert_eq!(actual_db.type_expressions, expected_db.type_expressions);
-        assert_eq!(actual_db.definitions, expected_db.definitions);
+        assert_eq!(actual_db, expected_db);
     }
 
     #[test]
@@ -555,9 +627,7 @@ mod tests {
         };
         expected_db.definitions.alloc(definition);
 
-        assert_eq!(actual_db.expressions, expected_db.expressions);
-        assert_eq!(actual_db.type_expressions, expected_db.type_expressions);
-        assert_eq!(actual_db.definitions, expected_db.definitions);
+        assert_eq!(actual_db, expected_db);
     }
 
     #[test]
@@ -589,8 +659,6 @@ mod tests {
         };
         expected_db.definitions.alloc(definition);
 
-        assert_eq!(actual_db.expressions, expected_db.expressions);
-        assert_eq!(actual_db.type_expressions, expected_db.type_expressions);
-        assert_eq!(actual_db.definitions, expected_db.definitions);
+        assert_eq!(actual_db, expected_db);
     }
 }
