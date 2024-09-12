@@ -1,7 +1,6 @@
 mod unify;
 
-use std::collections::HashMap;
-
+use la_arena::ArenaMap;
 use unify::UnifcationError;
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
@@ -26,7 +25,7 @@ pub enum Diagnostic {
 
 pub struct TypeInference {
     unification_table: UnificationTable,
-    expr_types: HashMap<ExprIdx, TypeIdx>,
+    expr_types: ArenaMap<ExprIdx, TypeIdx>,
     constraints: Vec<Constraint>,
     diagnostics: Vec<Diagnostic>,
     types: Interner<Type>,
@@ -43,7 +42,7 @@ impl TypeInference {
     pub fn new() -> Self {
         Self {
             unification_table: UnificationTable::new(),
-            expr_types: HashMap::new(),
+            expr_types: ArenaMap::new(),
             constraints: Vec::new(),
             diagnostics: Vec::new(),
             types: Interner::new(),
@@ -62,7 +61,7 @@ impl TypeInference {
     ///
     /// Panics if initial environment is not populated.
     #[must_use]
-    pub fn infer(mut self, module: &Module) -> (HashMap<ExprIdx, TypeIdx>, Vec<Diagnostic>) {
+    pub fn infer(mut self, module: &Module) -> (ArenaMap<ExprIdx, TypeIdx>, Vec<Diagnostic>) {
         let initial_env = self.generate_env(module);
 
         for (_, defn) in module.iter_definitions() {
@@ -85,9 +84,9 @@ impl TypeInference {
     }
 
     fn substitute(
-        _types: &HashMap<ExprIdx, TypeIdx>,
+        _types: &ArenaMap<ExprIdx, TypeIdx>,
         _unification_table: &mut UnificationTable,
-    ) -> HashMap<ExprIdx, TypeIdx> {
+    ) -> ArenaMap<ExprIdx, TypeIdx> {
         todo!()
     }
 
