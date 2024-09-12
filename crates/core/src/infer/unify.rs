@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use ena::unify::InPlaceUnificationTable;
+use la_arena::ArenaMap;
 
 use crate::hir::ExprIdx;
 use crate::intern::Interner;
@@ -28,14 +27,14 @@ pub enum UnifcationError {
 
 pub(super) struct Unifcation<'a> {
     unification_table: &'a mut InPlaceUnificationTable<UnificationVar>,
-    expr_types: &'a HashMap<ExprIdx, TypeIdx>,
+    expr_types: &'a ArenaMap<ExprIdx, TypeIdx>,
     types: &'a Interner<Type>,
 }
 
 impl<'a> Unifcation<'a> {
     pub(super) fn new(
         unification_table: &'a mut InPlaceUnificationTable<UnificationVar>,
-        expr_types: &'a HashMap<ExprIdx, TypeIdx>,
+        expr_types: &'a ArenaMap<ExprIdx, TypeIdx>,
         types: &'a Interner<Type>,
     ) -> Self {
         Self {
