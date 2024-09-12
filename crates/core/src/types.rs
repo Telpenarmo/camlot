@@ -1,11 +1,11 @@
 use ena::unify::{EqUnifyValue, InPlaceUnificationTable, UnifyKey};
 
-use crate::Name;
+use crate::{intern, Name};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UnificationVar(pub u32);
 impl UnifyKey for UnificationVar {
-    type Value = Option<Type>;
+    type Value = Option<TypeIdx>;
 
     fn index(&self) -> u32 {
         self.0
@@ -20,6 +20,8 @@ impl UnifyKey for UnificationVar {
     }
 }
 
+pub(crate) type TypeIdx = intern::Interned<Type>;
+
 pub(crate) type UnificationTable = InPlaceUnificationTable<UnificationVar>;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -30,13 +32,7 @@ pub enum Type {
     Error,
     Var(Name),
     Unifier(UnificationVar),
-    Arrow(Box<Type>, Box<Type>),
+    Arrow(TypeIdx, TypeIdx),
 }
 
-impl Type {
-    pub(crate) fn arrow(from: Type, to: Type) -> Type {
-        Type::Arrow(Box::new(from), Box::new(to))
-    }
-}
-
-impl EqUnifyValue for Type {}
+impl EqUnifyValue for TypeIdx {}
