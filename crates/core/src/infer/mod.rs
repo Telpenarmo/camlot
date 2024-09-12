@@ -5,13 +5,14 @@ use std::collections::HashMap;
 use unify::UnifcationError;
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
-use crate::types::{Type, UnificationTable};
+use crate::intern::Interner;
+use crate::types::{Type, TypeIdx, UnificationTable};
 use crate::Name;
 
 pub enum Diagnostic {
     TypeMismatch {
-        expected: Type,
-        actual: Type,
+        expected: TypeIdx,
+        actual: TypeIdx,
     },
     UnboundVariable {
         expr: ExprIdx,
@@ -25,16 +26,17 @@ pub enum Diagnostic {
 
 pub struct TypeInference {
     unification_table: UnificationTable,
-    expr_types: HashMap<ExprIdx, Type>,
+    expr_types: HashMap<ExprIdx, TypeIdx>,
     constraints: Vec<Constraint>,
     diagnostics: Vec<Diagnostic>,
+    types: Interner<Type>,
 }
 
 enum Constraint {
-    TypeEqual(ExprIdx, Type, Type),
+    TypeEqual(ExprIdx, TypeIdx, TypeIdx),
 }
 
-type Environment = im::HashMap<Name, Type>;
+type Environment = im::HashMap<Name, TypeIdx>;
 
 impl TypeInference {
     #[must_use]
@@ -44,6 +46,7 @@ impl TypeInference {
             expr_types: HashMap::new(),
             constraints: Vec::new(),
             diagnostics: Vec::new(),
+            types: Interner::new(),
         }
     }
 
@@ -59,18 +62,18 @@ impl TypeInference {
     ///
     /// Panics if initial environment is not populated.
     #[must_use]
-    pub fn infer(mut self, module: &Module) -> (HashMap<ExprIdx, Type>, Vec<Diagnostic>) {
+    pub fn infer(mut self, module: &Module) -> (HashMap<ExprIdx, TypeIdx>, Vec<Diagnostic>) {
         let initial_env = self.generate_env(module);
 
         for (_, defn) in module.iter_definitions() {
             let expected = initial_env
                 .get(&defn.name)
                 .expect("Every definition should be in env");
-            self.check_expr(module, defn.defn, &initial_env, expected.clone());
+            self.check_expr(module, defn.defn, &initial_env, *expected);
         }
 
         self.diagnostics.extend(
-            unify::Unifcation::new(&mut self.unification_table, &self.expr_types)
+            unify::Unifcation::new(&mut self.unification_table, &self.expr_types, &self.types)
                 .unify(self.constraints)
                 .into_iter()
                 .map(|(expr, error)| Diagnostic::UnifcationError { expr, error }),
@@ -82,24 +85,24 @@ impl TypeInference {
     }
 
     fn substitute(
-        _types: &HashMap<ExprIdx, Type>,
+        _types: &HashMap<ExprIdx, TypeIdx>,
         _unification_table: &mut UnificationTable,
-    ) -> HashMap<ExprIdx, Type> {
+    ) -> HashMap<ExprIdx, TypeIdx> {
         todo!()
     }
 
-    fn next_unification_var(&mut self) -> Type {
+    fn next_unification_var(&mut self) -> TypeIdx {
         let var = self.unification_table.new_key(None);
-        Type::Unifier(var)
+        self.types.intern(Type::Unifier(var))
     }
 
-    fn infer_expr(&mut self, module: &Module, env: &Environment, expr: ExprIdx) -> Type {
+    fn infer_expr(&mut self, module: &Module, env: &Environment, expr: ExprIdx) -> TypeIdx {
         let typ = self.infer_expr_impl(module, env, expr);
-        self.expr_types.insert(expr, typ.clone());
+        self.expr_types.insert(expr, typ);
         typ
     }
 
-    fn infer_expr_impl(&mut self, module: &Module, env: &Environment, expr: ExprIdx) -> Type {
+    fn infer_expr_impl(&mut self, module: &Module, env: &Environment, expr: ExprIdx) -> TypeIdx {
         match module.get_expr(expr) {
             Expr::Missing => self.next_unification_var(),
             Expr::LetExpr(let_expr) => {
@@ -110,28 +113,28 @@ impl TypeInference {
                     let typ = self.type_annotation_to_unification_item(module, param.typ);
                     def_env = def_env.update(param.name, typ);
                 }
-                self.check_expr(module, let_expr.defn, &def_env, def_typ.clone());
+                self.check_expr(module, let_expr.defn, &def_env, def_typ);
 
                 let env = env.update(let_expr.name, def_typ);
                 self.infer_expr(module, &env, let_expr.body)
             }
             Expr::IdentExpr { name } => {
                 if let Some(typ) = env.get(name) {
-                    typ.clone()
+                    *typ
                 } else {
                     self.diagnostics
                         .push(Diagnostic::UnboundVariable { expr, name: *name });
-                    Type::Error
+                    self.error()
                 }
             }
             Expr::LambdaExpr(lambda) => {
                 let from = self.type_annotation_to_unification_item(module, lambda.param.typ);
 
-                let env = env.update(lambda.param.name, from.clone());
+                let env = env.update(lambda.param.name, from);
                 let to = self.type_annotation_to_unification_item(module, lambda.return_type);
-                self.check_expr(module, lambda.body, &env, to.clone());
+                self.check_expr(module, lambda.body, &env, to);
 
-                Type::arrow(from, to)
+                self.arrow(from, to)
             }
             &Expr::AppExpr {
                 func: lhs,
@@ -142,7 +145,7 @@ impl TypeInference {
                 let arg_typ = self.next_unification_var();
                 let ret_typ = self.next_unification_var();
 
-                let func_typ = Type::arrow(arg_typ.clone(), ret_typ.clone());
+                let func_typ = self.arrow(arg_typ, ret_typ);
 
                 self.constraints
                     .push(Constraint::TypeEqual(lhs, func_typ, lhs_typ));
@@ -151,16 +154,17 @@ impl TypeInference {
 
                 ret_typ
             }
-            Expr::LiteralExpr(lit) => match lit {
+            Expr::LiteralExpr(lit) => self.types.intern(match lit {
                 Literal::Unit => Type::Unit,
                 Literal::IntLiteral(_) => Type::Int,
                 Literal::BoolLiteral(_) => Type::Bool,
-            },
+            }),
         }
     }
 
-    fn check_expr(&mut self, module: &Module, expr: ExprIdx, env: &Environment, typ: Type) {
-        match (module.get_expr(expr), typ) {
+    fn check_expr(&mut self, module: &Module, expr: ExprIdx, env: &Environment, typ: TypeIdx) {
+        let expected = self.types.lookup(typ);
+        match (module.get_expr(expr), expected) {
             (Expr::LiteralExpr(Literal::BoolLiteral(_)), Type::Bool)
             | (Expr::LiteralExpr(Literal::IntLiteral(_)), Type::Int)
             | (Expr::LiteralExpr(Literal::Unit), Type::Unit) => {}
@@ -170,25 +174,37 @@ impl TypeInference {
                 self.check_expr(module, lambda.body, &env, *to);
             }
 
-            (_expr, expected) => {
+            _ => {
                 let actual = self.infer_expr(module, env, expr);
                 self.constraints
-                    .push(Constraint::TypeEqual(expr, expected, actual));
+                    .push(Constraint::TypeEqual(expr, typ, actual));
             }
         }
     }
 
-    fn type_annotation_to_unification_item(&mut self, module: &Module, ty: TypeExprIdx) -> Type {
+    fn type_annotation_to_unification_item(&mut self, module: &Module, ty: TypeExprIdx) -> TypeIdx {
         let ty = module.get_type_expr(ty);
         match ty {
             TypeExpr::Missing => self.next_unification_var(),
-            TypeExpr::IdentTypeExpr { name } => Type::Var(*name),
+            TypeExpr::IdentTypeExpr { name } => self.var(*name),
             TypeExpr::TypeArrow { from, to } => {
                 let from = self.type_annotation_to_unification_item(module, *from);
                 let to = self.type_annotation_to_unification_item(module, *to);
-                Type::arrow(from, to)
+                self.arrow(from, to)
             }
         }
+    }
+
+    fn arrow(&mut self, from: TypeIdx, to: TypeIdx) -> TypeIdx {
+        self.types.intern(Type::Arrow(from, to))
+    }
+
+    fn var(&mut self, name: Name) -> TypeIdx {
+        self.types.intern(Type::Var(name))
+    }
+
+    fn error(&mut self) -> TypeIdx {
+        self.types.intern(Type::Error)
     }
 }
 

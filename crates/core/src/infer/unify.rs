@@ -3,13 +3,18 @@ use std::collections::HashMap;
 use ena::unify::InPlaceUnificationTable;
 
 use crate::hir::ExprIdx;
-use crate::types::UnificationVar;
+use crate::intern::Interner;
+use crate::types::{TypeIdx, UnificationVar};
 use crate::{infer::Constraint, types::Type};
 
 impl Type {
-    fn occurs(&self, v: UnificationVar) -> bool {
+    fn occurs(&self, types: &Interner<Type>, v: UnificationVar) -> bool {
         match self {
-            Type::Arrow(from, to) => from.occurs(v) || to.occurs(v),
+            Type::Arrow(from, to) => {
+                let from = types.lookup(*from);
+                let to = types.lookup(*to);
+                from.occurs(types, v) || to.occurs(types, v)
+            }
             Type::Unifier(u) => *u == v,
             _ => false,
         }
@@ -17,23 +22,26 @@ impl Type {
 }
 
 pub enum UnifcationError {
-    Occurs(Type, UnificationVar),
-    NotUnifiable(Type, Type),
+    Occurs(TypeIdx, UnificationVar),
+    NotUnifiable(TypeIdx, TypeIdx),
 }
 
 pub(super) struct Unifcation<'a> {
     unification_table: &'a mut InPlaceUnificationTable<UnificationVar>,
-    expr_types: &'a HashMap<ExprIdx, Type>,
+    expr_types: &'a HashMap<ExprIdx, TypeIdx>,
+    types: &'a Interner<Type>,
 }
 
 impl<'a> Unifcation<'a> {
     pub(super) fn new(
         unification_table: &'a mut InPlaceUnificationTable<UnificationVar>,
-        expr_types: &'a HashMap<ExprIdx, Type>,
+        expr_types: &'a HashMap<ExprIdx, TypeIdx>,
+        types: &'a Interner<Type>,
     ) -> Self {
         Self {
             unification_table,
             expr_types,
+            types,
         }
     }
 
@@ -51,39 +59,48 @@ impl<'a> Unifcation<'a> {
             .collect()
     }
 
-    fn unify_eq(&mut self, expected: Type, actual: Type) -> Result<(), UnifcationError> {
-        match (expected, actual) {
-            (Type::Bool, Type::Bool) | (Type::Int, Type::Int) | (Type::Unit, Type::Unit) => Ok(()),
+    fn unify_eq(
+        &mut self,
+        expected_idx: TypeIdx,
+        actual_idx: TypeIdx,
+    ) -> Result<(), UnifcationError> {
+        let expected = self.types.lookup(expected_idx);
+        let actual = self.types.lookup(actual_idx);
 
-            (ref l @ Type::Var(ref a), ref r @ Type::Var(ref b)) => {
+        match ((expected, expected_idx), (actual, actual_idx)) {
+            ((Type::Bool, _), (Type::Bool, _))
+            | ((Type::Int, _), (Type::Int, _))
+            | ((Type::Unit, _), (Type::Unit, _)) => Ok(()),
+
+            ((Type::Var(a), _), (Type::Var(b), _)) => {
                 if a == b {
                     Ok(())
                 } else {
-                    Err(UnifcationError::NotUnifiable(l.clone(), r.clone()))
+                    Err(UnifcationError::NotUnifiable(expected_idx, actual_idx))
                 }
             }
 
-            (Type::Arrow(from, to), Type::Arrow(from2, to2)) => {
+            ((Type::Arrow(from, to), _), (Type::Arrow(from2, to2), _)) => {
                 let from = self.unify_eq(*from, *from2);
                 let to = self.unify_eq(*to, *to2);
                 from.or(to)
             }
 
-            (Type::Unifier(a), Type::Unifier(b)) => self
+            ((Type::Unifier(a), _), (Type::Unifier(b), _)) => self
                 .unification_table
-                .unify_var_var(a, b)
+                .unify_var_var(*a, *b)
                 .map_err(|(a, b)| UnifcationError::NotUnifiable(a, b)),
 
-            (Type::Unifier(u), ty) | (ty, Type::Unifier(u)) => {
-                if ty.occurs(u) {
-                    return Err(UnifcationError::Occurs(ty, u));
+            ((Type::Unifier(u), _), (ty, ty_idx)) | ((ty, ty_idx), (Type::Unifier(u), _)) => {
+                if ty.occurs(self.types, *u) {
+                    return Err(UnifcationError::Occurs(ty_idx, *u));
                 }
                 self.unification_table
-                    .unify_var_value(u, Some(ty))
+                    .unify_var_value(*u, Some(ty_idx))
                     .map_err(|(a, b)| UnifcationError::NotUnifiable(a, b))
             }
 
-            (l, r) => Err(UnifcationError::NotUnifiable(l, r)),
+            _ => Err(UnifcationError::NotUnifiable(expected_idx, actual_idx)),
         }
     }
 }
