@@ -354,6 +354,28 @@ mod tests {
     }
 
     #[test]
+    fn lower_def_with_annotated_param() {
+        let module = parser::parse("def f (x: int) = x;").module();
+        let mut actual_module = Module::default();
+        actual_module.lower_module(&module);
+
+        let mut expected_module = Module::default();
+        let x = expected_module.name("x");
+        let int = expected_module.name("int");
+        let int = expected_module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
+        let x = Param { name: x, typ: int };
+        let body = expected_module.alloc_expr(Expr::ident_expr(x.name));
+        let defn = expected_module.alloc_expr(Expr::lambda_expr(x, MISSING_TYPE, body));
+        let definition = Definition {
+            name: expected_module.name("f"),
+            defn,
+        };
+        expected_module.definitions.alloc(definition);
+
+        assert_eq!(actual_module, expected_module);
+    }
+
+    #[test]
     fn lower_def_func_block() {
         let module = parser::parse("def f x y { 42 };").module();
         let mut actual_module = Module::default();
@@ -426,6 +448,33 @@ mod tests {
         let _outer = module.alloc_expr(Expr::lambda_expr(param, MISSING_TYPE, inner));
 
         check_expr("\\x y -> x", &module);
+    }
+
+    #[test]
+    fn lower_lambda_with_annotated_param() {
+        let mut expected_module = Module::default();
+
+        let x = expected_module.name("x");
+        let int = expected_module.name("int");
+        expected_module.name("");
+        let int = expected_module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
+        let x = Param { name: x, typ: int };
+        let body = expected_module.alloc_expr(Expr::ident_expr(x.name));
+        let param = unannotated_param(&mut expected_module, "x");
+        let lambda = expected_module.alloc_expr(Expr::lambda_expr(param, MISSING_TYPE, body));
+
+        let definition = Definition {
+            name: expected_module.name("f"),
+            defn: lambda,
+        };
+        expected_module.definitions.alloc(definition);
+
+        let module = parser::parse("def f = \\(x: int) -> x;").module();
+        let mut actual_module = Module::new();
+
+        actual_module.lower_module(&module);
+
+        assert_eq!(actual_module, expected_module);
     }
 
     #[test]
@@ -518,7 +567,7 @@ mod tests {
     #[test]
     fn lower_def_func_with_return_type() {
         let module = parser::parse("def f x y : Int = 42;").module();
-        let mut actual_module = Module::default();
+        let mut actual_module = Module::new();
 
         actual_module.lower_module(&module);
 

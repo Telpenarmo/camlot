@@ -21,8 +21,10 @@ fn param(parser: &mut Parser) -> CompletedMarker {
     if parser.eat(SyntaxKind::IDENT) {
     } else if parser.eat(SyntaxKind::L_PAREN) {
         parser.expect(SyntaxKind::IDENT);
+        let mark = parser.open();
         parser.expect(SyntaxKind::COLON);
         type_expr::type_expr(parser);
+        parser.close(mark, SyntaxKind::TYPE_ANNOTATION);
         parser.expect(SyntaxKind::R_PAREN);
     } else {
         unreachable!();

@@ -141,6 +141,33 @@ mod tests {
     }
 
     #[test]
+    fn parse_lambda_with_param_annotation() {
+        check(
+            PrefixEntryPoint::Expr,
+            r"\(x: Int) -> x;",
+            &expect![[r#"
+                LAMBDA_EXPR@0..14
+                  BACKSLASH@0..1 "\\"
+                  PARAMS@1..10
+                    PARAM@1..10
+                      L_PAREN@1..2 "("
+                      IDENT@2..3 "x"
+                      TYPE_ANNOTATION@3..8
+                        COLON@3..4 ":"
+                        WHITESPACE@4..5 " "
+                        TYPE_IDENT@5..8
+                          IDENT@5..8 "Int"
+                      R_PAREN@8..9 ")"
+                      WHITESPACE@9..10 " "
+                  ARROW@10..12 "->"
+                  WHITESPACE@12..13 " "
+                  IDENT_EXPR@13..14
+                    IDENT@13..14 "x"
+            "#]],
+        );
+    }
+
+    #[test]
     fn parse_paren() {
         check(
             PrefixEntryPoint::Expr,
