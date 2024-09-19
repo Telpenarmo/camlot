@@ -170,4 +170,8 @@ impl Module {
     pub fn definitions(&self) -> impl Iterator<Item = &Definition> + '_ {
         self.definitions.values()
     }
+
+    pub(crate) fn name<S: Into<String>>(&mut self, name: S) -> Name {
+        self.names.intern(name.into())
+    }
 }

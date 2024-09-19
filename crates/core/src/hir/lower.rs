@@ -257,10 +257,6 @@ impl Module {
     fn empty_name(&mut self) -> Name {
         self.names.intern(String::new())
     }
-
-    fn name<S: Into<String>>(&mut self, name: S) -> Name {
-        self.names.intern(name.into())
-    }
 }
 
 const MISSING_EXPR_ID: ExprIdx = {

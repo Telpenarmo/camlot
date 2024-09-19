@@ -82,7 +82,7 @@ impl TypeInference {
         }
 
         self.diagnostics.extend(
-            unify::Unifcation::new(&mut self.unification_table, &self.expr_types, &self.types)
+            unify::Unifcation::new(&mut self.unification_table, &self.types)
                 .unify(self.constraints)
                 .into_iter()
                 .map(|(expr, error)| Diagnostic::UnifcationError { expr, error }),
@@ -137,7 +137,7 @@ impl TypeInference {
                 } else {
                     self.diagnostics
                         .push(Diagnostic::UnboundVariable { expr, name: *name });
-                    self.error()
+                    error(&mut self.types)
                 }
             }
             Expr::LambdaExpr(lambda) => {
@@ -147,7 +147,7 @@ impl TypeInference {
                 let to = self.type_annotation_to_unification_item(module, lambda.return_type);
                 self.check_expr(module, lambda.body, &env, to);
 
-                self.arrow(from, to)
+                arrow(&mut self.types, from, to)
             }
             &Expr::AppExpr {
                 func: lhs,
@@ -158,7 +158,7 @@ impl TypeInference {
                 let arg_typ = self.next_unification_var();
                 let ret_typ = self.next_unification_var();
 
-                let func_typ = self.arrow(arg_typ, ret_typ);
+                let func_typ = arrow(&mut self.types, arg_typ, ret_typ);
 
                 self.constraints
                     .push(Constraint::TypeEqual(lhs, func_typ, lhs_typ));
@@ -199,26 +199,26 @@ impl TypeInference {
         let ty = module.get_type_expr(ty);
         match ty {
             TypeExpr::Missing => self.next_unification_var(),
-            TypeExpr::IdentTypeExpr { name } => self.var(*name),
+            TypeExpr::IdentTypeExpr { name } => var(&mut self.types, *name),
             TypeExpr::TypeArrow { from, to } => {
                 let from = self.type_annotation_to_unification_item(module, *from);
                 let to = self.type_annotation_to_unification_item(module, *to);
-                self.arrow(from, to)
+                arrow(&mut self.types, from, to)
             }
         }
     }
+}
 
-    fn arrow(&mut self, from: TypeIdx, to: TypeIdx) -> TypeIdx {
-        self.types.intern(Type::Arrow(from, to))
+fn var(types: &mut Interner<Type>, name: Name) -> TypeIdx {
+    types.intern(Type::Var(name))
     }
 
-    fn var(&mut self, name: Name) -> TypeIdx {
-        self.types.intern(Type::Var(name))
+fn error(types: &mut Interner<Type>) -> TypeIdx {
+    types.intern(Type::Error)
     }
 
-    fn error(&mut self) -> TypeIdx {
-        self.types.intern(Type::Error)
-    }
+fn arrow(types: &mut Interner<Type>, from: TypeIdx, to: TypeIdx) -> TypeIdx {
+    types.intern(Type::Arrow(from, to))
 }
 
 impl Default for TypeInference {
