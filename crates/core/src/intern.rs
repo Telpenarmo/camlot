@@ -1,7 +1,7 @@
 use indexmap::IndexSet;
 
 #[derive(Default, Debug, PartialEq)]
-pub(crate) struct Interner<T: std::cmp::Eq + std::hash::Hash> {
+pub struct Interner<T: std::cmp::Eq + std::hash::Hash> {
     set: IndexSet<T>,
 }
 
@@ -10,6 +10,17 @@ pub struct Interned<T> {
     id: u32,
     phantom: std::marker::PhantomData<T>,
 }
+
+impl<T> Interned<T> {
+    #[must_use]
+    pub(crate) fn new(id: u32) -> Self {
+        Self {
+            id,
+            phantom: std::marker::PhantomData,
+        }
+    }
+}
+
 impl<T> std::fmt::Debug for Interned<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.id.fmt(f)
@@ -36,10 +47,7 @@ where
     pub fn intern(&mut self, value: T) -> Interned<T> {
         let (id, _) = self.set.insert_full(value);
 
-        Interned {
-            id: id.try_into().unwrap(),
-            phantom: std::marker::PhantomData,
-        }
+        Interned::new(id.try_into().unwrap())
     }
 
     #[must_use]
