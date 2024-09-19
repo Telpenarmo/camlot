@@ -9,6 +9,7 @@ use crate::intern::{Interned, Interner};
 use crate::types::{Type, TypeIdx, UnificationTable};
 use crate::Name;
 
+#[derive(PartialEq, Debug)]
 pub enum Diagnostic {
     TypeMismatch {
         expected: TypeIdx,
@@ -265,5 +266,108 @@ fn arrow(types: &mut Interner<Type>, from: TypeIdx, to: TypeIdx) -> TypeIdx {
 impl Default for TypeInference {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{InferenceResult, TypeInference};
+    use crate::{
+        hir,
+        infer::{arrow, var},
+        intern::Interner,
+        types::Type,
+        TypeIdx,
+    };
+
+    fn infer_from_str(code: &str) -> (hir::Module, InferenceResult) {
+        let infer = TypeInference::new();
+        let module_ast = parser::parse(code).module();
+        let mut module = hir::Module::new();
+        module.lower_module(&module_ast);
+        let result = infer.infer(&module);
+        (module, result)
+    }
+
+    #[track_caller]
+    #[inline]
+    fn assert_empty<T: std::fmt::Debug>(vec: &[T]) {
+        assert!(vec.is_empty(), "{vec:?}");
+    }
+
+    #[track_caller]
+    #[inline]
+    fn get_first_defn_type(module: &hir::Module, result: &InferenceResult) -> TypeIdx {
+        let defn = module.definitions().next().unwrap();
+        result.expr_types[defn.defn]
+    }
+
+    #[track_caller]
+    #[inline]
+    fn assert_types_eq(actual: TypeIdx, expected: TypeIdx, types: &Interner<Type>) {
+        assert_eq!(types.lookup(actual), types.lookup(expected), "{types:?}");
+    }
+
+    #[test]
+    fn test_infer_def_with_annotated_param() {
+        let (mut module, result) = infer_from_str("def f(x: int) = x;");
+
+        assert_empty(&result.diagnostics);
+
+        let actual = get_first_defn_type(&module, &result);
+
+        let mut types = result.types;
+
+        let int = var(&mut types, module.name("int"));
+
+        assert_types_eq(actual, int, &types);
+    }
+
+    #[test]
+    fn test_infer_def_lambda_with_annotated_param() {
+        let (mut module, result) = infer_from_str("def f = \\(x: int) -> x;");
+
+        assert_empty(&result.diagnostics);
+
+        let actual = get_first_defn_type(&module, &result);
+
+        let mut types = result.types;
+
+        let int = var(&mut types, module.name("int"));
+        let expected_type = arrow(&mut types, int, int);
+
+        assert_types_eq(actual, expected_type, &types);
+    }
+
+    #[test]
+    fn test_infer_def_lambda_with_return_type() {
+        let (mut module, result) = infer_from_str("def f = \\x : int -> x;");
+
+        assert_empty(&result.diagnostics);
+
+        let actual = get_first_defn_type(&module, &result);
+
+        let mut types = result.types;
+
+        let int = var(&mut types, module.name("int"));
+        let expected_type = arrow(&mut types, int, int);
+
+        assert_types_eq(actual, expected_type, &types);
+    }
+
+    #[test]
+    fn test_infer_annotated_def_lambda() {
+        let (mut module, result) = infer_from_str("def f : int -> int = \\x -> x;");
+
+        assert_empty(&result.diagnostics);
+
+        let actual = get_first_defn_type(&module, &result);
+
+        let mut types = result.types;
+
+        let int = var(&mut types, module.name("int"));
+        let expected_type = arrow(&mut types, int, int);
+
+        assert_types_eq(actual, expected_type, &types);
     }
 }
