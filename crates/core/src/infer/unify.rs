@@ -19,6 +19,7 @@ impl Type {
     }
 }
 
+#[derive(PartialEq, Debug)]
 pub enum UnifcationError {
     Occurs(TypeIdx, UnificationVar),
     NotUnifiable(TypeIdx, TypeIdx),
