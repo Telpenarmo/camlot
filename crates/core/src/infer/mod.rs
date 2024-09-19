@@ -6,7 +6,7 @@ use la_arena::ArenaMap;
 use unify::UnifcationError;
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
-use crate::intern::Interner;
+use crate::intern::{Interned, Interner};
 use crate::types::{Type, TypeIdx, UnificationTable};
 use crate::Name;
 
@@ -88,7 +88,11 @@ impl TypeInference {
                 .map(|(expr, error)| Diagnostic::UnifcationError { expr, error }),
         );
 
-        let types = Self::substitute(&self.expr_types, &mut self.unification_table);
+        Self::substitute(
+            &mut self.types,
+            &mut self.expr_types,
+            &mut self.unification_table,
+        );
 
         InferenceResult {
             types: self.types,
@@ -96,12 +100,50 @@ impl TypeInference {
             diagnostics: self.diagnostics,
         }
     }
+    fn get_new_type(
+        types: &mut Interner<Type>,
+        old_to_new: &mut HashMap<TypeIdx, TypeIdx>,
+        unification_table: &mut UnificationTable,
+        idx: TypeIdx,
+    ) -> Interned<Type> {
+        if let Some(x) = old_to_new.get(&idx) {
+            *x
+        } else {
+            let res = Self::substitute_type(types, old_to_new, unification_table, idx);
+            old_to_new.insert(idx, res);
+            res
+        }
+    }
+
+    fn substitute_type(
+        types: &mut Interner<Type>,
+        old_to_new: &mut HashMap<TypeIdx, TypeIdx>,
+        unification_table: &mut UnificationTable,
+        idx: TypeIdx,
+    ) -> TypeIdx {
+        match types.lookup(idx) {
+            Type::Unifier(u) => unification_table.probe_value(*u).map_or(idx, |idx| {
+                Self::get_new_type(types, old_to_new, unification_table, idx)
+            }),
+            &Type::Arrow(from, to) => {
+                let from = Self::get_new_type(types, old_to_new, unification_table, from);
+                let to = Self::get_new_type(types, old_to_new, unification_table, to);
+                arrow(types, from, to)
+            }
+            _ => idx,
+        }
+    }
 
     fn substitute(
-        types: &ArenaMap<ExprIdx, TypeIdx>,
+        types: &mut Interner<Type>,
+        expr_types: &mut ArenaMap<ExprIdx, TypeIdx>,
         unification_table: &mut UnificationTable,
-    ) -> ArenaMap<ExprIdx, TypeIdx> {
-        todo!()
+    ) {
+        let mut old_to_new = HashMap::new();
+
+        expr_types.values_mut().for_each(|idx| {
+            *idx = Self::get_new_type(types, &mut old_to_new, unification_table, *idx);
+        });
     }
 
     fn next_unification_var(&mut self) -> TypeIdx {
