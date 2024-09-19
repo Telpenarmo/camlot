@@ -4,6 +4,8 @@ mod intern;
 mod types;
 pub use crate::hir::*;
 
+pub use types::TypeIdx;
+
 pub(crate) use hir::Name;
 
-pub use infer::TypeInference;
+pub use infer::{infer, InferenceResult};

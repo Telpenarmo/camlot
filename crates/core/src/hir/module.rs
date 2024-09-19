@@ -2,8 +2,8 @@ use la_arena::{Arena, ArenaMap};
 use parser::{DefinitionPtr, ExprPtr, TypeDefinitionPtr, TypeExprPtr};
 
 use super::{
-    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, TypeDefinition, TypeDefinitionIdx,
-    TypeExpr, TypeExprIdx,
+    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, TypeDefinition,
+    TypeDefinitionIdx, TypeExpr, TypeExprIdx,
 };
 use crate::{intern::Interner, Name};
 
