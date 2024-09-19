@@ -39,6 +39,18 @@ enum Constraint {
 
 type Environment = im::HashMap<Name, TypeIdx>;
 
+pub struct InferenceResult {
+    pub types: Interner<Type>,
+    pub expr_types: ArenaMap<ExprIdx, TypeIdx>,
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+#[must_use]
+pub fn infer(module: &Module) -> InferenceResult {
+    let inference = TypeInference::new();
+    inference.infer(module)
+}
+
 impl TypeInference {
     #[must_use]
     pub fn new() -> Self {
@@ -59,11 +71,7 @@ impl TypeInference {
             .collect()
     }
 
-    /// # Panics
-    ///
-    /// Panics if initial environment is not populated.
-    #[must_use]
-    pub fn infer(mut self, module: &Module) -> (ArenaMap<ExprIdx, TypeIdx>, Vec<Diagnostic>) {
+    fn infer(mut self, module: &Module) -> InferenceResult {
         let initial_env = self.generate_env(module);
 
         for defn in module.definitions() {
@@ -82,7 +90,11 @@ impl TypeInference {
 
         let types = Self::substitute(&self.expr_types, &mut self.unification_table);
 
-        (types, self.diagnostics)
+        InferenceResult {
+            types: self.types,
+            expr_types: self.expr_types,
+            diagnostics: self.diagnostics,
+        }
     }
 
     fn substitute(

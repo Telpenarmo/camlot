@@ -20,7 +20,7 @@ impl UnifyKey for UnificationVar {
     }
 }
 
-pub(crate) type TypeIdx = intern::Interned<Type>;
+pub type TypeIdx = intern::Interned<Type>;
 
 pub(crate) type UnificationTable = InPlaceUnificationTable<UnificationVar>;
 

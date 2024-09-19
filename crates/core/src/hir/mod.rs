@@ -7,11 +7,11 @@ use la_arena::Idx;
 
 use crate::intern::Interned;
 
-pub(crate) type ExprIdx = Idx<Expr>;
-pub(crate) type TypeExprIdx = Idx<TypeExpr>;
-pub(crate) type DefinitionIdx = Idx<Definition>;
-pub(crate) type OpenIdx = Idx<Open>;
-pub(crate) type TypeDefinitionIdx = Idx<TypeDefinition>;
+pub type ExprIdx = Idx<Expr>;
+pub type TypeExprIdx = Idx<TypeExpr>;
+pub type DefinitionIdx = Idx<Definition>;
+pub type OpenIdx = Idx<Open>;
+pub type TypeDefinitionIdx = Idx<TypeDefinition>;
 
 pub(crate) type Name = Interned<String>;
 
