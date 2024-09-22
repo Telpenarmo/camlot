@@ -18,6 +18,8 @@ pub(crate) type Name = Interned<String>;
 #[derive(PartialEq, Debug)]
 pub struct Definition {
     pub name: Name,
+    pub params: Box<[Param]>,
+    pub return_type: TypeExprIdx,
     pub defn: ExprIdx,
 }
 

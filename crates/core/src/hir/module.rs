@@ -167,8 +167,8 @@ impl Module {
         &self.type_definitions[idx]
     }
 
-    pub fn definitions(&self) -> impl Iterator<Item = &Definition> + '_ {
-        self.definitions.values()
+    pub fn definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> + '_ {
+        self.definitions.iter()
     }
 
     pub(crate) fn name<S: Into<String>>(&mut self, name: S) -> Name {
