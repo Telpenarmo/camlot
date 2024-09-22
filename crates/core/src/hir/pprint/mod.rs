@@ -78,6 +78,14 @@ impl Display for Module {
         for (_, defn) in self.iter_definitions() {
             f.write_str("def ")?;
             f.write_str(self.get_name(defn.name))?;
+            for param in &defn.params {
+                f.write_str(" ")?;
+                self.fmt_param(f, param)?;
+            }
+            if self.get_type_expr(defn.return_type) != &TypeExpr::Missing {
+                f.write_str(" : ")?;
+                self.fmt_type_expr(f, defn.return_type)?;
+            }
             f.write_str(" = ")?;
             self.fmt_expr(f, defn.defn, false, 0)?;
             f.write_str(";\n")?;
@@ -99,11 +107,15 @@ mod tests {
     use super::*;
     use expect_test::{self, expect};
 
+    fn module() -> Module {
+        Module::new()
+    }
+
     #[track_caller]
     #[inline]
     fn display_hir(src: &str) -> String {
         let ast = parser::parse(src);
-        let mut module = Module::new();
+        let mut module = module();
         module.lower_module(&ast.module());
         format!("{module}")
     }
@@ -206,6 +218,46 @@ mod tests {
 
         let expected = expect![[r"
             def g = (f (\x -> x));
+        "]];
+        expected.assert_eq(&actual);
+    }
+
+    #[test]
+    fn test_module_display_def_func() {
+        let actual = display_hir(r"def f (x: int): int = x;");
+
+        let expected = expect![[r"
+            def f (x: int) : int = x;
+        "]];
+        expected.assert_eq(&actual);
+    }
+
+    #[test]
+    fn test_module_display_def_func_unannotated_param() {
+        let actual = display_hir(r"def f x : int = x;");
+
+        let expected = expect![[r"
+            def f x : int = x;
+        "]];
+        expected.assert_eq(&actual);
+    }
+
+    #[test]
+    fn test_module_display_def_func_no_return_type() {
+        let actual = display_hir(r"def f (x: int) = x;");
+
+        let expected = expect![[r"
+            def f (x: int) = x;
+        "]];
+        expected.assert_eq(&actual);
+    }
+
+    #[test]
+    fn test_module_display_def_func_two_params() {
+        let actual = display_hir(r"def f (x: int) (y: int): int = x;");
+
+        let expected = expect![[r"
+            def f (x: int) (y: int) : int = x;
         "]];
         expected.assert_eq(&actual);
     }

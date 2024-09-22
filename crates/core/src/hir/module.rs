@@ -191,7 +191,7 @@ impl Module {
         self.names.intern("_".into())
     }
 
-    pub(super) fn name<S: Into<String>>(&mut self, name: S) -> Name {
+    pub(crate) fn name<S: Into<String>>(&mut self, name: S) -> Name {
         self.names.intern(name.into())
     }
 
@@ -215,9 +215,5 @@ impl Module {
 
     pub(super) fn iter_type_expressions(&self) -> impl Iterator<Item = (TypeExprIdx, &TypeExpr)> {
         self.type_expressions.iter()
-    }
-
-    pub(crate) fn name<S: Into<String>>(&mut self, name: S) -> Name {
-        self.names.intern(name.into())
     }
 }
