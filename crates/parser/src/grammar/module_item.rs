@@ -19,7 +19,7 @@ pub(crate) fn module_item(parser: &mut Parser) {
             "Expected declaration".into(),
         );
         if parser.at_any(MODULE_ITEM_END) {
-            assert!(parser.eat(SyntaxKind::SEMICOLON));
+            assert!(parser.eat_any(MODULE_ITEM_END));
         }
     }
 }
