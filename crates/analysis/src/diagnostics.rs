@@ -12,8 +12,8 @@ pub fn get_diagnostics(doc: &Document) -> Vec<lsp_types::Diagnostic> {
     let parsed = doc.parsed();
     parsed
         .syntax()
-        .descendants()
-        .filter(|node| node.kind() == SyntaxKind::ERROR)
+        .descendants_with_tokens()
+        .filter(|node| node.kind() == SyntaxKind::ERROR || node.kind() == SyntaxKind::LEXING_ERROR)
         .map(|node| {
             let msg = &parsed
                 .errors

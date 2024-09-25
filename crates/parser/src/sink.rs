@@ -90,7 +90,11 @@ impl<'t, 'input> Sink<'t, 'input> {
             if !token.kind.is_trivial() {
                 break;
             }
-
+            if token.kind == SyntaxKind::LEXING_ERROR {
+                self.errors.push(SyntaxError {
+                    message: format!("Lexing error: \"{}\"", token.text),
+                });
+            }
             self.token();
         }
     }
