@@ -77,7 +77,7 @@ impl<'a> Unifcation<'a> {
             ((Type::Unifier(a), _), (Type::Unifier(b), _)) => self
                 .unification_table
                 .unify_var_var(*a, *b)
-                .map_err(|(a, b)| UnifcationError::NotUnifiable(a, b)),
+                .or_else(|(a, b)| self.unify_eq(a, b)),
 
             ((Type::Unifier(u), _), (ty, ty_idx)) | ((ty, ty_idx), (Type::Unifier(u), _)) => {
                 if ty.occurs(self.types, *u) {
@@ -85,7 +85,7 @@ impl<'a> Unifcation<'a> {
                 }
                 self.unification_table
                     .unify_var_value(*u, Some(ty_idx))
-                    .map_err(|(a, b)| UnifcationError::NotUnifiable(a, b))
+                    .or_else(|(a, b)| self.unify_eq(a, b))
             }
 
             _ => Err(UnifcationError::NotUnifiable(expected_idx, actual_idx)),
