@@ -423,4 +423,85 @@ mod tests {
         assert_types_eq(actual_defn, expected, &types);
         assert_types_eq(actual_body, expected, &types);
     }
-}
+
+    #[test]
+    fn test_infer_unannotated_id() {
+        let (module, types, result) = infer_from_str("def f x = x;");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        assert!(
+            matches!(types.lookup(actual_defn), Type::Arrow(from, to) if matches!(types.lookup(*from), Type::Unifier(_)) && matches!(types.lookup(*to), Type::Unifier(_))),
+            "actual: {actual_defn:?}\n{types:?}"
+        );
+        assert!(
+            matches!(types.lookup(actual_body), Type::Unifier(_)),
+            "actual: {actual_body:?}\n{types:?}"
+        );
+    }
+
+    #[test]
+    fn test_infer_empty_def() {
+        let (module, mut types, result) = infer_from_str("def f { }");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        let unit = types.intern(Type::Unit);
+
+        assert_types_eq(actual_defn, unit, &types);
+        assert_types_eq(actual_body, unit, &types);
+    }
+
+    #[test]
+    fn test_infer_empty_def_with_annotated_param() {
+        let (module, mut types, result) = infer_from_str("def f (x: int) { }");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        let unit = types.intern(Type::Unit);
+        let int = types.intern(Type::Int);
+
+        assert_types_eq(actual_body, unit, &types);
+        assert_types_eq(actual_defn, arrow(&mut types, int, unit), &types);
+    }
+
+    #[test]
+    fn test_infer_block_returning_let() {
+        let (module, mut types, result) = infer_from_str("def f (x: int) { let y = x; y }");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        let int = types.intern(Type::Int);
+
+        assert_types_eq(actual_defn, arrow(&mut types, int, int), &types);
+        assert_types_eq(actual_body, int, &types);
+    }
+
+    #[test]
+    fn infer_endless_recursion() {
+        let (module, types, result) = infer_from_str("def f = f;");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        assert!(
+            matches!(types.lookup(actual_body), Type::Unifier(_)),
+            "actual: {:?}\n{types:?}",
+            types.lookup(actual_body)
+        );
+        assert!(
+            matches!(types.lookup(actual_defn), Type::Unifier(_)),
+            "actual: {:?}\n{types:?}",
+            types.lookup(actual_defn)
+        );
+    }
+
