@@ -35,6 +35,7 @@ pub struct TypeInference {
     expr_types: ArenaMap<ExprIdx, TypeIdx>,
     constraints: Vec<Constraint>,
     diagnostics: Vec<Diagnostic>,
+    types_env: Environment,
 }
 
 enum Constraint {
@@ -64,6 +65,7 @@ impl TypeInference {
             expr_types: ArenaMap::new(),
             constraints: Vec::new(),
             diagnostics: Vec::new(),
+            types_env: Environment::new(),
         }
     }
 
@@ -300,13 +302,16 @@ impl TypeInference {
         let ty = module.get_type_expr(ty_idx);
         match ty {
             TypeExpr::Missing => self.next_unification_var(types),
-            &TypeExpr::IdentTypeExpr { name } => {
+            &TypeExpr::IdentTypeExpr { name } => self.types_env.get(&name).map_or_else(
+                || {
                 self.diagnostics.push(Diagnostic::UnboundTypeVariable {
                     type_expr: ty_idx,
                     name,
                 });
                 error(types)
-            }
+                },
+                |typ| *typ,
+            ),
             &TypeExpr::TypeArrow { from, to } => {
                 let from = self.resolve_type_expr(module, types, from);
                 let to = self.resolve_type_expr(module, types, to);
