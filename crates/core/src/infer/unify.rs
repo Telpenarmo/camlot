@@ -68,17 +68,9 @@ impl<'a> Unifcation<'a> {
             | ((Type::Int, _), (Type::Int, _))
             | ((Type::Unit, _), (Type::Unit, _)) => Ok(()),
 
-            ((Type::Var(a), _), (Type::Var(b), _)) => {
-                if a == b {
-                    Ok(())
-                } else {
-                    Err(UnifcationError::NotUnifiable(expected_idx, actual_idx))
-                }
-            }
-
-            ((Type::Arrow(from, to), _), (Type::Arrow(from2, to2), _)) => {
-                let from = self.unify_eq(*from, *from2);
-                let to = self.unify_eq(*to, *to2);
+            ((&Type::Arrow(from, to), _), (&Type::Arrow(from2, to2), _)) => {
+                let from = self.unify_eq(from, from2);
+                let to = self.unify_eq(to, to2);
                 from.or(to)
             }
 

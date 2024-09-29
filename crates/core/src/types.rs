@@ -1,6 +1,6 @@
 use ena::unify::{EqUnifyValue, InPlaceUnificationTable, UnifyKey};
 
-use crate::{intern, Name};
+use crate::intern;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UnificationVar(pub u32);
@@ -30,7 +30,6 @@ pub enum Type {
     Bool,
     Unit,
     Error,
-    Var(Name),
     Unifier(UnificationVar),
     Arrow(TypeIdx, TypeIdx),
 }

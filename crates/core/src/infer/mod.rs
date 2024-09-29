@@ -19,6 +19,10 @@ pub enum Diagnostic {
         expr: ExprIdx,
         name: Name,
     },
+    UnboundTypeVariable {
+        type_expr: TypeExprIdx,
+        name: Name,
+    },
     UnifcationError {
         expr: ExprIdx,
         error: UnifcationError,
@@ -116,13 +120,13 @@ impl TypeInference {
         idx: DefinitionIdx,
         defn: &Definition,
     ) {
-        let ret_type = self.type_annotation_to_unification_item(module, defn.return_type);
+        let ret_type = self.resolve_type_expr(module, defn.return_type);
         let mut def_env = initial_env.clone();
         let params: Vec<_> = defn
             .params
             .iter()
             .map(|param| {
-                let typ = self.type_annotation_to_unification_item(module, param.typ);
+                let typ = self.resolve_type_expr(module, param.typ);
                 def_env = def_env.update(param.name, typ);
                 typ
             })
@@ -202,11 +206,10 @@ impl TypeInference {
         match module.get_expr(expr) {
             Expr::Missing => self.next_unification_var(),
             Expr::LetExpr(let_expr) => {
-                let def_typ =
-                    self.type_annotation_to_unification_item(module, let_expr.return_type);
+                let def_typ = self.resolve_type_expr(module, let_expr.return_type);
                 let mut def_env = env.clone();
                 for param in &let_expr.params {
-                    let typ = self.type_annotation_to_unification_item(module, param.typ);
+                    let typ = self.resolve_type_expr(module, param.typ);
                     def_env = def_env.update(param.name, typ);
                 }
                 self.check_expr(module, let_expr.defn, &def_env, def_typ);
@@ -224,10 +227,10 @@ impl TypeInference {
                 }
             }
             Expr::LambdaExpr(lambda) => {
-                let from = self.type_annotation_to_unification_item(module, lambda.param.typ);
+                let from = self.resolve_type_expr(module, lambda.param.typ);
 
                 let env = env.update(lambda.param.name, from);
-                let to = self.type_annotation_to_unification_item(module, lambda.return_type);
+                let to = self.resolve_type_expr(module, lambda.return_type);
                 self.check_expr(module, lambda.body, &env, to);
 
                 arrow(&mut self.types, from, to)
@@ -278,22 +281,28 @@ impl TypeInference {
         }
     }
 
-    fn type_annotation_to_unification_item(&mut self, module: &Module, ty: TypeExprIdx) -> TypeIdx {
-        let ty = module.get_type_expr(ty);
+    fn resolve_type_expr(
+        &mut self,
+        module: &Module,
+        ty_idx: TypeExprIdx,
+    ) -> TypeIdx {
+        let ty = module.get_type_expr(ty_idx);
         match ty {
             TypeExpr::Missing => self.next_unification_var(),
-            &TypeExpr::IdentTypeExpr { name } => var(&mut self.types, name),
+            &TypeExpr::IdentTypeExpr { name } => {
+                self.diagnostics.push(Diagnostic::UnboundTypeVariable {
+                    type_expr: ty_idx,
+                    name,
+                });
+                error(&mut self.types)
+            }
             &TypeExpr::TypeArrow { from, to } => {
-                let from = self.type_annotation_to_unification_item(module, from);
-                let to = self.type_annotation_to_unification_item(module, to);
+                let from = self.resolve_type_expr(module, from);
+                let to = self.resolve_type_expr(module, to);
                 arrow(&mut self.types, from, to)
             }
         }
     }
-}
-
-fn var(types: &mut Interner<Type>, name: Name) -> TypeIdx {
-    types.intern(Type::Var(name))
 }
 
 fn error(types: &mut Interner<Type>) -> TypeIdx {
@@ -313,13 +322,7 @@ impl Default for TypeInference {
 #[cfg(test)]
 mod tests {
     use super::{InferenceResult, TypeInference};
-    use crate::{
-        hir,
-        infer::{arrow, var},
-        intern::Interner,
-        types::Type,
-        TypeIdx,
-    };
+    use crate::{hir, infer::arrow, intern::Interner, types::Type, TypeIdx};
 
     fn infer_from_str(code: &str) -> (hir::Module, InferenceResult) {
         let infer = TypeInference::new();
@@ -351,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_infer_def_with_annotated_param() {
-        let (mut module, result) = infer_from_str("def f(x: int) = x;");
+        let (module, result) = infer_from_str("def f(x: int) = x;");
 
         assert_empty(&result.diagnostics);
 
@@ -359,7 +362,7 @@ mod tests {
 
         let mut types = result.types;
 
-        let int = var(&mut types, module.name("int"));
+        let int = types.intern(Type::Int);
         let expected = arrow(&mut types, int, int);
 
         assert_types_eq(actual_defn, expected, &types);
@@ -368,7 +371,7 @@ mod tests {
 
     #[test]
     fn test_infer_def_lambda_with_annotated_param() {
-        let (mut module, result) = infer_from_str("def f = \\(x: int) -> x;");
+        let (module, result) = infer_from_str("def f = \\(x: int) -> x;");
 
         assert_empty(&result.diagnostics);
 
@@ -376,7 +379,7 @@ mod tests {
 
         let mut types = result.types;
 
-        let int = var(&mut types, module.name("int"));
+        let int = types.intern(Type::Int);
         let expected = arrow(&mut types, int, int);
 
         assert_types_eq(actual_defn, expected, &types);
@@ -385,7 +388,7 @@ mod tests {
 
     #[test]
     fn test_infer_def_lambda_with_return_type() {
-        let (mut module, result) = infer_from_str("def f = \\x : int -> x;");
+        let (module, result) = infer_from_str("def f = \\x : int -> x;");
 
         assert_empty(&result.diagnostics);
 
@@ -393,7 +396,7 @@ mod tests {
 
         let mut types = result.types;
 
-        let int = var(&mut types, module.name("int"));
+        let int = types.intern(Type::Int);
         let expected = arrow(&mut types, int, int);
 
         assert_types_eq(actual_defn, expected, &types);
@@ -402,7 +405,7 @@ mod tests {
 
     #[test]
     fn test_infer_annotated_def_lambda() {
-        let (mut module, result) = infer_from_str("def f : int -> int = \\x -> x;");
+        let (module, result) = infer_from_str("def f : int -> int = \\x -> x;");
 
         assert_empty(&result.diagnostics);
 
@@ -410,7 +413,7 @@ mod tests {
 
         let mut types = result.types;
 
-        let int = var(&mut types, module.name("int"));
+        let int = types.intern(Type::Int);
         let expected = arrow(&mut types, int, int);
 
         assert_types_eq(actual_defn, expected, &types);
