@@ -1,8 +1,9 @@
-use core::{infer, InferenceResult, Module, TypeIdx};
+use core::{infer, InferenceResult, Interner, Module, Type, TypeIdx};
 
 pub struct Document {
     line_index: line_index::LineIndex,
     text: String,
+    types: Interner<Type>,
     parsed: parser::Parse,
     hir: Module,
     inference_result: InferenceResult,
@@ -12,17 +13,19 @@ pub struct Document {
 impl Document {
     #[must_use]
     pub fn new(text: String) -> Document {
+        let mut types = Interner::new();
         let line_index = line_index::LineIndex::new(&text);
         let parsed = parser::parse(&text);
         let mut hir = core::Module::new();
 
         hir.lower_module(&parsed.module());
 
-        let inference_result = core::infer(&hir);
+        let inference_result = core::infer(&hir, &mut types);
 
         Document {
             line_index,
             text,
+            types,
             parsed,
             hir,
             inference_result,
@@ -34,7 +37,7 @@ impl Document {
         let parse = parser::parse(&text);
         self.hir = core::Module::new();
         self.hir.lower_module(&parse.module());
-        self.inference_result = infer(&self.hir);
+        self.inference_result = infer(&self.hir, &mut self.types);
         self.parsed = parse;
         self.text = text;
     }

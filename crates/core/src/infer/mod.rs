@@ -35,7 +35,6 @@ pub struct TypeInference {
     expr_types: ArenaMap<ExprIdx, TypeIdx>,
     constraints: Vec<Constraint>,
     diagnostics: Vec<Diagnostic>,
-    types: Interner<Type>,
 }
 
 enum Constraint {
@@ -45,16 +44,15 @@ enum Constraint {
 type Environment = im::HashMap<Name, TypeIdx>;
 
 pub struct InferenceResult {
-    pub types: Interner<Type>,
     pub expr_types: ArenaMap<ExprIdx, TypeIdx>,
     pub defn_types: ArenaMap<DefinitionIdx, TypeIdx>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
 #[must_use]
-pub fn infer(module: &Module) -> InferenceResult {
+pub fn infer(module: &Module, types: &mut Interner<Type>) -> InferenceResult {
     let inference = TypeInference::new();
-    inference.infer(module)
+    inference.infer(module, types)
 }
 
 impl TypeInference {
@@ -66,47 +64,39 @@ impl TypeInference {
             expr_types: ArenaMap::new(),
             constraints: Vec::new(),
             diagnostics: Vec::new(),
-            types: Interner::new(),
         }
     }
 
-    fn curry(&mut self, params: &[TypeIdx], return_type: TypeIdx) -> TypeIdx {
-        params.iter().rev().fold(return_type, |acc, param| {
-            self.types.intern(Type::Arrow(*param, acc))
-        })
-    }
-
-    fn generate_env(&mut self, module: &Module) -> Environment {
+    fn generate_env(&mut self, module: &Module, types: &mut Interner<Type>) -> Environment {
         // Walk through the definitions and register them in the environment as fresh unification variables
         module
             .iter_definitions()
-            .map(|(_, defn)| (defn.name, self.next_unification_var()))
+            .map(|(_, defn)| (defn.name, self.next_unification_var(types)))
             .collect()
     }
 
-    fn infer(mut self, module: &Module) -> InferenceResult {
-        let initial_env = self.generate_env(module);
+    fn infer(mut self, module: &Module, types: &mut Interner<Type>) -> InferenceResult {
+        let initial_env = self.generate_env(module, types);
 
         for (idx, defn) in module.iter_definitions() {
-            self.check_definition(&initial_env, module, idx, defn);
+            self.check_definition(types, &initial_env, module, idx, defn);
         }
 
         self.diagnostics.extend(
-            unify::Unifcation::new(&mut self.unification_table, &self.types)
+            unify::Unifcation::new(&mut self.unification_table, types)
                 .unify(self.constraints)
                 .into_iter()
                 .map(|(expr, error)| Diagnostic::UnifcationError { expr, error }),
         );
 
         Self::substitute(
-            &mut self.types,
+            types,
             &mut self.expr_types,
             &mut self.defn_types,
             &mut self.unification_table,
         );
 
         InferenceResult {
-            types: self.types,
             expr_types: self.expr_types,
             defn_types: self.defn_types,
             diagnostics: self.diagnostics,
@@ -115,26 +105,27 @@ impl TypeInference {
 
     fn check_definition(
         &mut self,
+        types: &mut Interner<Type>,
         initial_env: &Environment,
         module: &Module,
         idx: DefinitionIdx,
         defn: &Definition,
     ) {
-        let ret_type = self.resolve_type_expr(module, defn.return_type);
+        let ret_type = self.resolve_type_expr(module, types, defn.return_type);
         let mut def_env = initial_env.clone();
         let params: Vec<_> = defn
             .params
             .iter()
             .map(|param| {
-                let typ = self.resolve_type_expr(module, param.typ);
+                let typ = self.resolve_type_expr(module, types, param.typ);
                 def_env = def_env.update(param.name, typ);
                 typ
             })
             .collect();
 
-        self.check_expr(module, defn.defn, &def_env, ret_type);
+        self.check_expr(module, types, defn.defn, &def_env, ret_type);
 
-        let typ = self.curry(&params, ret_type);
+        let typ = curry(types, &params, ret_type);
 
         self.expr_types.insert(defn.defn, ret_type);
         self.defn_types.insert(idx, typ);
@@ -191,31 +182,43 @@ impl TypeInference {
         });
     }
 
-    fn next_unification_var(&mut self) -> TypeIdx {
+    fn next_unification_var(&mut self, types: &mut Interner<Type>) -> TypeIdx {
         let var = self.unification_table.new_key(None);
-        self.types.intern(Type::Unifier(var))
+        types.intern(Type::Unifier(var))
     }
 
-    fn infer_expr(&mut self, module: &Module, env: &Environment, expr: ExprIdx) -> TypeIdx {
-        let typ = self.infer_expr_impl(module, env, expr);
+    fn infer_expr(
+        &mut self,
+        module: &Module,
+        types: &mut Interner<Type>,
+        env: &Environment,
+        expr: ExprIdx,
+    ) -> TypeIdx {
+        let typ = self.infer_expr_impl(module, types, env, expr);
         self.expr_types.insert(expr, typ);
         typ
     }
 
-    fn infer_expr_impl(&mut self, module: &Module, env: &Environment, expr: ExprIdx) -> TypeIdx {
+    fn infer_expr_impl(
+        &mut self,
+        module: &Module,
+        types: &mut Interner<Type>,
+        env: &Environment,
+        expr: ExprIdx,
+    ) -> TypeIdx {
         match module.get_expr(expr) {
-            Expr::Missing => self.next_unification_var(),
+            Expr::Missing => self.next_unification_var(types),
             Expr::LetExpr(let_expr) => {
-                let def_typ = self.resolve_type_expr(module, let_expr.return_type);
+                let def_typ = self.resolve_type_expr(module, types, let_expr.return_type);
                 let mut def_env = env.clone();
                 for param in &let_expr.params {
-                    let typ = self.resolve_type_expr(module, param.typ);
+                    let typ = self.resolve_type_expr(module, types, param.typ);
                     def_env = def_env.update(param.name, typ);
                 }
-                self.check_expr(module, let_expr.defn, &def_env, def_typ);
+                self.check_expr(module, types, let_expr.defn, &def_env, def_typ);
 
                 let env = env.update(let_expr.name, def_typ);
-                self.infer_expr(module, &env, let_expr.body)
+                self.infer_expr(module, types, &env, let_expr.body)
             }
             Expr::IdentExpr { name } => {
                 if let Some(typ) = env.get(name) {
@@ -223,37 +226,37 @@ impl TypeInference {
                 } else {
                     self.diagnostics
                         .push(Diagnostic::UnboundVariable { expr, name: *name });
-                    error(&mut self.types)
+                    error(types)
                 }
             }
             Expr::LambdaExpr(lambda) => {
-                let from = self.resolve_type_expr(module, lambda.param.typ);
+                let from = self.resolve_type_expr(module, types, lambda.param.typ);
 
                 let env = env.update(lambda.param.name, from);
-                let to = self.resolve_type_expr(module, lambda.return_type);
-                self.check_expr(module, lambda.body, &env, to);
+                let to = self.resolve_type_expr(module, types, lambda.return_type);
+                self.check_expr(module, types, lambda.body, &env, to);
 
-                arrow(&mut self.types, from, to)
+                arrow(types, from, to)
             }
             &Expr::AppExpr {
                 func: lhs,
                 arg: rhs,
             } => {
-                let lhs_typ = self.infer_expr(module, env, lhs);
+                let lhs_typ = self.infer_expr(module, types, env, lhs);
 
-                let arg_typ = self.next_unification_var();
-                let ret_typ = self.next_unification_var();
+                let arg_typ = self.next_unification_var(types);
+                let ret_typ = self.next_unification_var(types);
 
-                let func_typ = arrow(&mut self.types, arg_typ, ret_typ);
+                let func_typ = arrow(types, arg_typ, ret_typ);
 
                 self.constraints
                     .push(Constraint::TypeEqual(lhs, func_typ, lhs_typ));
 
-                self.check_expr(module, rhs, env, arg_typ);
+                self.check_expr(module, types, rhs, env, arg_typ);
 
                 ret_typ
             }
-            Expr::LiteralExpr(lit) => self.types.intern(match lit {
+            Expr::LiteralExpr(lit) => types.intern(match lit {
                 Literal::Unit => Type::Unit,
                 Literal::IntLiteral(_) => Type::Int,
                 Literal::BoolLiteral(_) => Type::Bool,
@@ -261,8 +264,15 @@ impl TypeInference {
         }
     }
 
-    fn check_expr(&mut self, module: &Module, expr: ExprIdx, env: &Environment, typ: TypeIdx) {
-        let expected = self.types.lookup(typ);
+    fn check_expr(
+        &mut self,
+        module: &Module,
+        types: &mut Interner<Type>,
+        expr: ExprIdx,
+        env: &Environment,
+        typ: TypeIdx,
+    ) {
+        let expected = types.lookup(typ);
         match (module.get_expr(expr), expected) {
             (Expr::LiteralExpr(Literal::BoolLiteral(_)), Type::Bool)
             | (Expr::LiteralExpr(Literal::IntLiteral(_)), Type::Int)
@@ -270,11 +280,11 @@ impl TypeInference {
 
             (Expr::LambdaExpr(lambda), Type::Arrow(from, to)) => {
                 let env = env.update(lambda.param.name, *from);
-                self.check_expr(module, lambda.body, &env, *to);
+                self.check_expr(module, types, lambda.body, &env, *to);
             }
 
             _ => {
-                let actual = self.infer_expr(module, env, expr);
+                let actual = self.infer_expr(module, types, env, expr);
                 self.constraints
                     .push(Constraint::TypeEqual(expr, typ, actual));
             }
@@ -284,25 +294,32 @@ impl TypeInference {
     fn resolve_type_expr(
         &mut self,
         module: &Module,
+        types: &mut Interner<Type>,
         ty_idx: TypeExprIdx,
     ) -> TypeIdx {
         let ty = module.get_type_expr(ty_idx);
         match ty {
-            TypeExpr::Missing => self.next_unification_var(),
+            TypeExpr::Missing => self.next_unification_var(types),
             &TypeExpr::IdentTypeExpr { name } => {
                 self.diagnostics.push(Diagnostic::UnboundTypeVariable {
                     type_expr: ty_idx,
                     name,
                 });
-                error(&mut self.types)
+                error(types)
             }
             &TypeExpr::TypeArrow { from, to } => {
-                let from = self.resolve_type_expr(module, from);
-                let to = self.resolve_type_expr(module, to);
-                arrow(&mut self.types, from, to)
+                let from = self.resolve_type_expr(module, types, from);
+                let to = self.resolve_type_expr(module, types, to);
+                arrow(types, from, to)
             }
         }
     }
+}
+
+fn curry(types: &mut Interner<Type>, params: &[TypeIdx], return_type: TypeIdx) -> TypeIdx {
+    params.iter().rev().fold(return_type, |acc, param| {
+        types.intern(Type::Arrow(*param, acc))
+    })
 }
 
 fn error(types: &mut Interner<Type>) -> TypeIdx {
@@ -313,24 +330,19 @@ fn arrow(types: &mut Interner<Type>, from: TypeIdx, to: TypeIdx) -> TypeIdx {
     types.intern(Type::Arrow(from, to))
 }
 
-impl Default for TypeInference {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{InferenceResult, TypeInference};
     use crate::{hir, infer::arrow, intern::Interner, types::Type, TypeIdx};
 
-    fn infer_from_str(code: &str) -> (hir::Module, InferenceResult) {
-        let infer = TypeInference::new();
+    fn infer_from_str(code: &str) -> (hir::Module, Interner<Type>, InferenceResult) {
         let module_ast = parser::parse(code).module();
         let mut module = hir::Module::new();
+        let mut types = Interner::new();
+        let infer = TypeInference::new();
         module.lower_module(&module_ast);
-        let result = infer.infer(&module);
-        (module, result)
+        let result = infer.infer(&module, &mut types);
+        (module, types, result)
     }
 
     #[track_caller]
@@ -354,13 +366,11 @@ mod tests {
 
     #[test]
     fn test_infer_def_with_annotated_param() {
-        let (module, result) = infer_from_str("def f(x: int) = x;");
+        let (module, mut types, result) = infer_from_str("def f(x: int) = x;");
 
         assert_empty(&result.diagnostics);
 
         let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
-
-        let mut types = result.types;
 
         let int = types.intern(Type::Int);
         let expected = arrow(&mut types, int, int);
@@ -371,13 +381,11 @@ mod tests {
 
     #[test]
     fn test_infer_def_lambda_with_annotated_param() {
-        let (module, result) = infer_from_str("def f = \\(x: int) -> x;");
+        let (module, mut types, result) = infer_from_str("def f = \\(x: int) -> x;");
 
         assert_empty(&result.diagnostics);
 
         let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
-
-        let mut types = result.types;
 
         let int = types.intern(Type::Int);
         let expected = arrow(&mut types, int, int);
@@ -388,13 +396,11 @@ mod tests {
 
     #[test]
     fn test_infer_def_lambda_with_return_type() {
-        let (module, result) = infer_from_str("def f = \\x : int -> x;");
+        let (module, mut types, result) = infer_from_str("def f = \\x : int -> x;");
 
         assert_empty(&result.diagnostics);
 
         let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
-
-        let mut types = result.types;
 
         let int = types.intern(Type::Int);
         let expected = arrow(&mut types, int, int);
@@ -405,13 +411,11 @@ mod tests {
 
     #[test]
     fn test_infer_annotated_def_lambda() {
-        let (module, result) = infer_from_str("def f : int -> int = \\x -> x;");
+        let (module, mut types, result) = infer_from_str("def f : int -> int = \\x -> x;");
 
         assert_empty(&result.diagnostics);
 
         let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
-
-        let mut types = result.types;
 
         let int = types.intern(Type::Int);
         let expected = arrow(&mut types, int, int);

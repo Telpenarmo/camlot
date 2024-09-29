@@ -44,6 +44,7 @@ where
         }
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn intern(&mut self, value: T) -> Interned<T> {
         let (id, _) = self.set.insert_full(value);
 
