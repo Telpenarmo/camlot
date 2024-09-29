@@ -55,10 +55,6 @@ where
     pub fn lookup(&self, id: Interned<T>) -> &T {
         &self.set[id.id as usize]
     }
-
-    pub fn len(&self) -> usize {
-        self.set.len()
-    }
 }
 
 #[cfg(test)]
