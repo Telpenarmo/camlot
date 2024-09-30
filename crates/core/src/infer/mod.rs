@@ -81,10 +81,18 @@ impl TypeInference {
         }
     }
 
+    fn load_type_aliases(&mut self, module: &Module, types: &mut Interner<Type>) {
+        for (_, defn) in module.type_definitions() {
+            let typ = self.resolve_type_expr(module, types, defn.defn);
+            self.types_env.insert(defn.name, typ);
+        }
+    }
+
     fn infer(mut self, module: &Module, types: &mut Interner<Type>) -> InferenceResult {
         let mut initial_env = module.get_known_definitions();
         self.load_definitions(module, types, &mut initial_env);
         self.types_env = module.get_known_types();
+        self.load_type_aliases(module, types);
 
         for (idx, defn) in module.iter_definitions() {
             self.check_definition(types, &initial_env, module, idx, defn);
@@ -557,5 +565,36 @@ mod tests {
 
         assert_types_eq(actual_defn, expected, &types);
         assert_types_eq(actual_body, int, &types);
+    }
+
+    #[test]
+    fn type_aliases_are_associative() {
+        let (module, mut types, result) = infer_from_str("type A = int; type B = A; def i: B = 1;");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        let int = types.intern(Type::Int);
+
+        assert_types_eq(actual_defn, int, &types);
+        assert_types_eq(actual_body, int, &types);
+    }
+
+    #[test]
+    fn types_declarations_are_order_sensitive() {
+        let (_module, _types, result) = infer_from_str("type A = B; type B = int; def i: A = 1;");
+
+        assert_eq!(result.diagnostics.len(), 2);
+
+        assert!(matches!(
+            &result.diagnostics[0],
+            &crate::Diagnostic::UnboundTypeVariable { .. }
+        ));
+
+        assert!(matches!(
+            &result.diagnostics[1],
+            &crate::Diagnostic::UnifcationError { .. }
+        ));
     }
 }
