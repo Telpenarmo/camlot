@@ -16,7 +16,7 @@ impl Document {
         let mut types = Interner::new();
         let line_index = line_index::LineIndex::new(&text);
         let parsed = parser::parse(&text);
-        let mut hir = core::Module::new();
+        let mut hir = core::Module::new(&mut types);
 
         hir.lower_module(&parsed.module());
 
@@ -35,7 +35,7 @@ impl Document {
     pub fn update(&mut self, text: String) {
         self.line_index = line_index::LineIndex::new(&text);
         let parse = parser::parse(&text);
-        self.hir = core::Module::new();
+        self.hir = core::Module::new(&mut self.types);
         self.hir.lower_module(&parse.module());
         self.inference_result = infer(&self.hir, &mut self.types);
         self.parsed = parse;

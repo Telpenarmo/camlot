@@ -104,11 +104,13 @@ struct InModule<T>(Module, T);
 
 #[cfg(test)]
 mod tests {
+    use crate::Interner;
+
     use super::*;
     use expect_test::{self, expect};
 
     fn module() -> Module {
-        Module::new()
+        Module::new(&mut Interner::new())
     }
 
     #[track_caller]

@@ -42,7 +42,7 @@ impl Module {
 
 #[cfg(test)]
 mod tests {
-    use crate::{hir::pprint::InModule, Expr, LetExpr, Param, TypeExpr};
+    use crate::{hir::pprint::InModule, Expr, Interner, LetExpr, Param, TypeExpr};
 
     use super::*;
     use expect_test::{self, expect};
@@ -53,9 +53,13 @@ mod tests {
         }
     }
 
+    fn module() -> Module {
+        Module::new(&mut Interner::new())
+    }
+
     #[test]
     fn test_fmt_two_lets() {
-        let mut module = Module::new();
+        let mut module = module();
         let a_name = module.name("a");
         let a = module.alloc_expr(Expr::IdentExpr { name: a_name });
         let b_name = module.name("b");
@@ -90,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_fmt_nested_let() {
-        let mut module = Module::new();
+        let mut module = module();
         let a_name = module.name("a");
         let a = module.alloc_expr(Expr::IdentExpr { name: a_name });
         let b_name = module.name("b");
@@ -126,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_fmt_let_without_return_type() {
-        let mut module = Module::new();
+        let mut module = module();
 
         let a_name = module.name("a");
         let b_name = module.name("b");
@@ -159,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_fmt_let_without_param_type() {
-        let mut module = Module::new();
+        let mut module = module();
 
         let a_name = module.name("a");
         let a = module.alloc_expr(Expr::IdentExpr { name: a_name });

@@ -28,7 +28,7 @@ impl Module {
 
 #[cfg(test)]
 mod tests {
-    use crate::hir::pprint::InModule;
+    use crate::{hir::pprint::InModule, Interner};
 
     use super::*;
 
@@ -38,9 +38,13 @@ mod tests {
         }
     }
 
+    fn module() -> Module {
+        Module::new(&mut Interner::new())
+    }
+
     #[test]
     fn test_fmt_type_expr() {
-        let mut module = Module::new();
+        let mut module = module();
         let name = module.name("a");
         let a = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name });
         let name = module.name("b");
@@ -52,7 +56,7 @@ mod tests {
 
     #[test]
     fn test_fmt_type_expr_three() {
-        let mut module = Module::new();
+        let mut module = module();
         let name = module.name("a");
         let a = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name });
         let name = module.name("b");
@@ -66,7 +70,7 @@ mod tests {
 
     #[test]
     fn test_fmt_type_expr_associativity() {
-        let mut module = Module::new();
+        let mut module = module();
         let name = module.name("a");
         let a = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name });
         let name = module.name("b");

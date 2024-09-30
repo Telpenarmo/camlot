@@ -39,7 +39,7 @@ impl Module {
 
 #[cfg(test)]
 mod tests {
-    use crate::{hir::pprint::InModule, LambdaExpr, Param, TypeExpr};
+    use crate::{hir::pprint::InModule, Interner, LambdaExpr, Param, TypeExpr};
 
     use super::*;
     use expect_test::{self, expect};
@@ -50,9 +50,13 @@ mod tests {
         }
     }
 
+    fn module() -> Module {
+        Module::new(&mut Interner::new())
+    }
+
     #[test]
     fn test_lambda_display() {
-        let mut module = Module::new();
+        let mut module = module();
         let a = module.name("a");
         let int = module.name("int");
         let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
@@ -69,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_lambda_no_param_type() {
-        let mut module = Module::new();
+        let mut module = module();
         let a = module.name("a");
         let int = module.name("int");
         let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
@@ -91,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_lambda_no_return_type() {
-        let mut module = Module::new();
+        let mut module = module();
 
         let a = module.name("a");
         let int = module.name("int");
@@ -111,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_lambda_two_params() {
-        let mut module = Module::new();
+        let mut module = module();
         let a = module.name("a");
         let b = module.name("b");
         let int = module.name("int");
@@ -133,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_lambda_nested() {
-        let mut module = Module::new();
+        let mut module = module();
 
         let a = module.name("a");
         let b = module.name("b");
@@ -166,7 +170,7 @@ mod tests {
 
     #[test]
     fn test_lambda_nested_with_inner_return_types() {
-        let mut module = Module::new();
+        let mut module = module();
 
         let a = module.name("a");
         let b = module.name("b");

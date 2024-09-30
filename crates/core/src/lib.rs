@@ -1,3 +1,4 @@
+mod builtin;
 mod hir;
 mod infer;
 mod intern;
@@ -8,6 +9,6 @@ pub use types::{Type, TypeIdx};
 
 pub(crate) use hir::Name;
 
-pub use infer::{infer, InferenceResult};
+pub use infer::{infer, Diagnostic, InferenceResult};
 
 pub use intern::{Interned, Interner};

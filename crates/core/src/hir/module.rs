@@ -1,11 +1,16 @@
+use im::HashMap;
 use la_arena::{Arena, ArenaMap};
+
 use parser::{DefinitionPtr, ExprPtr, TypeDefinitionPtr, TypeExprPtr};
+
+use crate::types::Type;
+use crate::{builtin, TypeIdx};
+use crate::{intern::Interner, Name};
 
 use super::{
     Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, TypeDefinition, TypeDefinitionIdx,
     TypeExpr, TypeExprIdx,
 };
-use crate::{intern::Interner, Name};
 
 #[derive(Debug)]
 #[allow(unused)]
@@ -20,6 +25,8 @@ pub struct Module {
     type_expressions: Arena<TypeExpr>,
     type_exprs_syntax: ArenaMap<TypeExprIdx, TypeExprPtr>,
     names: Interner<String>,
+    known_definitions: HashMap<Name, TypeIdx>,
+    known_types: HashMap<Name, TypeIdx>,
 }
 
 fn name_deep_eq(a_module: &Module, b_module: &Module, a: Name, b: Name) -> bool {
@@ -127,18 +134,11 @@ impl PartialEq for Module {
     }
 }
 
-#[allow(unreachable_code, unused)]
-impl Default for Module {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[allow(unused)]
 impl Module {
     #[must_use]
-    pub fn new() -> Self {
-        Self {
+    pub fn new(types: &mut Interner<Type>) -> Self {
+        let mut module = Self {
             expressions: Arena::new(),
             type_expressions: Arena::new(),
             definitions: Arena::new(),
@@ -149,7 +149,17 @@ impl Module {
             type_exprs_syntax: ArenaMap::new(),
             definitions_syntax: ArenaMap::new(),
             type_definitions_syntax: ArenaMap::new(),
-        }
+            known_definitions: HashMap::new(),
+            known_types: HashMap::new(),
+        };
+
+        module.load_builtin(types);
+        module
+    }
+
+    fn load_builtin(&mut self, types: &mut Interner<Type>) {
+        self.known_definitions = builtin::builtin_defs(self, types);
+        self.known_types = builtin::builtin_types(self, types);
     }
 
     pub(super) fn alloc_definition(&mut self, definition: Definition) -> DefinitionIdx {
@@ -201,6 +211,22 @@ impl Module {
 
     pub(crate) fn iter_definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> {
         self.definitions.iter()
+    }
+
+    pub fn type_definitions(
+        &self,
+    ) -> impl Iterator<Item = (TypeDefinitionIdx, &TypeDefinition)> + '_ {
+        self.type_definitions.iter()
+    }
+
+    #[must_use]
+    pub fn get_known_types(&self) -> HashMap<Name, TypeIdx> {
+        self.known_types.clone()
+    }
+
+    #[must_use]
+    pub fn get_known_definitions(&self) -> HashMap<Name, TypeIdx> {
+        self.known_definitions.clone()
     }
 
     pub(super) fn iter_type_definitions(

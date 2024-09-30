@@ -69,16 +69,22 @@ impl TypeInference {
         }
     }
 
-    fn generate_env(&mut self, module: &Module, types: &mut Interner<Type>) -> Environment {
+    fn load_definitions(
+        &mut self,
+        module: &Module,
+        types: &mut Interner<Type>,
+        env: &mut Environment,
+    ) {
         // Walk through the definitions and register them in the environment as fresh unification variables
-        module
-            .iter_definitions()
-            .map(|(_, defn)| (defn.name, self.next_unification_var(types)))
-            .collect()
+        for (_, defn) in module.iter_definitions() {
+            env.insert(defn.name, self.next_unification_var(types));
+        }
     }
 
     fn infer(mut self, module: &Module, types: &mut Interner<Type>) -> InferenceResult {
-        let initial_env = self.generate_env(module, types);
+        let mut initial_env = module.get_known_definitions();
+        self.load_definitions(module, types, &mut initial_env);
+        self.types_env = module.get_known_types();
 
         for (idx, defn) in module.iter_definitions() {
             self.check_definition(types, &initial_env, module, idx, defn);
@@ -304,11 +310,11 @@ impl TypeInference {
             TypeExpr::Missing => self.next_unification_var(types),
             &TypeExpr::IdentTypeExpr { name } => self.types_env.get(&name).map_or_else(
                 || {
-                self.diagnostics.push(Diagnostic::UnboundTypeVariable {
-                    type_expr: ty_idx,
-                    name,
-                });
-                error(types)
+                    self.diagnostics.push(Diagnostic::UnboundTypeVariable {
+                        type_expr: ty_idx,
+                        name,
+                    });
+                    error(types)
                 },
                 |typ| *typ,
             ),
@@ -342,8 +348,8 @@ mod tests {
 
     fn infer_from_str(code: &str) -> (hir::Module, Interner<Type>, InferenceResult) {
         let module_ast = parser::parse(code).module();
-        let mut module = hir::Module::new();
         let mut types = Interner::new();
+        let mut module = hir::Module::new(&mut types);
         let infer = TypeInference::new();
         module.lower_module(&module_ast);
         let result = infer.infer(&module, &mut types);
@@ -510,3 +516,46 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_infer_annotated_int() {
+        let (module, mut types, result) = infer_from_str("def f : int = 1;");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        let int = types.intern(Type::Int);
+
+        assert_types_eq(actual_defn, int, &types);
+        assert_types_eq(actual_body, int, &types);
+    }
+
+    #[test]
+    fn infer_application() {
+        let (module, mut types, result) = infer_from_str("def f (y: int) = ((\\x -> x) y));");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        let int = types.intern(Type::Int);
+
+        assert_types_eq(actual_defn, arrow(&mut types, int, int), &types);
+        assert_types_eq(actual_body, int, &types);
+    }
+
+    #[test]
+    fn test_infer_int_by_using_add() {
+        let (module, mut types, result) = infer_from_str("def f x = (add x x);");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        let int = types.intern(Type::Int);
+        let expected = arrow(&mut types, int, int);
+
+        assert_types_eq(actual_defn, expected, &types);
+        assert_types_eq(actual_body, int, &types);
+    }
+}

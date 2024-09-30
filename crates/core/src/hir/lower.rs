@@ -237,7 +237,7 @@ impl Module {
 #[cfg(test)]
 mod tests {
     use crate::hir::module::{expr_deep_eq, type_expr_deep_eq};
-    use crate::Literal;
+    use crate::{Interner, Literal};
 
     use super::{Definition, Expr, Module, Param, TypeExpr};
 
@@ -248,11 +248,23 @@ mod tests {
         }
     }
 
-    fn check_expr(text: &str, expected_module: &Module) {
-        let module_syntax = parser::parse(&format!("def x = {text};")).module();
-        let mut module = Module::default();
+    fn module() -> Module {
+        Module::new(&mut Interner::new())
+    }
+
+    #[inline]
+    #[track_caller]
+    fn lower(text: &str) -> Module {
+        let module_syntax = parser::parse(text).module();
+        let mut module = module();
 
         module.lower_module(&module_syntax);
+        module
+    }
+
+    #[track_caller]
+    fn check_expr(text: &str, expected_module: &Module) {
+        let module = lower(&format!("def x = {text};"));
 
         module
             .iter_expressions()
@@ -279,12 +291,9 @@ mod tests {
 
     #[test]
     fn lower_def_func_as_expr() {
-        let module = parser::parse("def f x y = 42;").module();
-        let mut actual_module = Module::default();
+        let actual_module = lower("def f x y = 42;");
 
-        actual_module.lower_module(&module);
-
-        let mut expected_module = Module::default();
+        let mut expected_module = module();
         let defn = expected_module.alloc_expr(Expr::int_expr(42));
 
         let x = unannotated_param(&mut expected_module, "x");
@@ -306,12 +315,9 @@ mod tests {
 
     #[test]
     fn lower_def_with_annotated_param() {
-        let module = parser::parse("def f (x: int) = x;").module();
-        let mut actual_module = Module::default();
-        actual_module.lower_module(&module);
+        let actual_module = lower("def f (x: int) = x;");
 
-        let mut expected_module = Module::default();
-
+        let mut expected_module = module();
         let x = expected_module.name("x");
         let int = expected_module.name("int");
 
@@ -334,11 +340,9 @@ mod tests {
 
     #[test]
     fn lower_def_func_block() {
-        let module = parser::parse("def f x y { 42 };").module();
-        let mut actual_module = Module::default();
-        actual_module.lower_module(&module);
+        let actual_module = lower("def f x y { 42 };");
 
-        let mut expected_module = Module::default();
+        let mut expected_module = module();
         let defn = expected_module.alloc_expr(Expr::int_expr(42));
 
         let x = unannotated_param(&mut expected_module, "x");
@@ -359,7 +363,7 @@ mod tests {
 
     #[test]
     fn lower_ident() {
-        let mut module = Module::default();
+        let mut module = module();
         let x = module.name("x");
         module.alloc_expr(Expr::ident_expr(x));
         check_expr("x", &module);
@@ -367,7 +371,7 @@ mod tests {
 
     #[test]
     fn lower_app() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let f = module.name("f");
         let y = module.name("y");
@@ -380,7 +384,7 @@ mod tests {
 
     #[test]
     fn lower_nested_app() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let f = module.name("f");
         let y = module.name("y");
@@ -398,7 +402,7 @@ mod tests {
 
     #[test]
     fn lower_lambda() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let x = module.name("x");
         let body = module.alloc_expr(Expr::ident_expr(x));
@@ -415,12 +419,9 @@ mod tests {
 
     #[test]
     fn lower_lambda_with_annotated_param() {
-        let module = parser::parse("def f = \\(x: int) -> x;").module();
-        let mut actual_module = Module::new();
+        let actual_module = lower("def f = \\(x: int) -> x;");
 
-        actual_module.lower_module(&module);
-
-        let mut expected_module = Module::default();
+        let mut expected_module = module();
 
         let x = expected_module.name("x");
         let int = expected_module.name("int");
@@ -447,7 +448,7 @@ mod tests {
 
     #[test]
     fn lower_let() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let c = module.name("c");
         let d = module.name("d");
@@ -468,17 +469,14 @@ mod tests {
             body,
         ));
 
-        let module_syntax = parser::parse("def x { let a b = c; d }").module();
-        let mut actual_module = Module::default();
-
-        actual_module.lower_module(&module_syntax);
+        let actual_module = lower("def x { let a b = c; d }");
 
         assert_eq!(module, actual_module);
     }
 
     #[test]
     fn lower_lambda_missing_type() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let x = module.name("x");
         let body = module.alloc_expr(Expr::ident_expr(x));
@@ -492,7 +490,7 @@ mod tests {
 
     #[test]
     fn lower_lambda_missing_body() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let param = unannotated_param(&mut module, "x");
         let typ = module.alloc_type_expr(TypeExpr::Missing);
@@ -504,7 +502,7 @@ mod tests {
 
     #[test]
     fn lower_lambda_missing_params() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let x = module.name("x");
         let body = module.alloc_expr(Expr::ident_expr(x));
@@ -517,7 +515,7 @@ mod tests {
 
     #[test]
     fn lower_let_missing_defn() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let param = unannotated_param(&mut module, "b");
         let params = vec![param].into_boxed_slice();
@@ -535,12 +533,9 @@ mod tests {
 
     #[test]
     fn lower_def_func_with_return_type() {
-        let module = parser::parse("def f x y : Int = 42;").module();
-        let mut actual_module = Module::new();
+        let actual_module = lower("def f x y : Int = 42;");
 
-        actual_module.lower_module(&module);
-
-        let mut expected_module = Module::default();
+        let mut expected_module = module();
         let defn = expected_module.alloc_expr(Expr::int_expr(42));
 
         let x = unannotated_param(&mut expected_module, "x");
@@ -561,12 +556,9 @@ mod tests {
 
     #[test]
     fn lower_annotated_def() {
-        let module = parser::parse("def x : Int = 42;").module();
-        let mut actual_module = Module::new();
+        let actual_module = lower("def x : Int = 42;");
 
-        actual_module.lower_module(&module);
-
-        let mut expected_module = Module::default();
+        let mut expected_module = module();
 
         let int = expected_module.name("Int");
 
@@ -586,12 +578,9 @@ mod tests {
 
     #[test]
     fn lower_let_with_return_type() {
-        let module = parser::parse("def f { let x : Int = 42; x }").module();
-        let mut actual_module = Module::default();
+        let actual_module = lower("def f { let x : Int = 42; x }");
 
-        actual_module.lower_module(&module);
-
-        let mut expected_module = Module::default();
+        let mut expected_module = module();
 
         let x = expected_module.name("x");
         let int = expected_module.name("Int");
@@ -623,7 +612,7 @@ mod tests {
 
     #[test]
     fn lower_empty_parentheses() {
-        let mut module = Module::default();
+        let mut module = module();
         module.alloc_expr(Expr::LiteralExpr(Literal::Unit));
 
         check_expr("()", &module);
@@ -632,7 +621,7 @@ mod tests {
 
     #[test]
     fn lower_empty_braces() {
-        let mut module = Module::default();
+        let mut module = module();
         module.alloc_expr(Expr::LiteralExpr(Literal::Unit));
 
         check_expr("{}", &module);
@@ -641,7 +630,7 @@ mod tests {
 
     #[test]
     fn lower_block_with_only_expr_stmt() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let body = module.alloc_expr(Expr::LiteralExpr(Literal::Unit));
         let defn = module.alloc_expr(Expr::int_expr(42));
@@ -656,7 +645,7 @@ mod tests {
 
     #[test]
     fn lower_block_with_only_let_stmt() {
-        let mut module = Module::default();
+        let mut module = module();
 
         let body = module.alloc_expr(Expr::LiteralExpr(Literal::Unit));
         let defn = module.alloc_expr(Expr::int_expr(42));
