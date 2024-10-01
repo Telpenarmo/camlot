@@ -117,7 +117,7 @@ impl Module {
     fn curry(&mut self, body: ExprIdx, params: &[Param], return_type: TypeExprIdx) -> Expr {
         let empty_param = Param {
             name: self.empty_name(),
-            typ: MISSING_TYPE_EXPR_ID,
+            typ: self.alloc_type_expr(TypeExpr::Missing),
         };
         let tail_param = params.last().cloned().unwrap_or(empty_param);
 
@@ -126,7 +126,7 @@ impl Module {
         params.iter().rev().skip(1).fold(body, |body, param| {
             let body = self.alloc_expr(body);
 
-            Expr::lambda_expr(param.clone(), MISSING_TYPE_EXPR_ID, body)
+            Expr::lambda_expr(param.clone(), self.alloc_type_expr(TypeExpr::Missing), body)
         })
     }
 
@@ -231,19 +231,11 @@ impl Module {
     }
 
     fn alloc_expr(&mut self, expr: Expr) -> ExprIdx {
-        if let Expr::Missing = expr {
-            MISSING_EXPR_ID
-        } else {
-            self.expressions.alloc(expr)
-        }
+        self.expressions.alloc(expr)
     }
 
     fn alloc_type_expr(&mut self, type_expr: TypeExpr) -> TypeExprIdx {
-        if let TypeExpr::Missing = type_expr {
-            MISSING_TYPE_EXPR_ID
-        } else {
-            self.type_expressions.alloc(type_expr)
-        }
+        self.type_expressions.alloc(type_expr)
     }
 
     fn empty_name(&mut self) -> Name {
@@ -275,27 +267,16 @@ impl Module {
     }
 }
 
-const MISSING_EXPR_ID: ExprIdx = {
-    let raw = la_arena::RawIdx::from_u32(0);
-    ExprIdx::from_raw(raw)
-};
-
-const MISSING_TYPE_EXPR_ID: TypeExprIdx = {
-    let raw = la_arena::RawIdx::from_u32(0);
-    TypeExprIdx::from_raw(raw)
-};
-
 #[cfg(test)]
 mod tests {
     use crate::hir::module::{expr_deep_eq, type_expr_deep_eq};
 
-    use super::{Definition, Expr, Param, TypeExpr};
-    use super::{Module, MISSING_EXPR_ID as MISSING_EXPR, MISSING_TYPE_EXPR_ID as MISSING_TYPE};
+    use super::{Definition, Expr, Module, Param, TypeExpr};
 
     fn unannotated_param(module: &mut Module, name: &str) -> Param {
         Param {
             name: module.name(name),
-            typ: MISSING_TYPE,
+            typ: module.alloc_type_expr(TypeExpr::Missing),
         }
     }
 
@@ -340,8 +321,10 @@ mod tests {
         let x = unannotated_param(&mut expected_module, "x");
         let y = unannotated_param(&mut expected_module, "y");
 
-        let body = expected_module.alloc_expr(Expr::lambda_expr(y, MISSING_TYPE, body));
-        let defn = expected_module.alloc_expr(Expr::lambda_expr(x, MISSING_TYPE, body));
+        let return_type = expected_module.alloc_type_expr(TypeExpr::Missing);
+        let body = expected_module.alloc_expr(Expr::lambda_expr(y, return_type, body));
+        let return_type = expected_module.alloc_type_expr(TypeExpr::Missing);
+        let defn = expected_module.alloc_expr(Expr::lambda_expr(x, return_type, body));
 
         let definition = Definition {
             name: expected_module.name("f"),
@@ -360,12 +343,18 @@ mod tests {
         actual_module.lower_module(&module);
 
         let mut expected_module = Module::default();
+
         let x = expected_module.name("x");
         let int = expected_module.name("int");
+
         let int = expected_module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
-        let x = Param { name: x, typ: int };
-        let body = expected_module.alloc_expr(Expr::ident_expr(x.name));
-        let defn = expected_module.alloc_expr(Expr::lambda_expr(x, MISSING_TYPE, body));
+
+        let param = Param { name: x, typ: int };
+        let body = expected_module.alloc_expr(Expr::ident_expr(x));
+        let ret_typ = expected_module.alloc_type_expr(TypeExpr::Missing);
+
+        let defn = expected_module.alloc_expr(Expr::lambda_expr(param, ret_typ, body));
+
         let definition = Definition {
             name: expected_module.name("f"),
             defn,
@@ -386,8 +375,14 @@ mod tests {
 
         let x = unannotated_param(&mut expected_module, "x");
         let y = unannotated_param(&mut expected_module, "y");
-        let body = expected_module.alloc_expr(Expr::lambda_expr(y, MISSING_TYPE, body));
-        let defn = expected_module.alloc_expr(Expr::lambda_expr(x, MISSING_TYPE, body));
+
+        let typ = expected_module.alloc_type_expr(TypeExpr::Missing);
+        let body = expected_module.alloc_expr(Expr::lambda_expr(y, typ, body));
+
+        let ret_typ = expected_module.alloc_type_expr(TypeExpr::Missing);
+
+        let defn = expected_module.alloc_expr(Expr::lambda_expr(x, ret_typ, body));
+
         let definition = Definition {
             name: expected_module.name("f"),
             defn,
@@ -443,9 +438,12 @@ mod tests {
         let x = module.name("x");
         let body = module.alloc_expr(Expr::ident_expr(x));
         let param = unannotated_param(&mut module, "y");
-        let inner = module.alloc_expr(Expr::lambda_expr(param, MISSING_TYPE, body));
+
+        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        let inner = module.alloc_expr(Expr::lambda_expr(param, typ, body));
         let param = unannotated_param(&mut module, "x");
-        let _outer = module.alloc_expr(Expr::lambda_expr(param, MISSING_TYPE, inner));
+        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        let _outer = module.alloc_expr(Expr::lambda_expr(param, typ, inner));
 
         check_expr("\\x y -> x", &module);
     }
@@ -457,11 +455,12 @@ mod tests {
         let x = expected_module.name("x");
         let int = expected_module.name("int");
         expected_module.name("");
+
         let int = expected_module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
-        let x = Param { name: x, typ: int };
-        let body = expected_module.alloc_expr(Expr::ident_expr(x.name));
-        let param = unannotated_param(&mut expected_module, "x");
-        let lambda = expected_module.alloc_expr(Expr::lambda_expr(param, MISSING_TYPE, body));
+        let body = expected_module.alloc_expr(Expr::ident_expr(x));
+        let param = Param { name: x, typ: int };
+        let ret_typ = expected_module.alloc_type_expr(TypeExpr::Missing);
+        let lambda = expected_module.alloc_expr(Expr::lambda_expr(param, ret_typ, body));
 
         let definition = Definition {
             name: expected_module.name("f"),
@@ -490,10 +489,12 @@ mod tests {
         let name = module.name("a");
         let param = unannotated_param(&mut module, "b");
 
+        let typ = module.alloc_type_expr(TypeExpr::Missing);
+
         module.alloc_expr(Expr::let_expr(
             name,
             vec![param].into_boxed_slice(),
-            MISSING_TYPE,
+            typ,
             defn,
             body,
         ));
@@ -515,7 +516,8 @@ mod tests {
         let body = module.alloc_expr(Expr::ident_expr(x));
         let param = unannotated_param(&mut module, "x");
 
-        module.alloc_expr(Expr::lambda_expr(param, MISSING_TYPE, body));
+        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        module.alloc_expr(Expr::lambda_expr(param, typ, body));
 
         check_expr("\\x -> x", &module);
     }
@@ -525,7 +527,9 @@ mod tests {
         let mut module = Module::default();
 
         let param = unannotated_param(&mut module, "x");
-        module.alloc_expr(Expr::lambda_expr(param, MISSING_TYPE, MISSING_EXPR));
+        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        let body = module.alloc_expr(Expr::Missing);
+        module.alloc_expr(Expr::lambda_expr(param, typ, body));
 
         check_expr("\\x ->", &module);
     }
@@ -537,7 +541,8 @@ mod tests {
         let x = module.name("x");
         let body = module.alloc_expr(Expr::ident_expr(x));
         let param = unannotated_param(&mut module, "");
-        module.alloc_expr(Expr::lambda_expr(param, MISSING_TYPE, body));
+        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        module.alloc_expr(Expr::lambda_expr(param, typ, body));
 
         check_expr("\\-> x", &module);
     }
@@ -553,13 +558,9 @@ mod tests {
         let body = module.alloc_expr(Expr::ident_expr(d));
 
         let name = module.name("a");
-        module.alloc_expr(Expr::let_expr(
-            name,
-            params,
-            MISSING_TYPE,
-            MISSING_EXPR,
-            body,
-        ));
+        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        let defn = module.alloc_expr(Expr::Missing);
+        module.alloc_expr(Expr::let_expr(name, params, typ, defn, body));
 
         check_expr("{ let a b; d }", &module);
     }
@@ -580,7 +581,8 @@ mod tests {
         let int = expected_module.name("Int");
         let return_type = expected_module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
         let body = expected_module.alloc_expr(Expr::lambda_expr(y, return_type, body));
-        let defn = expected_module.alloc_expr(Expr::lambda_expr(x, MISSING_TYPE, body));
+        let typ = expected_module.alloc_type_expr(TypeExpr::Missing);
+        let defn = expected_module.alloc_expr(Expr::lambda_expr(x, typ, body));
         let definition = Definition {
             name: expected_module.name("f"),
             defn,

@@ -129,15 +129,10 @@ impl Default for Module {
 impl Module {
     #[must_use]
     pub fn new() -> Self {
-        let mut expressions = Arena::new();
-        let mut type_expressions = Arena::new();
-
-        expressions.alloc(Expr::Missing);
-        type_expressions.alloc(TypeExpr::Missing);
 
         Self {
-            expressions,
-            type_expressions,
+            expressions: Arena::new(),
+            type_expressions: Arena::new(),
             definitions: Arena::new(),
             opens: Arena::new(),
             type_definitions: Arena::new(),
