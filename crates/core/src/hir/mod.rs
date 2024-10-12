@@ -1,5 +1,6 @@
 mod lower;
 mod module;
+mod pprint;
 
 pub use module::Module;
 
@@ -111,6 +112,16 @@ pub enum Literal {
     Unit,
     IntLiteral(i64),
     BoolLiteral(bool),
+}
+
+impl std::fmt::Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Literal::IntLiteral(val) => val.fmt(f),
+            Literal::BoolLiteral(val) => val.fmt(f),
+            Literal::Unit => "()".fmt(f),
+        }
+    }
 }
 
 #[allow(unused)]

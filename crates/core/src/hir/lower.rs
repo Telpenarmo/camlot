@@ -6,6 +6,7 @@ use crate::Name;
 use parser::{nodes as ast, AstToken};
 
 use super::module::Module;
+use super::Literal;
 
 impl Module {
     pub fn lower_module(&mut self, ast: &ast::Module) {
@@ -272,6 +273,10 @@ impl Module {
 
     pub(crate) fn get_type_definition(&self, idx: TypeDefinitionIdx) -> &TypeDefinition {
         &self.type_definitions[idx]
+    }
+
+    pub(crate) fn get_name(&self, name: Name) -> &str {
+        self.names.lookup(name)
     }
 }
 
