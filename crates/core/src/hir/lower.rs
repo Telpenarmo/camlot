@@ -130,6 +130,14 @@ impl Module {
         })
     }
 
+    fn lower_expr_defaulting_to_unit(&mut self, expr: Option<ast::Expr>) -> Expr {
+        if expr.is_some() {
+            self.lower_expr(expr)
+        } else {
+            Expr::LiteralExpr(Literal::Unit)
+        }
+    }
+
     fn lower_expr(&mut self, expr: Option<ast::Expr>) -> Expr {
         if expr.is_none() {
             return Expr::Missing;
@@ -142,7 +150,7 @@ impl Module {
                 if let Some(app) = ast.app_expr() {
                     self.lower_app(&app)
                 } else {
-                    self.lower_expr(ast.expr())
+                    self.lower_expr_defaulting_to_unit(ast.expr())
                 }
             }
             ast::Expr::LiteralExpr(ast) => {
@@ -194,7 +202,7 @@ impl Module {
     fn lower_stmt(&mut self, ast: ast::Stmt, cont: ExprIdx) -> Expr {
         match ast {
             ast::Stmt::ExprStmt(ast) => {
-                let expr = self.lower_expr(ast.expr());
+                let expr = self.lower_expr_defaulting_to_unit(ast.expr());
                 let expr = self.alloc_expr(expr);
                 Expr::let_expr(
                     self.empty_name(),
@@ -221,7 +229,7 @@ impl Module {
     }
 
     fn lower_block(&mut self, ast: &ast::BlockExpr) -> Expr {
-        let tail_expr = self.lower_expr(ast.tail_expr());
+        let tail_expr = self.lower_expr_defaulting_to_unit(ast.tail_expr());
 
         let stmts: Vec<_> = ast.statements().collect();
         stmts.iter().rev().fold(tail_expr, |body, stmt| {
@@ -270,6 +278,7 @@ impl Module {
 #[cfg(test)]
 mod tests {
     use crate::hir::module::{expr_deep_eq, type_expr_deep_eq};
+    use crate::Literal;
 
     use super::{Definition, Expr, Module, Param, TypeExpr};
 
@@ -622,5 +631,52 @@ mod tests {
         expected_module.definitions.alloc(definition);
 
         assert_eq!(actual_module, expected_module);
+    }
+
+    #[test]
+    fn lower_empty_parentheses() {
+        let mut module = Module::default();
+        module.alloc_expr(Expr::LiteralExpr(Literal::Unit));
+
+        check_expr("()", &module);
+        check_expr("( )", &module);
+    }
+
+    #[test]
+    fn lower_empty_braces() {
+        let mut module = Module::default();
+        module.alloc_expr(Expr::LiteralExpr(Literal::Unit));
+
+        check_expr("{}", &module);
+        check_expr("{ }", &module);
+    }
+
+    #[test]
+    fn lower_block_with_only_expr_stmt() {
+        let mut module = Module::default();
+
+        let body = module.alloc_expr(Expr::LiteralExpr(Literal::Unit));
+        let defn = module.alloc_expr(Expr::int_expr(42));
+
+        let name = module.empty_name();
+
+        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        module.alloc_expr(Expr::let_expr(name, Box::new([]), typ, defn, body));
+
+        check_expr("{ 42; }", &module);
+    }
+
+    #[test]
+    fn lower_block_with_only_let_stmt() {
+        let mut module = Module::default();
+
+        let body = module.alloc_expr(Expr::LiteralExpr(Literal::Unit));
+        let defn = module.alloc_expr(Expr::int_expr(42));
+        let x = module.name("x");
+
+        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        module.alloc_expr(Expr::let_expr(x, Box::new([]), typ, defn, body));
+
+        check_expr("{ let x = 42; }", &module);
     }
 }

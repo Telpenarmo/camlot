@@ -108,6 +108,7 @@ pub enum TypeExpr {
 
 #[derive(PartialEq, Debug)]
 pub enum Literal {
+    Unit,
     IntLiteral(i64),
     BoolLiteral(bool),
 }
