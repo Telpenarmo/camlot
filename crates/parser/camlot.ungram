@@ -29,7 +29,7 @@ Stmt =
 | LetStmt
 
 ExprStmt = Expr ';'
-LetStmt = 'let' 'Ident' Params TypeAnnotation? '=' def:Expr ';'
+LetStmt = 'let' Pattern Params TypeAnnotation? '=' def:Expr ';'
 
 Expr =
   IdentExpr
@@ -54,7 +54,9 @@ ParenExpr = '(' Expr? | AppExpr ')'
 Literal =  'Int' | 'dummy'
 
 Params = Param*
-Param = 'Ident' | '(' 'Ident' TypeAnnotation? ')'
+Param = Pattern | '(' Pattern TypeAnnotation? ')'
+
+Pattern = 'Ident' | '_'
 
 BinaryExpr = lhs:Expr InfixSymbol rhs:Expr
 InfixSymbol = '+' | '-' | '*' | '/'

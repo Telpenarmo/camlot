@@ -48,6 +48,8 @@ pub enum SyntaxKind {
     BACKSLASH,
     #[token("λ")]
     LAMBDA,
+    #[token("_")]
+    UNDERSCORE,
     #[regex("(?:0|[1-9][0-9]*)")]
     INT,
     #[regex("\"(?s:[^\"\\\\]|\\\\.)*\"")]
@@ -96,6 +98,7 @@ pub enum SyntaxKind {
     TYPE_EXPR,
     EXPR,
     STMT,
+    PATTERN,
     LITERAL,
     INFIX_SYMBOL,
     #[doc(hidden)]
@@ -114,14 +117,14 @@ impl SyntaxKind {
     pub fn is_operator(self) -> bool {
         match self {
             L_PAREN | R_PAREN | L_BRACE | R_BRACE | COLON | SEMICOLON | COMMA | EQUAL | ARROW
-            | PLUS | MINUS | STAR | SLASH | BACKSLASH | LAMBDA => true,
+            | PLUS | MINUS | STAR | SLASH | BACKSLASH | LAMBDA | UNDERSCORE => true,
             _ => false,
         }
     }
     #[must_use]
     pub fn is_enum(self) -> bool {
         match self {
-            MODULE_ITEM | TYPE_EXPR | EXPR | STMT | LITERAL | INFIX_SYMBOL => true,
+            MODULE_ITEM | TYPE_EXPR | EXPR | STMT | PATTERN | LITERAL | INFIX_SYMBOL => true,
             _ => false,
         }
     }

@@ -163,6 +163,7 @@ pub(crate) fn kinds() -> KindsSrc {
         "/" => "Slash";
         "\\" => "Backslash";
         "λ" => "Lambda";
+        "_" => "Underscore";
 
         // Literals
         lit("Int") => r"(?:0|[1-9][0-9]*)";

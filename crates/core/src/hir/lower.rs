@@ -77,7 +77,7 @@ impl Module {
 
     fn lower_param(&mut self, ast: &ast::Param) -> Param {
         let name = self.name(
-            ast.ident_lit()
+            ast.pattern()
                 .expect("Empty param indicates parser bug")
                 .text(),
         );
@@ -214,7 +214,12 @@ impl Module {
                 )
             }
             ast::Stmt::LetStmt(ast) => {
-                let name = self.lower_ident(ast.ident_lit());
+                let name = {
+                    let name = ast
+                        .pattern()
+                        .map_or("_".into(), |ident| ident.text().into());
+                    self.names.intern(name)
+                };
 
                 let params = self.lower_params(ast.params());
 
@@ -248,7 +253,7 @@ impl Module {
     }
 
     fn empty_name(&mut self) -> Name {
-        self.names.intern(String::new())
+        self.names.intern("_".into())
     }
 
     fn name<S: Into<String>>(&mut self, name: S) -> Name {
@@ -305,7 +310,10 @@ mod tests {
             .iter()
             .zip(expected_module.expressions.iter())
             .for_each(|((actual, _), (expected, _))| {
-                assert!(expr_deep_eq(&module, expected_module, actual, expected));
+                assert!(
+                    expr_deep_eq(&module, expected_module, actual, expected),
+                    "{module}\n\n{expected_module}"
+                );
             });
 
         module
@@ -554,7 +562,7 @@ mod tests {
 
         let x = module.name("x");
         let body = module.alloc_expr(Expr::ident_expr(x));
-        let param = unannotated_param(&mut module, "");
+        let param = unannotated_param(&mut module, "_");
         let typ = module.alloc_type_expr(TypeExpr::Missing);
         module.alloc_expr(Expr::lambda_expr(param, typ, body));
 

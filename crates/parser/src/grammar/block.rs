@@ -4,7 +4,7 @@ use super::{
     params::params,
 };
 use crate::{
-    grammar::type_expr,
+    grammar::{params::pattern, type_expr},
     parser::{CompletedMarker, Parser},
     token_set::TokenSet,
     SyntaxKind,
@@ -44,7 +44,7 @@ fn let_stmt(parser: &mut Parser) -> CompletedMarker {
 
     let mark = parser.open();
     parser.expect(SyntaxKind::LET_KW);
-    parser.expect(SyntaxKind::IDENT);
+    pattern(parser);
     params(parser);
     type_expr::type_annotation(parser);
     parser.expect(SyntaxKind::EQUAL);

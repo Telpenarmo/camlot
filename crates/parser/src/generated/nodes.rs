@@ -246,12 +246,12 @@ impl LetStmt {
         support::child(&self.syntax)
     }
     #[must_use]
-    pub fn let_kw_token(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, LET_KW)
+    pub fn pattern(&self) -> Option<Pattern> {
+        support::token_child(&self.syntax)
     }
     #[must_use]
-    pub fn ident_lit(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, IDENT)
+    pub fn let_kw_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, LET_KW)
     }
     #[must_use]
     pub fn equal_token(&self) -> Option<SyntaxToken> {
@@ -387,8 +387,8 @@ pub struct Param {
 }
 impl Param {
     #[must_use]
-    pub fn ident_lit(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, IDENT)
+    pub fn pattern(&self) -> Option<Pattern> {
+        support::token_child(&self.syntax)
     }
     #[must_use]
     pub fn l_paren_token(&self) -> Option<SyntaxToken> {
@@ -432,6 +432,18 @@ pub enum Expr {
 pub enum Stmt {
     ExprStmt(ExprStmt),
     LetStmt(LetStmt),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Pattern {
+    syntax: SyntaxToken,
+    kind: PatternKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PatternKind {
+    Ident,
+    Underscore,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -927,6 +939,46 @@ impl AstNode for Stmt {
             Stmt::ExprStmt(it) => &it.syntax,
             Stmt::LetStmt(it) => &it.syntax,
         }
+    }
+}
+impl AstToken for Pattern {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        PatternKind::can_cast(kind)
+    }
+    fn cast(syntax: SyntaxToken) -> Option<Self> {
+        let kind = PatternKind::cast(syntax.kind())?;
+        Some(Pattern { syntax, kind })
+    }
+    fn syntax(&self) -> &SyntaxToken {
+        &self.syntax
+    }
+}
+impl PatternKind {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            IDENT | UNDERSCORE => true,
+            _ => false,
+        }
+    }
+    #[must_use]
+    pub fn cast(kind: SyntaxKind) -> Option<Self> {
+        let res = match kind {
+            IDENT => Self::Ident,
+            UNDERSCORE => Self::Underscore,
+            _ => return None,
+        };
+        Some(res)
+    }
+}
+impl Pattern {
+    #[must_use]
+    pub fn kind(&self) -> PatternKind {
+        self.kind
+    }
+}
+impl std::fmt::Display for Pattern {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
     }
 }
 impl AstToken for Literal {

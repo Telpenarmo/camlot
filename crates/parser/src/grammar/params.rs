@@ -5,7 +5,9 @@ use crate::{
     SyntaxKind,
 };
 
-const PARAM_START: TokenSet = TokenSet::new(&[SyntaxKind::IDENT, SyntaxKind::L_PAREN]);
+const PATTERN_START: TokenSet = TokenSet::new(&[SyntaxKind::IDENT, SyntaxKind::UNDERSCORE]);
+
+const PARAM_START: TokenSet = TokenSet::new(&[SyntaxKind::L_PAREN]).union(PATTERN_START);
 
 pub(crate) fn params(parser: &mut Parser) -> CompletedMarker {
     let mark = parser.open();
@@ -18,9 +20,10 @@ pub(crate) fn params(parser: &mut Parser) -> CompletedMarker {
 fn param(parser: &mut Parser) -> CompletedMarker {
     let mark = parser.open();
 
-    if parser.eat(SyntaxKind::IDENT) {
+    if parser.at_any(PATTERN_START) {
+        pattern(parser);
     } else if parser.eat(SyntaxKind::L_PAREN) {
-        parser.expect(SyntaxKind::IDENT);
+        pattern(parser);
         let mark = parser.open();
         parser.expect(SyntaxKind::COLON);
         type_expr::type_expr(parser);
@@ -30,4 +33,12 @@ fn param(parser: &mut Parser) -> CompletedMarker {
         unreachable!();
     }
     parser.close(mark, SyntaxKind::PARAM)
+}
+
+pub(crate) fn pattern(parser: &mut Parser) {
+    if parser.at(SyntaxKind::UNDERSCORE) || parser.at(SyntaxKind::IDENT) {
+        parser.advance();
+    } else {
+        parser.error("Expected pattern".into());
+    }
 }
