@@ -77,7 +77,7 @@ impl Parse {
     }
 
     #[must_use]
-    pub fn module(self) -> nodes::Module {
+    pub fn module(&self) -> nodes::Module {
         self.tree()
     }
 }

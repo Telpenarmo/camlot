@@ -6,11 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+core.workspace = true
 parser.workspace = true
 
 lsp-types.workspace = true
 line-index.workspace = true
 expect-test.workspace = true
+la-arena.workspace = true
 
 [lints]
 workspace = true
