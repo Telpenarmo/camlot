@@ -2,15 +2,17 @@ import * as vscode from 'vscode';
 import * as lc from 'vscode-languageclient';
 import { Ctx } from './ctx';
 
-// Opens the virtual file that will show the syntax tree
+const scheme = 'camlot-analyzer-hir';
+
+// Opens the virtual file that will show the HIR
 //
 // The contents of the file come from the `TextDocumentContentProvider`
-export function syntaxTree(ctx: Ctx) {
-    const stcp = new SyntaxTreeContentProvider(ctx);
+export function viewHIR(ctx: Ctx) {
+    const stcp = new HirContentProvider(ctx);
 
     ctx.pushCleanup(
         vscode.workspace.registerTextDocumentContentProvider(
-            'camlot-analyzer-cst',
+            scheme,
             stcp,
         ),
     );
@@ -37,16 +39,9 @@ export function syntaxTree(ctx: Ctx) {
     );
 
     return async () => {
-        const editor = vscode.window.activeTextEditor;
-        const rangeEnabled = !!(editor && !editor.selection.isEmpty);
+        const document = await vscode.workspace.openTextDocument(stcp.uri);
 
-        const uri = rangeEnabled
-            ? vscode.Uri.parse(`${stcp.uri.toString()}?range=true`)
-            : stcp.uri;
-
-        const document = await vscode.workspace.openTextDocument(uri);
-
-        stcp.eventEmitter.fire(uri);
+        stcp.eventEmitter.fire(stcp.uri);
 
         return vscode.window.showTextDocument(
             document,
@@ -62,17 +57,15 @@ function afterLs(f: () => any) {
     setTimeout(f, 10);
 }
 
-interface SyntaxTreeParams {
+interface HirParams {
     text_document: lc.TextDocumentIdentifier;
-    range?: lc.Range;
 }
 
-export class SyntaxTreeContentProvider
+export class HirContentProvider
     implements vscode.TextDocumentContentProvider {
     ctx: Ctx;
-    uri = vscode.Uri.parse('camlot-analyzer-cst://syntaxtree/syntax.cml_cst');
+    uri = vscode.Uri.parse(scheme + '://hir/hir.cml');
     eventEmitter = new vscode.EventEmitter<vscode.Uri>();
-    syntaxTree: string = 'Not available';
 
     constructor(ctx: Ctx) {
         this.ctx = ctx;
@@ -84,23 +77,11 @@ export class SyntaxTreeContentProvider
             return '';
         }
 
-        let range: lc.Range | undefined;
-
-        // When the range based query is enabled we take the range of the selection
-        if (uri.query === 'range=true') {
-            range = editor.selection.isEmpty
-                ? undefined
-                : this.ctx.client.code2ProtocolConverter.asRange(
-                      editor.selection,
-                  );
-        }
-
-        const request: SyntaxTreeParams = {
+        const request: HirParams = {
             text_document: { uri: editor.document.uri.toString() },
-            range,
         };
         return this.ctx.client.sendRequest<string>(
-            'camlot-analyzer/syntaxTree',
+            'camlot-analyzer/hir',
             request,
         );
     }

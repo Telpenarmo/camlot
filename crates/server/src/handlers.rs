@@ -104,6 +104,30 @@ pub(crate) fn handle_syntax_tree_request(
     Ok(doc.parsed().debug_tree())
 }
 
+pub(crate) enum HirTree {}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub(crate) struct HirTreeRequest {
+    text_document: lsp_types::TextDocumentIdentifier,
+}
+
+impl lsp_types::request::Request for HirTree {
+    type Params = HirTreeRequest;
+    type Result = String;
+    const METHOD: &'static str = "camlot-analyzer/hir";
+}
+
+pub(crate) fn handle_hir_tree_request(
+    req: &HirTreeRequest,
+    _lsp: &Server,
+    ctx: &Context,
+) -> Result<String, ResponseError> {
+    let path = req.text_document.uri.path().to_string();
+    let doc = ctx.get_document(&path).unwrap();
+    let hir = doc.hir();
+    Ok(format!("{hir}"))
+}
+
 pub(crate) fn handle_semantic_tokens_full_request(
     req: &lsp_types::SemanticTokensParams,
     _lsp: &Server,

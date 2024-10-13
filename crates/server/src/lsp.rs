@@ -22,6 +22,8 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     server_builder
         .register_request::<handlers::SyntaxTree, _>(handlers::handle_syntax_tree_request);
 
+    server_builder.register_request::<handlers::HirTree, _>(handlers::handle_hir_tree_request);
+
     server_builder.register_request::<lsp_types::request::SemanticTokensFullRequest, _>(
         handlers::handle_semantic_tokens_full_request,
     );

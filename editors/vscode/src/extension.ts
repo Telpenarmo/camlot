@@ -9,6 +9,7 @@ import {
 
 import { Ctx } from './ctx';
 import { syntaxTree } from './syntax_tree';
+import { viewHIR } from './hir';
 
 let client: LanguageClient | undefined;
 let commands: vscode.Disposable[] = [];
@@ -19,9 +20,9 @@ async function initLanguageClient() {
 		args: ["lsp"],
 	};
 	const clientOptions: LanguageClientOptions = {
-		documentSelector: [{ scheme: "file", language: "camlot" }],
+		documentSelector: [{ language: "camlot" }],
 		synchronize: {
-			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{rml,rmli}"),
+			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{cml,cmli}"),
 		},
 	};
 
@@ -46,6 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			};
 			// register syntax tree command
 			commands.push(vscode.commands.registerCommand('camlot-analyzer.syntaxTree', syntaxTree(ctx)));
+			commands.push(vscode.commands.registerCommand('camlot-analyzer.hirTree', viewHIR(ctx)));
 			commands.push(vscode.commands.registerCommand('camlot-analyzer.restartServer', restart(ctx)));
 		} catch (err: any) {
 			vscode.window.showErrorMessage(err);

@@ -32,6 +32,11 @@
         "category": "Camlot"
       },
       {
+        "command": "camlot-analyzer.hirTree",
+        "title": "Show HIR Tree",
+        "category": "Camlot"
+      },
+      {
         "command": "camlot-analyzer.restartServer",
         "title": "Restart Server",
         "category": "Camlot"
