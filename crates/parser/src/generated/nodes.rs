@@ -7,10 +7,12 @@
     clippy::enum_glob_use
 )]
 use crate::{
-    ast::{support, AstChildren, AstNode, AstToken},
+    ast::{support, AstChildren, AstToken},
+    language::CamlotLanguage,
     SyntaxKind::{self, *},
     SyntaxNode, SyntaxToken,
 };
+use rowan::ast::AstNode;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Module {
@@ -472,6 +474,7 @@ pub enum InfixSymbolKind {
     Slash,
 }
 impl AstNode for Module {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == MODULE
     }
@@ -487,6 +490,7 @@ impl AstNode for Module {
     }
 }
 impl AstNode for Definition {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == DEFINITION
     }
@@ -502,6 +506,7 @@ impl AstNode for Definition {
     }
 }
 impl AstNode for Open {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == OPEN
     }
@@ -517,6 +522,7 @@ impl AstNode for Open {
     }
 }
 impl AstNode for TypeDefinition {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == TYPE_DEFINITION
     }
@@ -532,6 +538,7 @@ impl AstNode for TypeDefinition {
     }
 }
 impl AstNode for Params {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == PARAMS
     }
@@ -547,6 +554,7 @@ impl AstNode for Params {
     }
 }
 impl AstNode for TypeAnnotation {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == TYPE_ANNOTATION
     }
@@ -562,6 +570,7 @@ impl AstNode for TypeAnnotation {
     }
 }
 impl AstNode for DefBody {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == DEF_BODY
     }
@@ -577,6 +586,7 @@ impl AstNode for DefBody {
     }
 }
 impl AstNode for BlockExpr {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == BLOCK_EXPR
     }
@@ -592,6 +602,7 @@ impl AstNode for BlockExpr {
     }
 }
 impl AstNode for TypeIdent {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == TYPE_IDENT
     }
@@ -607,6 +618,7 @@ impl AstNode for TypeIdent {
     }
 }
 impl AstNode for TypeArrow {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == TYPE_ARROW
     }
@@ -622,6 +634,7 @@ impl AstNode for TypeArrow {
     }
 }
 impl AstNode for TypeParen {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == TYPE_PAREN
     }
@@ -637,6 +650,7 @@ impl AstNode for TypeParen {
     }
 }
 impl AstNode for ExprStmt {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == EXPR_STMT
     }
@@ -652,6 +666,7 @@ impl AstNode for ExprStmt {
     }
 }
 impl AstNode for LetStmt {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == LET_STMT
     }
@@ -667,6 +682,7 @@ impl AstNode for LetStmt {
     }
 }
 impl AstNode for IdentExpr {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == IDENT_EXPR
     }
@@ -682,6 +698,7 @@ impl AstNode for IdentExpr {
     }
 }
 impl AstNode for LiteralExpr {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == LITERAL_EXPR
     }
@@ -697,6 +714,7 @@ impl AstNode for LiteralExpr {
     }
 }
 impl AstNode for LambdaExpr {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == LAMBDA_EXPR
     }
@@ -712,6 +730,7 @@ impl AstNode for LambdaExpr {
     }
 }
 impl AstNode for ParenExpr {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == PAREN_EXPR
     }
@@ -727,6 +746,7 @@ impl AstNode for ParenExpr {
     }
 }
 impl AstNode for BinaryExpr {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == BINARY_EXPR
     }
@@ -742,6 +762,7 @@ impl AstNode for BinaryExpr {
     }
 }
 impl AstNode for AppExpr {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == APP_EXPR
     }
@@ -757,6 +778,7 @@ impl AstNode for AppExpr {
     }
 }
 impl AstNode for Param {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == PARAM
     }
@@ -787,6 +809,7 @@ impl From<TypeDefinition> for ModuleItem {
     }
 }
 impl AstNode for ModuleItem {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
             DEFINITION | OPEN | TYPE_DEFINITION => true,
@@ -826,6 +849,7 @@ impl From<TypeParen> for TypeExpr {
     }
 }
 impl AstNode for TypeExpr {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
             TYPE_IDENT | TYPE_ARROW | TYPE_PAREN => true,
@@ -880,6 +904,7 @@ impl From<BlockExpr> for Expr {
     }
 }
 impl AstNode for Expr {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
             IDENT_EXPR | LITERAL_EXPR | LAMBDA_EXPR | PAREN_EXPR | BINARY_EXPR | BLOCK_EXPR => true,
@@ -920,6 +945,7 @@ impl From<LetStmt> for Stmt {
     }
 }
 impl AstNode for Stmt {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
             EXPR_STMT | LET_STMT => true,

@@ -62,7 +62,7 @@ impl Parse {
     }
 
     fn tree<T: AstNode>(&self) -> T {
-        T::cast(self.syntax()).unwrap()
+        <T as ast::AstNode>::cast(self.syntax()).unwrap()
     }
 
     /// Convert the valid parse into a typed tree.

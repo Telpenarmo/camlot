@@ -1,6 +1,9 @@
 use rowan::Language;
 
-use crate::generated::syntax_kinds::SyntaxKind;
+use crate::{
+    generated::syntax_kinds::SyntaxKind,
+    nodes::{Definition, TypeDefinition, TypeExpr},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CamlotLanguage {}
@@ -22,3 +25,9 @@ pub type SyntaxElement = rowan::SyntaxElement<CamlotLanguage>;
 pub type SyntaxNodeChildren = rowan::SyntaxNodeChildren<CamlotLanguage>;
 pub type SyntaxElementChildren = rowan::SyntaxElementChildren<CamlotLanguage>;
 pub type PreorderWithTokens = rowan::api::PreorderWithTokens<CamlotLanguage>;
+pub type SyntaxNodePtr = rowan::ast::SyntaxNodePtr<CamlotLanguage>;
+
+pub type DefinitionPtr = rowan::ast::AstPtr<Definition>;
+pub type TypeDefinitionPtr = rowan::ast::AstPtr<TypeDefinition>;
+pub type TypeExprPtr = rowan::ast::AstPtr<TypeExpr>;
+pub type ExprPtr = rowan::ast::SyntaxNodePtr<CamlotLanguage>;

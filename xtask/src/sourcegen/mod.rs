@@ -316,6 +316,8 @@ fn generate_node(
     };
     let impls = quote! {
         impl AstNode for #name {
+            type Language = CamlotLanguage;
+
             fn can_cast(kind: SyntaxKind) -> bool {
                 kind == #kind
             }
@@ -347,6 +349,8 @@ fn generate_enum_def(en: &AstEnumSrc) -> (TokenStream, TokenStream) {
 
     let ast_node = quote! {
         impl AstNode for #name {
+            type Language = CamlotLanguage;
+
             fn can_cast(kind: SyntaxKind) -> bool {
                 match kind {
                     #(#kinds)|* => true,
@@ -512,9 +516,11 @@ fn generate_nodes(kinds: &KindsSrc, grammar: &AstSrc) -> Result<String> {
     let ast = quote! {
         #![allow(non_snake_case, clippy::match_like_matches_macro, clippy::enum_glob_use)]
 
+        use rowan::ast::AstNode;
+
         use crate::{
             SyntaxNode, SyntaxToken, SyntaxKind::{self, *},
-            ast::{AstNode, AstToken, AstChildren, support}
+            ast::{AstToken, AstChildren, support}, language::CamlotLanguage
         };
 
         #(#node_defs)*

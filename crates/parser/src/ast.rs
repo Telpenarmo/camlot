@@ -2,12 +2,9 @@ use std::marker::PhantomData;
 
 use crate::generated::syntax_kinds::SyntaxKind;
 use crate::language::{SyntaxNode, SyntaxNodeChildren, SyntaxToken};
+use crate::CamlotLanguage;
 
-/// The main trait to go from untyped `SyntaxNode`  to a typed ast. The
-/// conversion itself has zero runtime cost: ast and syntax nodes have exactly
-/// the same representation: a pointer to the tree root and a pointer to the
-/// node itself.
-pub trait AstNode {
+pub trait AstNode: rowan::ast::AstNode<Language = CamlotLanguage> {
     fn can_cast(kind: SyntaxKind) -> bool
     where
         Self: Sized;
@@ -17,21 +14,25 @@ pub trait AstNode {
         Self: Sized;
 
     fn syntax(&self) -> &SyntaxNode;
+}
 
-    #[must_use]
-    fn clone_for_update(&self) -> Self
+impl<N: rowan::ast::AstNode<Language = CamlotLanguage>> AstNode for N {
+    fn can_cast(kind: SyntaxKind) -> bool
     where
         Self: Sized,
     {
-        Self::cast(self.syntax().clone_for_update()).unwrap()
+        <Self as rowan::ast::AstNode>::can_cast(kind)
     }
 
-    #[must_use]
-    fn clone_subtree(&self) -> Self
+    fn cast(syntax: SyntaxNode) -> Option<Self>
     where
         Self: Sized,
     {
-        Self::cast(self.syntax().clone_subtree()).unwrap()
+        rowan::ast::AstNode::cast(syntax)
+    }
+
+    fn syntax(&self) -> &SyntaxNode {
+        rowan::ast::AstNode::syntax(self)
     }
 }
 
@@ -70,7 +71,7 @@ impl<N> AstChildren<N> {
 impl<N: AstNode> Iterator for AstChildren<N> {
     type Item = N;
     fn next(&mut self) -> Option<N> {
-        self.inner.find_map(N::cast)
+        self.inner.find_map(<N as AstNode>::cast)
     }
 }
 
@@ -78,7 +79,7 @@ pub(crate) mod support {
     use super::{AstChildren, AstNode, AstToken, SyntaxKind, SyntaxNode, SyntaxToken};
 
     pub(crate) fn child<N: AstNode>(parent: &SyntaxNode) -> Option<N> {
-        parent.children().find_map(N::cast)
+        parent.children().find_map(<N as AstNode>::cast)
     }
 
     pub(crate) fn token_child<N: AstToken>(parent: &SyntaxNode) -> Option<N> {

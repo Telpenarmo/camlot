@@ -1,7 +1,8 @@
+use rowan::ast::AstNode;
+
 use crate::{
     ast::support,
     nodes::{Expr, TypeExpr},
-    AstNode,
 };
 
 pub(crate) fn app_expr_func(parent: &rowan::SyntaxNode<crate::CamlotLanguage>) -> Option<Expr> {

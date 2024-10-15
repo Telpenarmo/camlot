@@ -1,15 +1,24 @@
-use crate::hir::{Definition, Expr, ExprIdx, Open, Param, TypeDefinition, TypeExpr, TypeExprIdx};
+use la_arena::{Arena, ArenaMap};
+use parser::{DefinitionPtr, ExprPtr, TypeDefinitionPtr, TypeExprPtr};
+
+use super::{
+    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, TypeDefinition, TypeDefinitionIdx,
+    TypeExpr, TypeExprIdx,
+};
 use crate::{intern::Interner, Name};
-use la_arena::Arena;
 
 #[derive(Debug)]
 #[allow(unused)]
 pub struct Module {
     pub(super) definitions: Arena<Definition>,
+    pub(super) definitions_syntax: ArenaMap<DefinitionIdx, DefinitionPtr>,
     pub(super) opens: Arena<Open>,
     pub(super) type_definitions: Arena<TypeDefinition>,
+    pub(super) type_definitions_syntax: ArenaMap<TypeDefinitionIdx, TypeDefinitionPtr>,
     pub(super) expressions: Arena<Expr>,
+    pub(super) exprs_syntax: ArenaMap<ExprIdx, ExprPtr>,
     pub(super) type_expressions: Arena<TypeExpr>,
+    pub(super) type_exprs_syntax: ArenaMap<TypeExprIdx, TypeExprPtr>,
     pub(super) names: Interner<String>,
 }
 
@@ -136,6 +145,10 @@ impl Module {
             opens: Arena::new(),
             type_definitions: Arena::new(),
             names: Interner::new(),
+            exprs_syntax: ArenaMap::new(),
+            type_exprs_syntax: ArenaMap::new(),
+            definitions_syntax: ArenaMap::new(),
+            type_definitions_syntax: ArenaMap::new(),
         }
     }
 }
