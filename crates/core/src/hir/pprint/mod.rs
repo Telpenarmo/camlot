@@ -64,10 +64,10 @@ impl Module {
 impl Display for Module {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut written_types = false;
-        for typ in self.type_definitions.values() {
+        for (_, typ) in self.iter_type_definitions() {
             written_types = true;
             f.write_str("type ")?;
-            f.write_str(self.names.lookup(typ.name))?;
+            f.write_str(self.get_name(typ.name))?;
             f.write_str(" = ")?;
             self.fmt_type_expr(f, typ.defn)?;
             f.write_str(";\n")?;
@@ -75,9 +75,9 @@ impl Display for Module {
         if written_types {
             f.write_str("\n")?;
         }
-        for defn in self.definitions.values() {
+        for (_, defn) in self.iter_definitions() {
             f.write_str("def ")?;
-            f.write_str(self.names.lookup(defn.name))?;
+            f.write_str(self.get_name(defn.name))?;
             f.write_str(" = ")?;
             self.fmt_expr(f, defn.defn, false, 0)?;
             f.write_str(";\n")?;

@@ -53,13 +53,11 @@ mod tests {
     #[test]
     fn test_lambda_display() {
         let mut module = Module::new();
-        let a = module.names.intern("a".into());
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
+        let a = module.name("a");
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
         let param = Param { name: a, typ: int };
-        let a = module.expressions.alloc(Expr::IdentExpr { name: a });
+        let a = module.alloc_expr(Expr::IdentExpr { name: a });
         let lambda = LambdaExpr {
             param,
             body: a,
@@ -72,18 +70,16 @@ mod tests {
     #[test]
     fn test_lambda_no_param_type() {
         let mut module = Module::new();
-        let a = module.names.intern("a".into());
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
-        let missing_type = module.type_expressions.alloc(TypeExpr::Missing);
+        let a = module.name("a");
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
+        let missing_type = module.alloc_type_expr(TypeExpr::Missing);
 
         let param = Param {
             name: a,
             typ: missing_type,
         };
-        let a = module.expressions.alloc(Expr::IdentExpr { name: a });
+        let a = module.alloc_expr(Expr::IdentExpr { name: a });
         let lambda = LambdaExpr {
             param,
             body: a,
@@ -97,15 +93,13 @@ mod tests {
     fn test_lambda_no_return_type() {
         let mut module = Module::new();
 
-        let a = module.names.intern("a".into());
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
-        let missing_type = module.type_expressions.alloc(TypeExpr::Missing);
+        let a = module.name("a");
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
+        let missing_type = module.alloc_type_expr(TypeExpr::Missing);
 
         let param_a = Param { name: a, typ: int };
-        let a = module.expressions.alloc(Expr::IdentExpr { name: a });
+        let a = module.alloc_expr(Expr::IdentExpr { name: a });
         let lambda = LambdaExpr {
             param: param_a,
             body: a,
@@ -118,18 +112,16 @@ mod tests {
     #[test]
     fn test_lambda_two_params() {
         let mut module = Module::new();
-        let a = module.names.intern("a".into());
-        let b = module.names.intern("b".into());
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
-        let missing_type = module.type_expressions.alloc(TypeExpr::Missing);
+        let a = module.name("a");
+        let b = module.name("b");
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
+        let missing_type = module.alloc_type_expr(TypeExpr::Missing);
         let param_a = Param { name: a, typ: int };
         let param_b = Param { name: b, typ: int };
-        let b = module.expressions.alloc(Expr::IdentExpr { name: b });
+        let b = module.alloc_expr(Expr::IdentExpr { name: b });
         let inner = Expr::lambda_expr(param_b, missing_type, b);
-        let inner = module.expressions.alloc(inner);
+        let inner = module.alloc_expr(inner);
         let lambda = LambdaExpr {
             param: param_a,
             body: inner,
@@ -143,27 +135,25 @@ mod tests {
     fn test_lambda_nested() {
         let mut module = Module::new();
 
-        let a = module.names.intern("a".into());
-        let b = module.names.intern("b".into());
-        let c = module.names.intern("c".into());
+        let a = module.name("a");
+        let b = module.name("b");
+        let c = module.name("c");
 
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
 
-        let missing_type = module.type_expressions.alloc(TypeExpr::Missing);
+        let missing_type = module.alloc_type_expr(TypeExpr::Missing);
 
         let param_a = Param { name: a, typ: int };
         let param_b = Param { name: b, typ: int };
         let param_c = Param { name: c, typ: int };
 
-        let c = module.expressions.alloc(Expr::IdentExpr { name: c });
+        let c = module.alloc_expr(Expr::IdentExpr { name: c });
         let most_inner = Expr::lambda_expr(param_c, missing_type, c);
-        let most_inner = module.expressions.alloc(most_inner);
+        let most_inner = module.alloc_expr(most_inner);
 
         let inner = Expr::lambda_expr(param_b, missing_type, most_inner);
-        let inner = module.expressions.alloc(inner);
+        let inner = module.alloc_expr(inner);
 
         let lambda = LambdaExpr {
             param: param_a,
@@ -178,24 +168,20 @@ mod tests {
     fn test_lambda_nested_with_inner_return_types() {
         let mut module = Module::new();
 
-        let a = module.names.intern("a".into());
-        let b = module.names.intern("b".into());
+        let a = module.name("a");
+        let b = module.name("b");
 
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
 
-        let int_to_int = module
-            .type_expressions
-            .alloc(TypeExpr::TypeArrow { from: int, to: int });
+        let int_to_int = module.alloc_type_expr(TypeExpr::TypeArrow { from: int, to: int });
 
         let param_a = Param { name: a, typ: int };
         let param_b = Param { name: b, typ: int };
 
-        let b = module.expressions.alloc(Expr::IdentExpr { name: b });
+        let b = module.alloc_expr(Expr::IdentExpr { name: b });
         let inner = Expr::lambda_expr(param_b, int, b);
-        let inner = module.expressions.alloc(inner);
+        let inner = module.alloc_expr(inner);
 
         let lambda = LambdaExpr {
             param: param_a,

@@ -1,27 +1,23 @@
-use crate::hir::{
-    Definition, DefinitionIdx, Expr, ExprIdx, Open, OpenIdx, Param, TypeDefinition,
-    TypeDefinitionIdx, TypeExpr, TypeExprIdx,
-};
-use crate::Name;
 use parser::{nodes as ast, AstToken};
 
-use super::module::Module;
-use super::Literal;
+use crate::Name;
+
+use super::{
+    module::Module, Definition, Expr, ExprIdx, Literal, Param, TypeDefinition, TypeExpr,
+    TypeExprIdx,
+};
 
 impl Module {
     pub fn lower_module(&mut self, ast: &ast::Module) {
         ast.module_items().for_each(|ast| match ast {
             ast::ModuleItem::Definition(ast) => {
                 let definition = self.lower_definition(&ast);
-                self.definitions.alloc(definition);
+                self.alloc_definition(definition);
             }
-            ast::ModuleItem::Open(ast) => {
-                let open = self.lower_open(&ast);
-                self.opens.alloc(open);
-            }
+            ast::ModuleItem::Open(_ast) => {}
             ast::ModuleItem::TypeDefinition(ast) => {
                 let type_definition = self.lower_type_definition(&ast);
-                self.type_definitions.alloc(type_definition);
+                self.alloc_type_definition(type_definition);
             }
         });
     }
@@ -51,12 +47,6 @@ impl Module {
         Definition {
             name: self.lower_ident(ast.ident_lit()),
             defn,
-        }
-    }
-
-    fn lower_open(&mut self, ast: &ast::Open) -> Open {
-        Open {
-            path: self.lower_ident(ast.ident_lit()),
         }
     }
 
@@ -196,8 +186,10 @@ impl Module {
     }
 
     fn lower_ident(&mut self, ident: Option<parser::SyntaxToken>) -> Name {
-        let name = ident.map(|ident| ident.text().into()).unwrap_or_default();
-        self.names.intern(name)
+        let name = ident
+            .map(|ident| ident.text().to_string())
+            .unwrap_or_default();
+        self.name(name)
     }
 
     fn lower_stmt(&mut self, ast: ast::Stmt, cont: ExprIdx) -> Expr {
@@ -217,8 +209,8 @@ impl Module {
                 let name = {
                     let name = ast
                         .pattern()
-                        .map_or("_".into(), |ident| ident.text().into());
-                    self.names.intern(name)
+                        .map_or("_".to_string(), |ident| ident.text().to_string());
+                    self.name(name)
                 };
 
                 let params = self.lower_params(ast.params());
@@ -243,46 +235,6 @@ impl Module {
             self.lower_stmt(stmt.clone(), body)
         })
     }
-
-    fn alloc_expr(&mut self, expr: Expr) -> ExprIdx {
-        self.expressions.alloc(expr)
-    }
-
-    fn alloc_type_expr(&mut self, type_expr: TypeExpr) -> TypeExprIdx {
-        self.type_expressions.alloc(type_expr)
-    }
-
-    fn empty_name(&mut self) -> Name {
-        self.names.intern("_".into())
-    }
-
-    fn name<S: Into<String>>(&mut self, name: S) -> Name {
-        self.names.intern(name.into())
-    }
-
-    pub(crate) fn get_expr(&self, idx: ExprIdx) -> &Expr {
-        &self.expressions[idx]
-    }
-
-    pub(crate) fn get_type_expr(&self, idx: TypeExprIdx) -> &TypeExpr {
-        &self.type_expressions[idx]
-    }
-
-    pub(crate) fn get_definition(&self, idx: DefinitionIdx) -> &Definition {
-        &self.definitions[idx]
-    }
-
-    pub(crate) fn get_open(&self, idx: OpenIdx) -> &Open {
-        &self.opens[idx]
-    }
-
-    pub(crate) fn get_type_definition(&self, idx: TypeDefinitionIdx) -> &TypeDefinition {
-        &self.type_definitions[idx]
-    }
-
-    pub(crate) fn get_name(&self, name: Name) -> &str {
-        self.names.lookup(name)
-    }
 }
 
 #[cfg(test)]
@@ -306,9 +258,8 @@ mod tests {
         module.lower_module(&module_syntax);
 
         module
-            .expressions
-            .iter()
-            .zip(expected_module.expressions.iter())
+            .iter_expressions()
+            .zip(expected_module.iter_expressions())
             .for_each(|((actual, _), (expected, _))| {
                 assert!(
                     expr_deep_eq(&module, expected_module, actual, expected),
@@ -317,9 +268,8 @@ mod tests {
             });
 
         module
-            .type_expressions
-            .iter()
-            .zip(expected_module.type_expressions.iter())
+            .iter_type_expressions()
+            .zip(expected_module.iter_type_expressions())
             .for_each(|((actual, _), (expected, _))| {
                 assert!(type_expr_deep_eq(
                     &module,
@@ -353,7 +303,7 @@ mod tests {
             defn,
         };
 
-        expected_module.definitions.alloc(definition);
+        expected_module.alloc_definition(definition);
 
         assert_eq!(actual_module, expected_module);
     }
@@ -381,7 +331,7 @@ mod tests {
             name: expected_module.name("f"),
             defn,
         };
-        expected_module.definitions.alloc(definition);
+        expected_module.alloc_definition(definition);
 
         assert_eq!(actual_module, expected_module);
     }
@@ -409,7 +359,7 @@ mod tests {
             name: expected_module.name("f"),
             defn,
         };
-        expected_module.definitions.alloc(definition);
+        expected_module.alloc_definition(definition);
 
         assert_eq!(actual_module, expected_module);
     }
@@ -488,7 +438,7 @@ mod tests {
             name: expected_module.name("f"),
             defn: lambda,
         };
-        expected_module.definitions.alloc(definition);
+        expected_module.alloc_definition(definition);
 
         let module = parser::parse("def f = \\(x: int) -> x;").module();
         let mut actual_module = Module::new();
@@ -522,12 +472,11 @@ mod tests {
         ));
 
         let module_syntax = parser::parse("def x { let a b = c; d }").module();
-        let mut module = Module::default();
+        let mut actual_module = Module::default();
 
-        module.lower_module(&module_syntax);
+        actual_module.lower_module(&module_syntax);
 
-        assert_eq!(module.expressions, module.expressions);
-        assert_eq!(module.type_expressions, module.type_expressions);
+        assert_eq!(module, actual_module);
     }
 
     #[test]
@@ -609,7 +558,7 @@ mod tests {
             name: expected_module.name("f"),
             defn,
         };
-        expected_module.definitions.alloc(definition);
+        expected_module.alloc_definition(definition);
 
         assert_eq!(actual_module, expected_module);
     }
@@ -641,7 +590,7 @@ mod tests {
         ));
 
         let definition = Definition { name: f, defn };
-        expected_module.definitions.alloc(definition);
+        expected_module.alloc_definition(definition);
 
         assert_eq!(actual_module, expected_module);
     }

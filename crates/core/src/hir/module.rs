@@ -10,16 +10,16 @@ use crate::{intern::Interner, Name};
 #[derive(Debug)]
 #[allow(unused)]
 pub struct Module {
-    pub(super) definitions: Arena<Definition>,
-    pub(super) definitions_syntax: ArenaMap<DefinitionIdx, DefinitionPtr>,
-    pub(super) opens: Arena<Open>,
-    pub(super) type_definitions: Arena<TypeDefinition>,
-    pub(super) type_definitions_syntax: ArenaMap<TypeDefinitionIdx, TypeDefinitionPtr>,
-    pub(super) expressions: Arena<Expr>,
-    pub(super) exprs_syntax: ArenaMap<ExprIdx, ExprPtr>,
-    pub(super) type_expressions: Arena<TypeExpr>,
-    pub(super) type_exprs_syntax: ArenaMap<TypeExprIdx, TypeExprPtr>,
-    pub(super) names: Interner<String>,
+    definitions: Arena<Definition>,
+    definitions_syntax: ArenaMap<DefinitionIdx, DefinitionPtr>,
+    opens: Arena<Open>,
+    type_definitions: Arena<TypeDefinition>,
+    type_definitions_syntax: ArenaMap<TypeDefinitionIdx, TypeDefinitionPtr>,
+    expressions: Arena<Expr>,
+    exprs_syntax: ArenaMap<ExprIdx, ExprPtr>,
+    type_expressions: Arena<TypeExpr>,
+    type_exprs_syntax: ArenaMap<TypeExprIdx, TypeExprPtr>,
+    names: Interner<String>,
 }
 
 fn name_deep_eq(a_module: &Module, b_module: &Module, a: Name, b: Name) -> bool {
@@ -150,5 +150,70 @@ impl Module {
             definitions_syntax: ArenaMap::new(),
             type_definitions_syntax: ArenaMap::new(),
         }
+    }
+
+    pub(super) fn alloc_definition(&mut self, definition: Definition) -> DefinitionIdx {
+        self.definitions.alloc(definition)
+    }
+
+    pub(crate) fn get_definition(&self, idx: DefinitionIdx) -> &Definition {
+        &self.definitions[idx]
+    }
+
+    pub(super) fn alloc_type_definition(
+        &mut self,
+        type_definition: TypeDefinition,
+    ) -> TypeDefinitionIdx {
+        self.type_definitions.alloc(type_definition)
+    }
+
+    pub(crate) fn get_type_definition(&self, idx: TypeDefinitionIdx) -> &TypeDefinition {
+        &self.type_definitions[idx]
+    }
+
+    pub(super) fn alloc_type_expr(&mut self, type_expr: TypeExpr) -> TypeExprIdx {
+        self.type_expressions.alloc(type_expr)
+    }
+
+    pub(crate) fn get_type_expr(&self, idx: TypeExprIdx) -> &TypeExpr {
+        &self.type_expressions[idx]
+    }
+
+    pub(super) fn alloc_expr(&mut self, expr: Expr) -> ExprIdx {
+        self.expressions.alloc(expr)
+    }
+
+    pub(crate) fn get_expr(&self, idx: ExprIdx) -> &Expr {
+        &self.expressions[idx]
+    }
+
+    pub(super) fn empty_name(&mut self) -> Name {
+        self.names.intern("_".into())
+    }
+
+    pub(super) fn name<S: Into<String>>(&mut self, name: S) -> Name {
+        self.names.intern(name.into())
+    }
+
+    pub(crate) fn get_name(&self, name: Name) -> &str {
+        self.names.lookup(name)
+    }
+
+    pub(super) fn iter_definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> {
+        self.definitions.iter()
+    }
+
+    pub(super) fn iter_type_definitions(
+        &self,
+    ) -> impl Iterator<Item = (TypeDefinitionIdx, &TypeDefinition)> {
+        self.type_definitions.iter()
+    }
+
+    pub(super) fn iter_expressions(&self) -> impl Iterator<Item = (ExprIdx, &Expr)> {
+        self.expressions.iter()
+    }
+
+    pub(super) fn iter_type_expressions(&self) -> impl Iterator<Item = (TypeExprIdx, &TypeExpr)> {
+        self.type_expressions.iter()
     }
 }

@@ -17,7 +17,7 @@ impl Module {
             new_line(f, indent)?;
         }
         f.write_str("let ")?;
-        f.write_str(self.names.lookup(e.name))?;
+        f.write_str(self.get_name(e.name))?;
         for param in &e.params {
             f.write_str(" ")?;
             self.fmt_param(f, param)?;
@@ -56,26 +56,22 @@ mod tests {
     #[test]
     fn test_fmt_two_lets() {
         let mut module = Module::new();
-        let a_name = module.names.intern("a".into());
-        let a = module.expressions.alloc(Expr::IdentExpr { name: a_name });
-        let b_name = module.names.intern("b".into());
-        let b = module.expressions.alloc(Expr::IdentExpr { name: b_name });
-        let c_name = module.names.intern("c".into());
-        let c = module.expressions.alloc(Expr::IdentExpr { name: c_name });
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
+        let a_name = module.name("a");
+        let a = module.alloc_expr(Expr::IdentExpr { name: a_name });
+        let b_name = module.name("b");
+        let b = module.alloc_expr(Expr::IdentExpr { name: b_name });
+        let c_name = module.name("c");
+        let c = module.alloc_expr(Expr::IdentExpr { name: c_name });
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
         let params = vec![Param {
             name: b_name,
             typ: int,
         }]
         .into_boxed_slice();
-        let int_to_int = module
-            .type_expressions
-            .alloc(TypeExpr::TypeArrow { from: int, to: int });
+        let int_to_int = module.alloc_type_expr(TypeExpr::TypeArrow { from: int, to: int });
         let inner_let = Expr::let_expr(c_name, vec![].into_boxed_slice(), int_to_int, a, c);
-        let inner_let = module.expressions.alloc(inner_let);
+        let inner_let = module.alloc_expr(inner_let);
         let let_expr = LetExpr {
             name: a_name,
             params,
@@ -95,23 +91,21 @@ mod tests {
     #[test]
     fn test_fmt_nested_let() {
         let mut module = Module::new();
-        let a_name = module.names.intern("a".into());
-        let a = module.expressions.alloc(Expr::IdentExpr { name: a_name });
-        let b_name = module.names.intern("b".into());
-        let b = module.expressions.alloc(Expr::IdentExpr { name: b_name });
-        let c_name = module.names.intern("c".into());
-        let c = module.expressions.alloc(Expr::IdentExpr { name: c_name });
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
+        let a_name = module.name("a");
+        let a = module.alloc_expr(Expr::IdentExpr { name: a_name });
+        let b_name = module.name("b");
+        let b = module.alloc_expr(Expr::IdentExpr { name: b_name });
+        let c_name = module.name("c");
+        let c = module.alloc_expr(Expr::IdentExpr { name: c_name });
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
         let params = vec![Param {
             name: b_name,
             typ: int,
         }]
         .into_boxed_slice();
         let inner_let = Expr::let_expr(c_name, vec![].into_boxed_slice(), int, b, c);
-        let inner_let = module.expressions.alloc(inner_let);
+        let inner_let = module.alloc_expr(inner_let);
         let let_expr = LetExpr {
             name: a_name,
             params,
@@ -134,16 +128,14 @@ mod tests {
     fn test_fmt_let_without_return_type() {
         let mut module = Module::new();
 
-        let a_name = module.names.intern("a".into());
-        let b_name = module.names.intern("b".into());
-        let a = module.expressions.alloc(Expr::IdentExpr { name: a_name });
-        let b = module.expressions.alloc(Expr::IdentExpr { name: b_name });
+        let a_name = module.name("a");
+        let b_name = module.name("b");
+        let a = module.alloc_expr(Expr::IdentExpr { name: a_name });
+        let b = module.alloc_expr(Expr::IdentExpr { name: b_name });
 
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
-        let missing_type = module.type_expressions.alloc(TypeExpr::Missing);
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
+        let missing_type = module.alloc_type_expr(TypeExpr::Missing);
 
         let param = Param {
             name: b_name,
@@ -169,16 +161,14 @@ mod tests {
     fn test_fmt_let_without_param_type() {
         let mut module = Module::new();
 
-        let a_name = module.names.intern("a".into());
-        let a = module.expressions.alloc(Expr::IdentExpr { name: a_name });
-        let b_name = module.names.intern("b".into());
-        let b = module.expressions.alloc(Expr::IdentExpr { name: b_name });
+        let a_name = module.name("a");
+        let a = module.alloc_expr(Expr::IdentExpr { name: a_name });
+        let b_name = module.name("b");
+        let b = module.alloc_expr(Expr::IdentExpr { name: b_name });
 
-        let int = module.names.intern("int".into());
-        let int = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name: int });
-        let missing_type = module.type_expressions.alloc(TypeExpr::Missing);
+        let int = module.name("int");
+        let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
+        let missing_type = module.alloc_type_expr(TypeExpr::Missing);
         let param = Param {
             name: b_name,
             typ: missing_type,

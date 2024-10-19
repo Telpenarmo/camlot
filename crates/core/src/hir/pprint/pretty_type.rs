@@ -41,17 +41,11 @@ mod tests {
     #[test]
     fn test_fmt_type_expr() {
         let mut module = Module::new();
-        let name = module.names.intern("a".into());
-        let a = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name });
-        let name = module.names.intern("b".into());
-        let b = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name });
-        let ab = module
-            .type_expressions
-            .alloc(TypeExpr::TypeArrow { from: a, to: b });
+        let name = module.name("a");
+        let a = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name });
+        let name = module.name("b");
+        let b = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name });
+        let ab = module.alloc_type_expr(TypeExpr::TypeArrow { from: a, to: b });
 
         assert_eq!(format!("{:?}", InModule(module, ab)), "a -> b");
     }
@@ -59,21 +53,13 @@ mod tests {
     #[test]
     fn test_fmt_type_expr_three() {
         let mut module = Module::new();
-        let name = module.names.intern("a".into());
-        let a = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name });
-        let name = module.names.intern("b".into());
-        let b = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name });
-        let ab = module
-            .type_expressions
-            .alloc(TypeExpr::TypeArrow { from: a, to: b });
+        let name = module.name("a");
+        let a = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name });
+        let name = module.name("b");
+        let b = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name });
+        let ab = module.alloc_type_expr(TypeExpr::TypeArrow { from: a, to: b });
 
-        let bab = module
-            .type_expressions
-            .alloc(TypeExpr::TypeArrow { from: b, to: ab });
+        let bab = module.alloc_type_expr(TypeExpr::TypeArrow { from: b, to: ab });
 
         assert_eq!(format!("{:?}", InModule(module, bab)), "b -> a -> b");
     }
@@ -81,20 +67,12 @@ mod tests {
     #[test]
     fn test_fmt_type_expr_associativity() {
         let mut module = Module::new();
-        let name = module.names.intern("a".into());
-        let a = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name });
-        let name = module.names.intern("b".into());
-        let b = module
-            .type_expressions
-            .alloc(TypeExpr::IdentTypeExpr { name });
-        let ab = module
-            .type_expressions
-            .alloc(TypeExpr::TypeArrow { from: a, to: b });
-        let abc = module
-            .type_expressions
-            .alloc(TypeExpr::TypeArrow { from: ab, to: a });
+        let name = module.name("a");
+        let a = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name });
+        let name = module.name("b");
+        let b = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name });
+        let ab = module.alloc_type_expr(TypeExpr::TypeArrow { from: a, to: b });
+        let abc = module.alloc_type_expr(TypeExpr::TypeArrow { from: ab, to: a });
 
         assert_eq!(format!("{:?}", InModule(module, abc)), "(a -> b) -> a");
     }

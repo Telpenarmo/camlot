@@ -11,7 +11,6 @@ use crate::intern::Interned;
 pub(crate) type ExprIdx = Idx<Expr>;
 pub(crate) type TypeExprIdx = Idx<TypeExpr>;
 pub(crate) type DefinitionIdx = Idx<Definition>;
-pub(crate) type OpenIdx = Idx<Open>;
 pub(crate) type TypeDefinitionIdx = Idx<TypeDefinition>;
 
 pub(crate) type Name = Interned<String>;
