@@ -99,11 +99,6 @@ pub(super) fn expr_deep_eq(a_module: &Module, b_module: &Module, a: ExprIdx, b: 
                 && type_expr_deep_eq(a_module, b_module, l_let.return_type, b_let.return_type)
                 && expr_deep_eq(a_module, b_module, l_let.body, b_let.body)
                 && expr_deep_eq(a_module, b_module, l_let.defn, b_let.defn)
-                && l_let
-                    .params
-                    .iter()
-                    .zip(b_let.params.iter())
-                    .all(|(a, b)| param_deep_eq(a_module, b_module, a, b))
         }
         _ => false,
     }

@@ -141,7 +141,7 @@ mod tests {
 
         let expected = expect![[r"
             def f = {
-                let f (x: int) : int = x;
+                let f = \(x: int) : int -> x;
                 ()
             };
         "]];
@@ -152,16 +152,16 @@ mod tests {
     fn test_module_display_let_let() {
         let actual = display_hir(
             r"def f {
-                let f (x: int) = x;
-                let f x: int = x;
+                let f = \(x: int) -> x;
+                let f = \x: int -> x;
                 (a b c)
             }",
         );
 
         let expected = expect![[r"
             def f = {
-                let f (x: int) = x;
-                let f x : int = x;
+                let f = \(x: int) -> x;
+                let f = \x : int -> x;
                 ((a b) c)
             };
         "]];
@@ -197,7 +197,7 @@ mod tests {
 
         let expected = expect![[r"
             def f = ({
-                let f x = x;
+                let f = \x -> x;
                 f
             } 1);
         "]];

@@ -226,12 +226,7 @@ impl TypeInference {
             Expr::Missing => self.next_unification_var(types),
             Expr::LetExpr(let_expr) => {
                 let def_typ = self.resolve_type_expr(module, types, let_expr.return_type);
-                let mut def_env = env.clone();
-                for param in &let_expr.params {
-                    let typ = self.resolve_type_expr(module, types, param.typ);
-                    def_env = def_env.update(param.name, typ);
-                }
-                self.check_expr(module, types, let_expr.defn, &def_env, def_typ);
+                self.check_expr(module, types, let_expr.defn, env, def_typ);
 
                 let env = env.update(let_expr.name, def_typ);
                 self.infer_expr(module, types, &env, let_expr.body)
@@ -596,5 +591,35 @@ mod tests {
             &result.diagnostics[1],
             &crate::Diagnostic::UnifcationError { .. }
         ));
+    }
+
+    #[test]
+    fn test_infer_let_function_with_return_type() {
+        let (module, mut types, result) = infer_from_str("def f { let f y : int = y; f }");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        let int = types.intern(Type::Int);
+
+        let int_to_int = arrow(&mut types, int, int);
+        assert_types_eq(actual_defn, int_to_int, &types);
+        assert_types_eq(actual_body, int_to_int, &types);
+    }
+
+    #[test]
+    fn test_infer_let_function_with_param_type() {
+        let (module, mut types, result) = infer_from_str("def f { let f (y : int) = y; f }");
+
+        assert_empty(&result.diagnostics);
+
+        let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
+
+        let int = types.intern(Type::Int);
+
+        let int_to_int = arrow(&mut types, int, int);
+        assert_types_eq(actual_defn, int_to_int, &types);
+        assert_types_eq(actual_body, int_to_int, &types);
     }
 }

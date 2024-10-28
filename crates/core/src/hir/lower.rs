@@ -102,16 +102,8 @@ impl Module {
         }
     }
 
-    fn curry(&mut self, body: ExprIdx, params: &[Param], return_type: TypeExprIdx) -> Expr {
-        let empty_param = Param {
-            name: self.empty_name(),
-            typ: self.alloc_type_expr(TypeExpr::Missing),
-        };
-        let tail_param = params.last().cloned().unwrap_or(empty_param);
-
-        let body = Expr::lambda_expr(tail_param, return_type, body);
-
-        params.iter().rev().skip(1).fold(body, |body, param| {
+    fn curry<'a, T: Iterator<Item = &'a Param>>(&mut self, body: Expr, params: T) -> Expr {
+        params.fold(body, |body, param| {
             let body = self.alloc_expr(body);
 
             Expr::lambda_expr(param.clone(), self.alloc_type_expr(TypeExpr::Missing), body)
@@ -152,6 +144,7 @@ impl Module {
             }
             ast::Expr::LambdaExpr(ast) => {
                 let params = self.lower_params(ast.params());
+                let mut params_rev = params.iter().rev();
 
                 let body = self.lower_expr(ast.body());
                 let body = self.alloc_expr(body);
@@ -159,7 +152,13 @@ impl Module {
                 let return_type = self.lower_type_annotation(ast.type_annotation());
                 let return_type = self.alloc_type_expr(return_type);
 
-                self.curry(body, &params, return_type)
+                let innermost_param = params_rev.next().cloned().unwrap_or_else(|| Param {
+                    name: self.empty_name(),
+                    typ: self.alloc_type_expr(TypeExpr::Missing),
+                });
+                let innermost = Expr::lambda_expr(innermost_param, return_type, body);
+
+                self.curry(innermost, params_rev)
             }
             ast::Expr::BlockExpr(ast) => self.lower_block(&ast),
             ast::Expr::BinaryExpr(_) => todo!("Binary expressions are not yet supported"),
@@ -196,7 +195,6 @@ impl Module {
                 let expr = self.alloc_expr(expr);
                 Expr::let_expr(
                     self.empty_name(),
-                    vec![].into(),
                     self.alloc_type_expr(TypeExpr::Missing),
                     expr,
                     cont,
@@ -216,9 +214,21 @@ impl Module {
                 let return_type = self.alloc_type_expr(return_type);
 
                 let defn = self.lower_expr(ast.def());
+
+                let mut params_rev = params.iter().rev();
+
+                let (defn, return_type) = match params_rev.next() {
+                    Some(tail_param) => {
+                        let defn = self.alloc_expr(defn);
+                        let defn = Expr::lambda_expr(tail_param.clone(), return_type, defn);
+                        (defn, self.alloc_type_expr(TypeExpr::Missing))
+                    }
+                    None => (defn, return_type),
+                };
+                let defn = self.curry(defn, params_rev);
                 let defn = self.alloc_expr(defn);
 
-                Expr::let_expr(name, params, return_type, defn, cont)
+                Expr::let_expr(name, return_type, defn, cont)
             }
         }
     }
@@ -272,7 +282,7 @@ mod tests {
             .for_each(|((actual, _), (expected, _))| {
                 assert!(
                     expr_deep_eq(&module, expected_module, actual, expected),
-                    "{module}\n\n{expected_module}"
+                    "Actual:\n{module}\n\nExpected:\n{expected_module}"
                 );
             });
 
@@ -459,15 +469,12 @@ mod tests {
         let name = module.name("a");
         let param = unannotated_param(&mut module, "b");
 
+        let missing_type = module.alloc_type_expr(TypeExpr::Missing);
+        let body = module.alloc_expr(Expr::lambda_expr(param, missing_type, body));
+
         let typ = module.alloc_type_expr(TypeExpr::Missing);
 
-        module.alloc_expr(Expr::let_expr(
-            name,
-            vec![param].into_boxed_slice(),
-            typ,
-            defn,
-            body,
-        ));
+        module.alloc_expr(Expr::let_expr(name, typ, defn, body));
 
         let actual_module = lower("def x { let a b = c; d }");
 
@@ -518,7 +525,6 @@ mod tests {
         let mut module = module();
 
         let param = unannotated_param(&mut module, "b");
-        let params = vec![param].into_boxed_slice();
 
         let d = module.name("d");
         let body = module.alloc_expr(Expr::ident_expr(d));
@@ -526,7 +532,10 @@ mod tests {
         let name = module.name("a");
         let typ = module.alloc_type_expr(TypeExpr::Missing);
         let defn = module.alloc_expr(Expr::Missing);
-        module.alloc_expr(Expr::let_expr(name, params, typ, defn, body));
+
+        let defn = module.alloc_expr(Expr::lambda_expr(param, typ, defn));
+
+        module.alloc_expr(Expr::let_expr(name, typ, defn, body));
 
         check_expr("{ let a b; d }", &module);
     }
@@ -591,13 +600,7 @@ mod tests {
         let tail_expr = expected_module.alloc_expr(Expr::ident_expr(x));
         let let_body = expected_module.alloc_expr(Expr::int_expr(42));
 
-        let defn = expected_module.alloc_expr(Expr::let_expr(
-            x,
-            vec![].into_boxed_slice(),
-            return_type,
-            let_body,
-            tail_expr,
-        ));
+        let defn = expected_module.alloc_expr(Expr::let_expr(x, return_type, let_body, tail_expr));
 
         let definition = Definition {
             name: f,
@@ -638,7 +641,7 @@ mod tests {
         let name = module.empty_name();
         let return_type = module.alloc_type_expr(TypeExpr::Missing);
 
-        module.alloc_expr(Expr::let_expr(name, Box::new([]), return_type, defn, body));
+        module.alloc_expr(Expr::let_expr(name, return_type, defn, body));
 
         check_expr("{ 42; }", &module);
     }
@@ -653,7 +656,7 @@ mod tests {
 
         let return_type = module.alloc_type_expr(TypeExpr::Missing);
 
-        module.alloc_expr(Expr::let_expr(x, Box::new([]), return_type, defn, body));
+        module.alloc_expr(Expr::let_expr(x, return_type, defn, body));
 
         check_expr("{ let x = 42; }", &module);
     }
