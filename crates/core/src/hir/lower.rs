@@ -3,7 +3,7 @@ use parser::{nodes as ast, AstToken};
 use crate::Name;
 
 use super::{
-    module::Module, Definition, Expr, ExprIdx, Literal, Param, TypeDefinition, TypeExpr,
+    module::Module, Definition, Expr, ExprIdx, Literal, Param, Pattern, TypeDefinition, TypeExpr,
     TypeExprIdx,
 };
 
@@ -63,15 +63,22 @@ impl Module {
     }
 
     fn lower_param(&mut self, ast: &ast::Param) -> Param {
-        let name = self.name(
-            ast.pattern()
-                .expect("Empty param indicates parser bug")
-                .text(),
-        );
+        let pattern = self.lower_pattern(&ast.pattern().expect("Empty param indicates parser bug"));
+
         let typ = self.lower_type_annotation(ast.type_annotation());
         Param {
-            name,
+            pattern,
             typ: self.alloc_type_expr(typ),
+        }
+    }
+
+    fn lower_pattern(&mut self, ast: &ast::Pattern) -> Pattern {
+        match ast {
+            ast::Pattern::IdentPattern(ident_pattern) => {
+                Pattern::Ident(self.lower_ident(ident_pattern.ident_lit()))
+            }
+            ast::Pattern::UnderscorePattern(_) => Pattern::Wildcard,
+            ast::Pattern::UnitPattern(_) => Pattern::Unit,
         }
     }
 
@@ -153,7 +160,7 @@ impl Module {
                 let return_type = self.alloc_type_expr(return_type);
 
                 let innermost_param = params_rev.next().cloned().unwrap_or_else(|| Param {
-                    name: self.empty_name(),
+                    pattern: Pattern::Wildcard,
                     typ: self.alloc_type_expr(TypeExpr::Missing),
                 });
                 let innermost = Expr::lambda_expr(innermost_param, return_type, body);
@@ -182,10 +189,7 @@ impl Module {
     }
 
     fn lower_ident(&mut self, ident: Option<parser::SyntaxToken>) -> Name {
-        let name = ident
-            .map(|ident| ident.text().to_string())
-            .unwrap_or_default();
-        self.name(name)
+        ident.map_or(self.empty_name(), |ident| self.name(ident.text()))
     }
 
     fn lower_stmt(&mut self, ast: ast::Stmt, cont: ExprIdx) -> Expr {
@@ -194,19 +198,17 @@ impl Module {
                 let expr = self.lower_expr_defaulting_to_unit(ast.expr());
                 let expr = self.alloc_expr(expr);
                 Expr::let_expr(
-                    self.empty_name(),
+                    Pattern::Unit,
                     self.alloc_type_expr(TypeExpr::Missing),
                     expr,
                     cont,
                 )
             }
             ast::Stmt::LetStmt(ast) => {
-                let name = {
-                    let name = ast
+                let wildcard_pattern = Pattern::Wildcard;
+                let pattern = ast
                         .pattern()
-                        .map_or("_".to_string(), |ident| ident.text().to_string());
-                    self.name(name)
-                };
+                    .map_or(wildcard_pattern, |ast| self.lower_pattern(&ast));
 
                 let params = self.lower_params(ast.params());
 
@@ -228,7 +230,7 @@ impl Module {
                 let defn = self.curry(defn, params_rev);
                 let defn = self.alloc_expr(defn);
 
-                Expr::let_expr(name, return_type, defn, cont)
+                Expr::let_expr(pattern, return_type, defn, cont)
             }
         }
     }
@@ -246,16 +248,14 @@ impl Module {
 
 #[cfg(test)]
 mod tests {
+    use crate::hir::ident_param;
     use crate::hir::module::{expr_deep_eq, type_expr_deep_eq};
-    use crate::{Interner, Literal};
+    use crate::{Interner, Literal, Pattern};
 
     use super::{Definition, Expr, Module, Param, TypeExpr};
 
     fn unannotated_param(module: &mut Module, name: &str) -> Param {
-        Param {
-            name: module.name(name),
-            typ: module.alloc_type_expr(TypeExpr::Missing),
-        }
+        ident_param(module.name(name), module.alloc_type_expr(TypeExpr::Missing))
     }
 
     fn module() -> Module {
@@ -335,7 +335,7 @@ mod tests {
 
         let defn = expected_module.alloc_expr(Expr::ident_expr(x));
         let return_type = expected_module.alloc_type_expr(TypeExpr::Missing);
-        let param = Param { name: x, typ: int };
+        let param = ident_param(x, int);
 
         let definition = Definition {
             name: expected_module.name("f"),
@@ -439,7 +439,7 @@ mod tests {
 
         let int = expected_module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
         let body = expected_module.alloc_expr(Expr::ident_expr(x));
-        let param = Param { name: x, typ: int };
+        let param = ident_param(x, int);
         let ret_typ = expected_module.alloc_type_expr(TypeExpr::Missing);
         let defn = expected_module.alloc_expr(Expr::lambda_expr(param, ret_typ, body));
 
@@ -474,7 +474,7 @@ mod tests {
 
         let typ = module.alloc_type_expr(TypeExpr::Missing);
 
-        module.alloc_expr(Expr::let_expr(name, typ, defn, body));
+        module.alloc_expr(Expr::ident_let(name, typ, defn, body));
 
         let actual_module = lower("def x { let a b = c; d }");
 
@@ -513,8 +513,12 @@ mod tests {
 
         let x = module.name("x");
         let body = module.alloc_expr(Expr::ident_expr(x));
-        let param = unannotated_param(&mut module, "_");
+
         let typ = module.alloc_type_expr(TypeExpr::Missing);
+        let param = Param {
+            pattern: crate::Pattern::Wildcard,
+            typ,
+        };
         module.alloc_expr(Expr::lambda_expr(param, typ, body));
 
         check_expr("\\-> x", &module);
@@ -535,7 +539,7 @@ mod tests {
 
         let defn = module.alloc_expr(Expr::lambda_expr(param, typ, defn));
 
-        module.alloc_expr(Expr::let_expr(name, typ, defn, body));
+        module.alloc_expr(Expr::ident_let(name, typ, defn, body));
 
         check_expr("{ let a b; d }", &module);
     }
@@ -600,7 +604,7 @@ mod tests {
         let tail_expr = expected_module.alloc_expr(Expr::ident_expr(x));
         let let_body = expected_module.alloc_expr(Expr::int_expr(42));
 
-        let defn = expected_module.alloc_expr(Expr::let_expr(x, return_type, let_body, tail_expr));
+        let defn = expected_module.alloc_expr(Expr::ident_let(x, return_type, let_body, tail_expr));
 
         let definition = Definition {
             name: f,
@@ -638,10 +642,9 @@ mod tests {
         let body = module.alloc_expr(Expr::LiteralExpr(Literal::Unit));
         let defn = module.alloc_expr(Expr::int_expr(42));
 
-        let name = module.empty_name();
         let return_type = module.alloc_type_expr(TypeExpr::Missing);
 
-        module.alloc_expr(Expr::let_expr(name, return_type, defn, body));
+        module.alloc_expr(Expr::let_expr(Pattern::Unit, return_type, defn, body));
 
         check_expr("{ 42; }", &module);
     }
@@ -656,7 +659,7 @@ mod tests {
 
         let return_type = module.alloc_type_expr(TypeExpr::Missing);
 
-        module.alloc_expr(Expr::let_expr(x, return_type, defn, body));
+        module.alloc_expr(Expr::ident_let(x, return_type, defn, body));
 
         check_expr("{ let x = 42; }", &module);
     }

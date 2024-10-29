@@ -1,6 +1,6 @@
 use super::{block::block, params::params};
 use crate::{
-    grammar::{module_item, type_expr},
+    grammar::{module_item, params::PARAM_START, type_expr},
     parser::{CompletedMarker, Parser},
     token_set::TokenSet,
     SyntaxKind,
@@ -59,8 +59,11 @@ fn lambda_expr(parser: &mut Parser) -> CompletedMarker {
     assert!(parser.at_any(LAMBDA_TOKENS));
 
     let mark = parser.open();
-    let _ = parser.eat_any(LAMBDA_TOKENS);
+    parser.eat_any(LAMBDA_TOKENS);
 
+    if !parser.at_any(PARAM_START) {
+      parser.error("Expected a parameter".into());
+    }
     params(parser);
     if parser.at(SyntaxKind::COLON) {
         let annotation_mark = parser.open();
@@ -117,7 +120,7 @@ fn parse_app_part(parser: &mut Parser, prev_mark: Option<CompletedMarker>) -> Co
 
 #[cfg(test)]
 mod tests {
-    use crate::{check, PrefixEntryPoint};
+    use crate::{check, check_err, PrefixEntryPoint};
     use expect_test::expect;
 
     #[test]
@@ -130,8 +133,9 @@ mod tests {
                   BACKSLASH@0..1 "\\"
                   PARAMS@1..3
                     PARAM@1..3
-                      IDENT@1..2 "x"
-                      WHITESPACE@2..3 " "
+                      IDENT_PATTERN@1..3
+                        IDENT@1..2 "x"
+                        WHITESPACE@2..3 " "
                   ARROW@3..5 "->"
                   WHITESPACE@5..6 " "
                   IDENT_EXPR@6..7
@@ -151,7 +155,8 @@ mod tests {
                   PARAMS@1..10
                     PARAM@1..10
                       L_PAREN@1..2 "("
-                      IDENT@2..3 "x"
+                      IDENT_PATTERN@2..3
+                        IDENT@2..3 "x"
                       TYPE_ANNOTATION@3..8
                         COLON@3..4 ":"
                         WHITESPACE@4..5 " "
@@ -284,7 +289,8 @@ mod tests {
                   BACKSLASH@0..1 "\\"
                   PARAMS@1..2
                     PARAM@1..2
-                      IDENT@1..2 "x"
+                      IDENT_PATTERN@1..2
+                        IDENT@1..2 "x"
                   TYPE_ANNOTATION@2..8
                     COLON@2..3 ":"
                     WHITESPACE@3..4 " "
@@ -309,7 +315,8 @@ mod tests {
                   BACKSLASH@0..1 "\\"
                   PARAMS@1..2
                     PARAM@1..2
-                      IDENT@1..2 "x"
+                      IDENT_PATTERN@1..2
+                        IDENT@1..2 "x"
                   TYPE_ANNOTATION@2..13
                     COLON@2..3 ":"
                     WHITESPACE@3..4 " "
@@ -331,13 +338,89 @@ mod tests {
                     BACKSLASH@16..17 "\\"
                     PARAMS@17..19
                       PARAM@17..19
-                        IDENT@17..18 "y"
-                        WHITESPACE@18..19 " "
+                        IDENT_PATTERN@17..19
+                          IDENT@17..18 "y"
+                          WHITESPACE@18..19 " "
                     ARROW@19..21 "->"
                     WHITESPACE@21..22 " "
                     IDENT_EXPR@22..23
                       IDENT@22..23 "y"
             "#]],
+        );
+    }
+
+    #[test]
+    fn lambda_with_unit_pattern() {
+        check(
+            PrefixEntryPoint::Expr,
+            r"\() -> ()",
+            &expect![[r#"
+                LAMBDA_EXPR@0..9
+                  BACKSLASH@0..1 "\\"
+                  PARAMS@1..4
+                    PARAM@1..4
+                      UNIT_PATTERN@1..4
+                        L_PAREN@1..2 "("
+                        R_PAREN@2..3 ")"
+                        WHITESPACE@3..4 " "
+                  ARROW@4..6 "->"
+                  WHITESPACE@6..7 " "
+                  PAREN_EXPR@7..9
+                    L_PAREN@7..8 "("
+                    R_PAREN@8..9 ")"
+            "#]],
+        );
+    }
+
+    #[test]
+    fn lambda_with_annotated_unit_pattern() {
+        check(
+            PrefixEntryPoint::Expr,
+            r"\(() : unit) -> ()",
+            &expect![[r#"
+                LAMBDA_EXPR@0..18
+                  BACKSLASH@0..1 "\\"
+                  PARAMS@1..13
+                    PARAM@1..13
+                      L_PAREN@1..2 "("
+                      UNIT_PATTERN@2..5
+                        L_PAREN@2..3 "("
+                        R_PAREN@3..4 ")"
+                        WHITESPACE@4..5 " "
+                      TYPE_ANNOTATION@5..11
+                        COLON@5..6 ":"
+                        WHITESPACE@6..7 " "
+                        TYPE_IDENT@7..11
+                          IDENT@7..11 "unit"
+                      R_PAREN@11..12 ")"
+                      WHITESPACE@12..13 " "
+                  ARROW@13..15 "->"
+                  WHITESPACE@15..16 " "
+                  PAREN_EXPR@16..18
+                    L_PAREN@16..17 "("
+                    R_PAREN@17..18 ")"
+            "#]],
+        );
+    }
+
+    #[test]
+    fn lambda_missing_param() {
+        check_err(
+            PrefixEntryPoint::Expr,
+            r"\ -> ()",
+            &expect![[r#"
+                LAMBDA_EXPR@0..7
+                  BACKSLASH@0..1 "\\"
+                  ERROR@1..1
+                  WHITESPACE@1..2 " "
+                  PARAMS@2..2
+                  ARROW@2..4 "->"
+                  WHITESPACE@4..5 " "
+                  PAREN_EXPR@5..7
+                    L_PAREN@5..6 "("
+                    R_PAREN@6..7 ")"
+            "#]],
+            &["Expected a parameter"],
         );
     }
 }

@@ -8,8 +8,8 @@ use crate::{builtin, TypeIdx};
 use crate::{intern::Interner, Name};
 
 use super::{
-    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, TypeDefinition, TypeDefinitionIdx,
-    TypeExpr, TypeExprIdx,
+    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, Pattern, TypeDefinition,
+    TypeDefinitionIdx, TypeExpr, TypeExprIdx,
 };
 
 #[derive(Debug)]
@@ -33,8 +33,16 @@ fn name_deep_eq(a_module: &Module, b_module: &Module, a: Name, b: Name) -> bool 
     a_module.names.lookup(a) == b_module.names.lookup(b)
 }
 
+fn pattern_deep_eq(a_module: &Module, b_module: &Module, a: Pattern, b: Pattern) -> bool {
+    match (a, b) {
+        (Pattern::Ident(a), Pattern::Ident(b)) => name_deep_eq(a_module, b_module, a, b),
+        (Pattern::Wildcard, Pattern::Wildcard) | (Pattern::Unit, Pattern::Unit) => true,
+        _ => false,
+    }
+}
+
 fn param_deep_eq(a_module: &Module, b_module: &Module, a: &Param, b: &Param) -> bool {
-    name_deep_eq(a_module, b_module, a.name, b.name)
+    pattern_deep_eq(a_module, b_module, a.pattern, b.pattern)
         && type_expr_deep_eq(a_module, b_module, a.typ, b.typ)
 }
 
@@ -95,7 +103,7 @@ pub(super) fn expr_deep_eq(a_module: &Module, b_module: &Module, a: ExprIdx, b: 
                 )
         }
         (Expr::LetExpr(l_let), Expr::LetExpr(b_let)) => {
-            name_deep_eq(a_module, b_module, l_let.name, b_let.name)
+            pattern_deep_eq(a_module, b_module, l_let.lhs, b_let.lhs)
                 && type_expr_deep_eq(a_module, b_module, l_let.return_type, b_let.return_type)
                 && expr_deep_eq(a_module, b_module, l_let.body, b_let.body)
                 && expr_deep_eq(a_module, b_module, l_let.defn, b_let.defn)

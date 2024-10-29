@@ -12,8 +12,9 @@ MODULE@0..24
         LET_STMT@8..20
           LET_KW@8..11 "let"
           WHITESPACE@11..12 " "
-          IDENT@12..13 "x"
-          WHITESPACE@13..14 " "
+          IDENT_PATTERN@12..14
+            IDENT@12..13 "x"
+            WHITESPACE@13..14 " "
           PARAMS@14..14
           EQUAL@14..15 "="
           WHITESPACE@15..16 " "

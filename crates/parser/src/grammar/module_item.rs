@@ -151,7 +151,8 @@ mod tests {
                     PARAMS@5..14
                       PARAM@5..14
                         L_PAREN@5..6 "("
-                        IDENT@6..7 "x"
+                        IDENT_PATTERN@6..7
+                          IDENT@6..7 "x"
                         TYPE_ANNOTATION@7..12
                           COLON@7..8 ":"
                           WHITESPACE@8..9 " "
@@ -229,8 +230,9 @@ mod tests {
                         BACKSLASH@21..22 "\\"
                         PARAMS@22..24
                           PARAM@22..24
-                            IDENT@22..23 "x"
-                            WHITESPACE@23..24 " "
+                            IDENT_PATTERN@22..24
+                              IDENT@22..23 "x"
+                              WHITESPACE@23..24 " "
                         ARROW@24..26 "->"
                         WHITESPACE@26..27 " "
                         IDENT_EXPR@27..28

@@ -17,7 +17,7 @@ impl Module {
             new_line(f, indent)?;
         }
         f.write_str("let ")?;
-        f.write_str(self.get_name(e.name))?;
+        self.fmt_pattern(f, e.lhs)?;
         if *self.get_type_expr(e.return_type) != TypeExpr::Missing {
             f.write_str(" : ")?;
             self.fmt_type_expr(f, e.return_type)?;
@@ -38,7 +38,10 @@ impl Module {
 
 #[cfg(test)]
 mod tests {
-    use crate::{hir::pprint::InModule, Expr, Interner, LetExpr, Param, TypeExpr};
+    use crate::{
+        hir::{ident_param, pprint::InModule},
+        Expr, Interner, LetExpr, Param, Pattern, TypeExpr,
+    };
 
     use super::*;
     use expect_test::{self, expect};
@@ -68,16 +71,16 @@ mod tests {
 
         let missing_type = module.alloc_type_expr(TypeExpr::Missing);
 
-        let a_defn = module.alloc_expr(Expr::lambda_expr(Param { name: b_name, typ: int }, int, b));
+        let a_defn = module.alloc_expr(Expr::lambda_expr(ident_param(b_name, int), int, b));
 
         let let_c = {
-        let int_to_int = module.alloc_type_expr(TypeExpr::TypeArrow { from: int, to: int });
-            let inner_let = Expr::let_expr(c_name, int_to_int, a, c);
+            let int_to_int = module.alloc_type_expr(TypeExpr::TypeArrow { from: int, to: int });
+            let inner_let = Expr::let_expr(Pattern::Ident(c_name), int_to_int, a, c);
             module.alloc_expr(inner_let)
         };
 
         let let_a = LetExpr {
-            name: a_name,
+            lhs: Pattern::Ident(a_name),
             return_type: missing_type,
             defn: a_defn,
             body: let_c,
@@ -107,12 +110,12 @@ mod tests {
         let missing_type = module.alloc_type_expr(TypeExpr::Missing);
 
         let a_func = {
-            let param = Param { name: b_name, typ: int };
-            let let_c = module.alloc_expr(Expr::let_expr(c_name, int, b, c));
+            let param = ident_param(b_name, int);
+            let let_c = module.alloc_expr(Expr::let_expr(Pattern::Ident(c_name), int, b, c));
             module.alloc_expr(Expr::lambda_expr(param, int, let_c))
         };
         let let_a = LetExpr {
-            name: a_name,
+            lhs: Pattern::Ident(a_name),
             return_type: missing_type,
             defn: a_func,
             body: a,
@@ -142,14 +145,14 @@ mod tests {
         let missing_type = module.alloc_type_expr(TypeExpr::Missing);
 
         let param = Param {
-            name: b_name,
+            pattern: Pattern::Ident(b_name),
             typ: int,
         };
         let defn = Expr::lambda_expr(param, missing_type, b);
         let defn = module.alloc_expr(defn);
 
         let let_expr = LetExpr {
-            name: a_name,
+            lhs: Pattern::Ident(a_name),
             return_type: missing_type,
             defn,
             body: a,
@@ -174,14 +177,11 @@ mod tests {
         let int = module.name("int");
         let int = module.alloc_type_expr(TypeExpr::IdentTypeExpr { name: int });
         let missing_type = module.alloc_type_expr(TypeExpr::Missing);
+        let param = ident_param(b_name, missing_type);
 
-        let param = Param {
-            name: b_name,
-            typ: missing_type,
-        };
         let defn = module.alloc_expr(Expr::lambda_expr(param, int, b));
         let let_expr = LetExpr {
-            name: a_name,
+            lhs: Pattern::Ident(a_name),
             return_type: missing_type,
             defn,
             body: a,

@@ -110,7 +110,9 @@ fn get_semantic_token_type(token: &SyntaxToken) -> Option<lsp_types::SemanticTok
                 Some(lsp_types::SemanticTokenType::TYPE)
             }
             Some(SyntaxKind::OPEN) => Some(lsp_types::SemanticTokenType::NAMESPACE),
-            Some(SyntaxKind::PARAM) => Some(lsp_types::SemanticTokenType::PARAMETER),
+            Some(SyntaxKind::PARAM | SyntaxKind::IDENT_PATTERN) => {
+                Some(lsp_types::SemanticTokenType::PARAMETER)
+            }
             Some(SyntaxKind::DEFINITION) => Some(lsp_types::SemanticTokenType::FUNCTION),
             Some(SyntaxKind::LET_STMT)
                 if parent.is_some_and(|n| {

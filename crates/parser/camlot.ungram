@@ -56,7 +56,10 @@ Literal =  'Int' | 'dummy'
 Params = Param*
 Param = Pattern | '(' Pattern TypeAnnotation? ')'
 
-Pattern = 'Ident' | '_'
+Pattern = IdentPattern | UnderscorePattern | UnitPattern
+IdentPattern = 'Ident'
+UnderscorePattern = '_'
+UnitPattern = '(' ')'
 
 BinaryExpr = lhs:Expr InfixSymbol rhs:Expr
 InfixSymbol = '+' | '-' | '*' | '/'

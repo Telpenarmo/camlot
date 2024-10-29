@@ -249,7 +249,7 @@ impl LetStmt {
     }
     #[must_use]
     pub fn pattern(&self) -> Option<Pattern> {
-        support::token_child(&self.syntax)
+        support::child(&self.syntax)
     }
     #[must_use]
     pub fn let_kw_token(&self) -> Option<SyntaxToken> {
@@ -390,7 +390,7 @@ pub struct Param {
 impl Param {
     #[must_use]
     pub fn pattern(&self) -> Option<Pattern> {
-        support::token_child(&self.syntax)
+        support::child(&self.syntax)
     }
     #[must_use]
     pub fn l_paren_token(&self) -> Option<SyntaxToken> {
@@ -403,6 +403,43 @@ impl Param {
     #[must_use]
     pub fn type_annotation(&self) -> Option<TypeAnnotation> {
         support::child(&self.syntax)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct IdentPattern {
+    pub(crate) syntax: SyntaxNode,
+}
+impl IdentPattern {
+    #[must_use]
+    pub fn ident_lit(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, IDENT)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UnderscorePattern {
+    pub(crate) syntax: SyntaxNode,
+}
+impl UnderscorePattern {
+    #[must_use]
+    pub fn underscore_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, UNDERSCORE)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UnitPattern {
+    pub(crate) syntax: SyntaxNode,
+}
+impl UnitPattern {
+    #[must_use]
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, L_PAREN)
+    }
+    #[must_use]
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, R_PAREN)
     }
 }
 
@@ -437,15 +474,10 @@ pub enum Stmt {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Pattern {
-    syntax: SyntaxToken,
-    kind: PatternKind,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PatternKind {
-    Ident,
-    Underscore,
+pub enum Pattern {
+    IdentPattern(IdentPattern),
+    UnderscorePattern(UnderscorePattern),
+    UnitPattern(UnitPattern),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -793,6 +825,54 @@ impl AstNode for Param {
         &self.syntax
     }
 }
+impl AstNode for IdentPattern {
+    type Language = CamlotLanguage;
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == IDENT_PATTERN
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for UnderscorePattern {
+    type Language = CamlotLanguage;
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == UNDERSCORE_PATTERN
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for UnitPattern {
+    type Language = CamlotLanguage;
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == UNIT_PATTERN
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
 impl From<Definition> for ModuleItem {
     fn from(node: Definition) -> ModuleItem {
         ModuleItem::Definition(node)
@@ -967,44 +1047,44 @@ impl AstNode for Stmt {
         }
     }
 }
-impl AstToken for Pattern {
-    fn can_cast(kind: SyntaxKind) -> bool {
-        PatternKind::can_cast(kind)
-    }
-    fn cast(syntax: SyntaxToken) -> Option<Self> {
-        let kind = PatternKind::cast(syntax.kind())?;
-        Some(Pattern { syntax, kind })
-    }
-    fn syntax(&self) -> &SyntaxToken {
-        &self.syntax
+impl From<IdentPattern> for Pattern {
+    fn from(node: IdentPattern) -> Pattern {
+        Pattern::IdentPattern(node)
     }
 }
-impl PatternKind {
+impl From<UnderscorePattern> for Pattern {
+    fn from(node: UnderscorePattern) -> Pattern {
+        Pattern::UnderscorePattern(node)
+    }
+}
+impl From<UnitPattern> for Pattern {
+    fn from(node: UnitPattern) -> Pattern {
+        Pattern::UnitPattern(node)
+    }
+}
+impl AstNode for Pattern {
+    type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            IDENT | UNDERSCORE => true,
+            IDENT_PATTERN | UNDERSCORE_PATTERN | UNIT_PATTERN => true,
             _ => false,
         }
     }
-    #[must_use]
-    pub fn cast(kind: SyntaxKind) -> Option<Self> {
-        let res = match kind {
-            IDENT => Self::Ident,
-            UNDERSCORE => Self::Underscore,
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        let res = match syntax.kind() {
+            IDENT_PATTERN => Pattern::IdentPattern(IdentPattern { syntax }),
+            UNDERSCORE_PATTERN => Pattern::UnderscorePattern(UnderscorePattern { syntax }),
+            UNIT_PATTERN => Pattern::UnitPattern(UnitPattern { syntax }),
             _ => return None,
         };
         Some(res)
     }
-}
-impl Pattern {
-    #[must_use]
-    pub fn kind(&self) -> PatternKind {
-        self.kind
-    }
-}
-impl std::fmt::Display for Pattern {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Pattern::IdentPattern(it) => &it.syntax,
+            Pattern::UnderscorePattern(it) => &it.syntax,
+            Pattern::UnitPattern(it) => &it.syntax,
+        }
     }
 }
 impl AstToken for Literal {
@@ -1109,6 +1189,11 @@ impl std::fmt::Display for Stmt {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
+impl std::fmt::Display for Pattern {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for Module {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -1205,6 +1290,21 @@ impl std::fmt::Display for AppExpr {
     }
 }
 impl std::fmt::Display for Param {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for IdentPattern {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for UnderscorePattern {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for UnitPattern {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

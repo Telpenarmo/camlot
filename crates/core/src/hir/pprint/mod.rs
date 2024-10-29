@@ -6,15 +6,23 @@ use std::fmt::Display;
 
 use crate::hir::{Expr, ExprIdx, Param};
 
-use super::{LetExpr, Module, TypeExpr};
+use super::{LetExpr, Module, Pattern, TypeExpr};
 
 impl Module {
+    fn fmt_pattern(&self, f: &mut std::fmt::Formatter<'_>, patt: Pattern) -> std::fmt::Result {
+        match patt {
+            Pattern::Ident(interned) => f.write_str(self.get_name(interned)),
+            Pattern::Wildcard => f.write_str("_"),
+            Pattern::Unit => f.write_str("()"),
+        }
+    }
+
     fn fmt_param(&self, f: &mut std::fmt::Formatter<'_>, param: &Param) -> std::fmt::Result {
         if self.get_type_expr(param.typ) == &TypeExpr::Missing {
-            f.write_str(self.get_name(param.name))
+            self.fmt_pattern(f, param.pattern)
         } else {
             f.write_str("(")?;
-            f.write_str(self.get_name(param.name))?;
+            self.fmt_pattern(f, param.pattern)?;
             f.write_str(": ")?;
             self.fmt_type_expr(f, param.typ)?;
             f.write_str(")")

@@ -122,8 +122,9 @@ mod tests {
                   LET_STMT@2..14
                     LET_KW@2..5 "let"
                     WHITESPACE@5..6 " "
-                    IDENT@6..7 "x"
-                    WHITESPACE@7..8 " "
+                    IDENT_PATTERN@6..8
+                      IDENT@6..7 "x"
+                      WHITESPACE@7..8 " "
                     PARAMS@8..8
                     EQUAL@8..9 "="
                     WHITESPACE@9..10 " "
@@ -198,7 +199,8 @@ mod tests {
                   LET_STMT@2..19
                     LET_KW@2..5 "let"
                     WHITESPACE@5..6 " "
-                    IDENT@6..7 "x"
+                    IDENT_PATTERN@6..7
+                      IDENT@6..7 "x"
                     PARAMS@7..7
                     TYPE_ANNOTATION@7..13
                       COLON@7..8 ":"
@@ -213,6 +215,128 @@ mod tests {
                     SEMICOLON@17..18 ";"
                     WHITESPACE@18..19 " "
                   R_BRACE@19..20 "}"
+            "#]],
+        );
+    }
+
+    #[test]
+    fn let_stmt_unit_lhs() {
+        check(
+            PrefixEntryPoint::Expr,
+            "{ let () = (); }",
+            &expect![[r#"
+                BLOCK_EXPR@0..16
+                  L_BRACE@0..1 "{"
+                  WHITESPACE@1..2 " "
+                  LET_STMT@2..15
+                    LET_KW@2..5 "let"
+                    WHITESPACE@5..6 " "
+                    UNIT_PATTERN@6..9
+                      L_PAREN@6..7 "("
+                      R_PAREN@7..8 ")"
+                      WHITESPACE@8..9 " "
+                    PARAMS@9..9
+                    EQUAL@9..10 "="
+                    WHITESPACE@10..11 " "
+                    PAREN_EXPR@11..13
+                      L_PAREN@11..12 "("
+                      R_PAREN@12..13 ")"
+                    SEMICOLON@13..14 ";"
+                    WHITESPACE@14..15 " "
+                  R_BRACE@15..16 "}"
+            "#]],
+        );
+    }
+
+    #[test]
+    fn let_stmt_unit_params() {
+        check(
+            PrefixEntryPoint::Expr,
+            "{ let f () = (); }",
+            &expect![[r#"
+                BLOCK_EXPR@0..18
+                  L_BRACE@0..1 "{"
+                  WHITESPACE@1..2 " "
+                  LET_STMT@2..17
+                    LET_KW@2..5 "let"
+                    WHITESPACE@5..6 " "
+                    IDENT_PATTERN@6..8
+                      IDENT@6..7 "f"
+                      WHITESPACE@7..8 " "
+                    PARAMS@8..11
+                      PARAM@8..11
+                        UNIT_PATTERN@8..11
+                          L_PAREN@8..9 "("
+                          R_PAREN@9..10 ")"
+                          WHITESPACE@10..11 " "
+                    EQUAL@11..12 "="
+                    WHITESPACE@12..13 " "
+                    PAREN_EXPR@13..15
+                      L_PAREN@13..14 "("
+                      R_PAREN@14..15 ")"
+                    SEMICOLON@15..16 ";"
+                    WHITESPACE@16..17 " "
+                  R_BRACE@17..18 "}"
+            "#]],
+        );
+    }
+
+    #[test]
+    fn let_stmt_underscore_lhs() {
+        check(
+            PrefixEntryPoint::Expr,
+            "{ let _ = (); }",
+            &expect![[r#"
+                BLOCK_EXPR@0..15
+                  L_BRACE@0..1 "{"
+                  WHITESPACE@1..2 " "
+                  LET_STMT@2..14
+                    LET_KW@2..5 "let"
+                    WHITESPACE@5..6 " "
+                    UNDERSCORE_PATTERN@6..8
+                      UNDERSCORE@6..7 "_"
+                      WHITESPACE@7..8 " "
+                    PARAMS@8..8
+                    EQUAL@8..9 "="
+                    WHITESPACE@9..10 " "
+                    PAREN_EXPR@10..12
+                      L_PAREN@10..11 "("
+                      R_PAREN@11..12 ")"
+                    SEMICOLON@12..13 ";"
+                    WHITESPACE@13..14 " "
+                  R_BRACE@14..15 "}"
+            "#]],
+        );
+    }
+
+    #[test]
+    fn let_stmt_underscore_param() {
+        check(
+            PrefixEntryPoint::Expr,
+            "{ let f _ = (); }",
+            &expect![[r#"
+                BLOCK_EXPR@0..17
+                  L_BRACE@0..1 "{"
+                  WHITESPACE@1..2 " "
+                  LET_STMT@2..16
+                    LET_KW@2..5 "let"
+                    WHITESPACE@5..6 " "
+                    IDENT_PATTERN@6..8
+                      IDENT@6..7 "f"
+                      WHITESPACE@7..8 " "
+                    PARAMS@8..10
+                      PARAM@8..10
+                        UNDERSCORE_PATTERN@8..10
+                          UNDERSCORE@8..9 "_"
+                          WHITESPACE@9..10 " "
+                    EQUAL@10..11 "="
+                    WHITESPACE@11..12 " "
+                    PAREN_EXPR@12..14
+                      L_PAREN@12..13 "("
+                      R_PAREN@13..14 ")"
+                    SEMICOLON@14..15 ";"
+                    WHITESPACE@15..16 " "
+                  R_BRACE@16..17 "}"
             "#]],
         );
     }

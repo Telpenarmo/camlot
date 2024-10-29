@@ -83,6 +83,8 @@ impl Parse {
 }
 
 #[cfg(test)]
+#[track_caller]
+#[inline]
 fn check(entry_point: PrefixEntryPoint, input: &str, expected_tree: &expect_test::Expect) {
     let parse = parse_internal(input, entry_point);
     expected_tree.assert_eq(&parse.debug_tree());
@@ -90,6 +92,8 @@ fn check(entry_point: PrefixEntryPoint, input: &str, expected_tree: &expect_test
 }
 
 #[cfg(test)]
+#[track_caller]
+#[inline]
 fn check_file(input: &str, expected_tree: &expect_test::ExpectFile) {
     let parse = parse(input);
     expected_tree.assert_eq(&parse.debug_tree());
@@ -97,6 +101,8 @@ fn check_file(input: &str, expected_tree: &expect_test::ExpectFile) {
 }
 
 #[cfg(test)]
+#[track_caller]
+#[inline]
 fn check_err(
     entry_point: PrefixEntryPoint,
     input: &str,

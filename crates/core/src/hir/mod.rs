@@ -46,13 +46,13 @@ pub enum Expr {
 
 impl Expr {
     pub(crate) fn let_expr(
-        name: Name,
+        lhs: Pattern,
         return_type: TypeExprIdx,
         defn: ExprIdx,
         body: ExprIdx,
     ) -> Self {
         Self::LetExpr(Box::new(LetExpr {
-            name,
+            lhs,
             return_type,
             defn,
             body,
@@ -79,12 +79,22 @@ impl Expr {
     pub(crate) fn bool_expr(val: bool) -> Self {
         Self::LiteralExpr(Literal::BoolLiteral(val))
     }
+
+    #[cfg(test)]
+    fn ident_let(
+        name: Name,
+        typ: TypeExprIdx,
+        defn: ExprIdx,
+        body: ExprIdx,
+    ) -> Self {
+        Self::let_expr(Pattern::Ident(name), typ, defn, body)
+    }
 }
 
 #[allow(unused)]
 #[derive(PartialEq, Debug)]
 pub struct LetExpr {
-    pub name: Name,
+    pub lhs: Pattern,
     pub return_type: TypeExprIdx,
     pub defn: ExprIdx,
     pub body: ExprIdx,
@@ -125,6 +135,21 @@ impl std::fmt::Display for Literal {
 #[allow(unused)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Param {
-    pub(crate) name: Name,
+    pub(crate) pattern: Pattern,
     pub(crate) typ: TypeExprIdx,
+}
+
+#[cfg(test)]
+fn ident_param(name: Name, typ: TypeExprIdx) -> Param {
+    Param {
+        pattern: Pattern::Ident(name),
+        typ,
+    }
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum Pattern {
+    Ident(Name),
+    Wildcard,
+    Unit,
 }
