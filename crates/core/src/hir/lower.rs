@@ -48,8 +48,7 @@ impl Module {
     }
 
     fn lower_type_definition(&mut self, ast: &ast::TypeDefinition) -> TypeDefinition {
-        let defn = self.lower_type_expr(ast.type_expr());
-        let defn = self.alloc_type_expr(defn);
+        let defn = self.lower_alloc_type_expr(ast.type_expr());
 
         TypeDefinition {
             name: self.lower_ident(ast.ident_lit()),
@@ -88,6 +87,12 @@ impl Module {
         })
     }
 
+    fn lower_alloc_type_expr(&mut self, type_expr: Option<ast::TypeExpr>) -> TypeExprIdx {
+        let type_expr = self.lower_type_expr(type_expr);
+
+        self.alloc_type_expr(type_expr)
+    }
+
     fn lower_type_expr(&mut self, type_expr: Option<ast::TypeExpr>) -> TypeExpr {
         if type_expr.is_none() {
             return TypeExpr::Missing;
@@ -98,11 +103,9 @@ impl Module {
                 TypeExpr::IdentTypeExpr { name }
             }),
             ast::TypeExpr::TypeArrow(ast) => {
-                let from = self.lower_type_expr(ast.from());
-                let from = self.alloc_type_expr(from);
+                let from = self.lower_alloc_type_expr(ast.from());
 
-                let to = self.lower_type_expr(ast.to());
-                let to = self.alloc_type_expr(to);
+                let to = self.lower_alloc_type_expr(ast.to());
                 TypeExpr::TypeArrow { from, to }
             }
             ast::TypeExpr::TypeParen(ast) => self.lower_type_expr(ast.type_expr()),
@@ -207,7 +210,7 @@ impl Module {
             ast::Stmt::LetStmt(ast) => {
                 let wildcard_pattern = Pattern::Wildcard;
                 let pattern = ast
-                        .pattern()
+                    .pattern()
                     .map_or(wildcard_pattern, |ast| self.lower_pattern(&ast));
 
                 let params = self.lower_params(ast.params());
