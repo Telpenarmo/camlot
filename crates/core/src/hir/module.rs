@@ -1,4 +1,4 @@
-use im::HashMap;
+use imbl::HashMap;
 use la_arena::{Arena, ArenaMap};
 
 use parser::{DefinitionPtr, ExprPtr, TypeDefinitionPtr, TypeExprPtr};

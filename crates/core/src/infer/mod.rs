@@ -1,6 +1,6 @@
 mod unify;
 
-use im::HashMap;
+use imbl::HashMap;
 use la_arena::ArenaMap;
 use unify::UnifcationError;
 
@@ -42,7 +42,7 @@ enum Constraint {
     TypeEqual(ExprIdx, TypeIdx, TypeIdx),
 }
 
-type Environment = im::HashMap<Name, TypeIdx>;
+type Environment = imbl::HashMap<Name, TypeIdx>;
 
 pub struct InferenceResult {
     pub expr_types: ArenaMap<ExprIdx, TypeIdx>,

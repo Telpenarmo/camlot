@@ -1,4 +1,4 @@
-use im::{hashmap, HashMap};
+use imbl::{hashmap, HashMap};
 
 use crate::{intern::Interner, types::Type, Module, Name, TypeIdx};
 
