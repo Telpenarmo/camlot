@@ -1,4 +1,4 @@
-use line_index::LineCol;
+use line_index::{LineIndex, WideEncoding, WideLineCol as LineCol};
 use parser::{nodes, AstNode, SyntaxKind, SyntaxNode, SyntaxToken};
 
 use crate::Document;
@@ -27,25 +27,32 @@ fn token_index(kind: &lsp_types::SemanticTokenType) -> u32 {
 }
 
 struct SemanticTokensBuilder<'a> {
-    line_index: &'a line_index::LineIndex,
-    prev_pos: line_index::LineCol,
+    line_index: &'a LineIndex,
+    prev_pos: LineCol,
 }
 
 impl<'a> SemanticTokensBuilder<'a> {
-    fn new(line_index: &'a line_index::LineIndex) -> Self {
+    fn new(line_index: &'a LineIndex) -> Self {
         Self {
             line_index,
-            prev_pos: line_index::LineCol { line: 0, col: 0 },
+            prev_pos: LineCol { line: 0, col: 0 },
         }
     }
 
     fn next(&mut self, token: &SyntaxToken) -> Option<lsp_types::SemanticToken> {
         let start = token.text_range().start();
-        let end = token.text_range().end();
-        let length = (end - start).into();
+        // Get the length of the token in UTF-16 code units
+        let length = (token.text().encode_utf16().count())
+            .try_into()
+            .expect("Tokens should not be larger than 2^32");
 
         let prev = self.prev_pos;
         let start = self.line_index.line_col(start);
+        // Convert the start position to UTF-16
+        let start = self
+            .line_index
+            .to_wide(WideEncoding::Utf16, start)
+            .expect("Positions should be convertible to UTF-16");
 
         if let Some(kind) = get_semantic_token_type(token) {
             self.prev_pos = start;
@@ -83,8 +90,8 @@ fn make_semantic_token(
     }
 }
 
-fn line_col_delta(prev: line_index::LineCol, next: line_index::LineCol) -> line_index::LineCol {
-    line_index::LineCol {
+fn line_col_delta(prev: LineCol, next: LineCol) -> LineCol {
+    LineCol {
         line: next.line - prev.line,
         col: {
             if prev.line == next.line {
@@ -142,7 +149,6 @@ mod tests {
         tokens
             .iter()
             .map(|token| {
-                let end = token.delta_start + token.length;
                 let token_type = SUPPORTED_TOKENS
                     .get(token.token_type as usize)
                     .unwrap_or_else(|| panic!("Unknown token type {}", token.token_type));
@@ -150,7 +156,7 @@ mod tests {
                     "{:?}:{:?}..{:?} - {}\n",
                     token.delta_line,
                     token.delta_start,
-                    end,
+                    token.length,
                     token_type.as_str()
                 )
             })
@@ -178,7 +184,7 @@ mod tests {
         ];
         assert_eq!(
             debug_print_tokens(&tokens),
-            "0:0..3 - keyword\n0:4..5 - operator\n"
+            "0:0..3 - keyword\n0:4..1 - operator\n"
         );
     }
 
@@ -192,13 +198,13 @@ mod tests {
 
         expect![[r"
             0:0..3 - keyword
-            0:4..5 - function
-            0:2..3 - parameter
-            0:2..3 - operator
-            0:2..3 - variable
-            0:2..3 - variable
-            0:2..3 - number
-            0:1..2 - operator
+            0:4..1 - function
+            0:2..1 - parameter
+            0:2..1 - operator
+            0:2..1 - variable
+            0:2..1 - variable
+            0:2..1 - number
+            0:1..1 - operator
         "]]
         .assert_eq(&actual);
     }
@@ -213,58 +219,68 @@ mod tests {
 
         expect![[r"
             0:0..4 - keyword
-            0:5..7 - type
-            0:3..4 - operator
-            0:2..3 - operator
-            0:1..2 - type
-            0:2..4 - operator
-            0:3..4 - type
-            0:1..2 - operator
-            0:2..4 - operator
-            0:3..4 - type
-            0:1..2 - operator
+            0:5..2 - type
+            0:3..1 - operator
+            0:2..1 - operator
+            0:1..1 - type
+            0:2..2 - operator
+            0:3..1 - type
+            0:1..1 - operator
+            0:2..2 - operator
+            0:3..1 - type
+            0:1..1 - operator
+        "]]
+        .assert_eq(&actual);
+    }
+
+    #[test]
+    fn test_unicode_lambda() {
+        let text = "def f = λ(x: int) -> x;";
+        let document = Document::new(text.to_string());
+        let tokens = get_semantic_tokens(&document);
+
+        let actual = debug_print_tokens(tokens.as_slice());
+
+        expect![[r"
+            0:0..3 - keyword
+            0:4..1 - function
+            0:2..1 - operator
+            0:2..1 - operator
+            0:1..1 - operator
+            0:1..1 - parameter
+            0:1..1 - operator
+            0:2..3 - type
+            0:3..1 - operator
+            0:2..2 - operator
+            0:3..1 - variable
+            0:1..1 - operator
         "]]
         .assert_eq(&actual);
     }
 
     #[test]
     fn when_prev_ln_eq_next_ln_then_delta_ln_is_0_and_delta_col_is_next_col_minus_prev_col() {
-        let prev = line_index::LineCol { line: 2, col: 1 };
-        let next = line_index::LineCol { line: 2, col: 2 };
-        assert_eq!(
-            line_col_delta(prev, next),
-            line_index::LineCol { line: 0, col: 1 }
-        );
+        let prev = LineCol { line: 2, col: 1 };
+        let next = LineCol { line: 2, col: 2 };
+        assert_eq!(line_col_delta(prev, next), LineCol { line: 0, col: 1 });
 
-        let prev = line_index::LineCol { line: 2, col: 1 };
-        let next = line_index::LineCol { line: 2, col: 1 };
-        assert_eq!(
-            line_col_delta(prev, next),
-            line_index::LineCol { line: 0, col: 0 }
-        );
+        let prev = LineCol { line: 2, col: 1 };
+        let next = LineCol { line: 2, col: 1 };
+        assert_eq!(line_col_delta(prev, next), LineCol { line: 0, col: 0 });
     }
 
     #[test]
     fn when_prev_ln_neq_next_ln_then_delta_ln_is_next_ln_minus_prev_ln_and_delta_col_is_next_col() {
-        let prev = line_index::LineCol { line: 0, col: 0 };
-        let next = line_index::LineCol { line: 1, col: 1 };
-        assert_eq!(
-            line_col_delta(prev, next),
-            line_index::LineCol { line: 1, col: 1 }
-        );
+        let prev = LineCol { line: 0, col: 0 };
+        let next = LineCol { line: 1, col: 1 };
+        assert_eq!(line_col_delta(prev, next), LineCol { line: 1, col: 1 });
 
-        let prev = line_index::LineCol { line: 0, col: 2 };
-        let next = line_index::LineCol { line: 2, col: 2 };
-        assert_eq!(
-            line_col_delta(prev, next),
-            line_index::LineCol { line: 2, col: 2 }
-        );
+        let prev = LineCol { line: 0, col: 2 };
+        let next = LineCol { line: 2, col: 2 };
+        assert_eq!(line_col_delta(prev, next), LineCol { line: 2, col: 2 });
 
-        let prev = line_index::LineCol { line: 1, col: 4 };
-        let next = line_index::LineCol { line: 3, col: 3 };
-        assert_eq!(
-            line_col_delta(prev, next),
-            line_index::LineCol { line: 2, col: 3 }
-        );
+        let prev = LineCol { line: 1, col: 4 };
+        let next = LineCol { line: 3, col: 3 };
+        assert_eq!(line_col_delta(prev, next), LineCol { line: 2, col: 3 });
     }
 }
