@@ -317,7 +317,7 @@ impl TypeInference {
             Pattern::Wildcard => (Environment::new(), ann),
             Pattern::Unit => {
                 // self.constraints
-                    // .push(Constraint::TypeEqual(_, ann, unit_type));
+                //     .push(Constraint::TypeEqual(_, ann, unit_type));
                 (Environment::new(), unit_type)
             }
         }

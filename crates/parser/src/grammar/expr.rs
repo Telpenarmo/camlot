@@ -62,7 +62,7 @@ fn lambda_expr(parser: &mut Parser) -> CompletedMarker {
     parser.eat_any(LAMBDA_TOKENS);
 
     if !parser.at_any(PARAM_START) {
-      parser.error("Expected a parameter".into());
+        parser.error("Expected a parameter".into());
     }
     params(parser);
     if parser.at(SyntaxKind::COLON) {

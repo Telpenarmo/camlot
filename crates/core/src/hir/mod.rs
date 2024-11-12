@@ -81,12 +81,7 @@ impl Expr {
     }
 
     #[cfg(test)]
-    fn ident_let(
-        name: Name,
-        typ: TypeExprIdx,
-        defn: ExprIdx,
-        body: ExprIdx,
-    ) -> Self {
+    fn ident_let(name: Name, typ: TypeExprIdx, defn: ExprIdx, body: ExprIdx) -> Self {
         Self::let_expr(Pattern::Ident(name), typ, defn, body)
     }
 }

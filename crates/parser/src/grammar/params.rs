@@ -7,7 +7,8 @@ use crate::{
 
 const ATOMIC_PATTERN: TokenSet = TokenSet::new(&[SyntaxKind::IDENT, SyntaxKind::UNDERSCORE]);
 
-pub(super) const PARAM_START: TokenSet = TokenSet::new(&[SyntaxKind::L_PAREN]).union(ATOMIC_PATTERN);
+pub(super) const PARAM_START: TokenSet =
+    TokenSet::new(&[SyntaxKind::L_PAREN]).union(ATOMIC_PATTERN);
 
 pub(crate) fn params(parser: &mut Parser) -> CompletedMarker {
     let mark = parser.open();
@@ -41,15 +42,19 @@ fn param(parser: &mut Parser) -> CompletedMarker {
 }
 
 pub(crate) fn pattern(parser: &mut Parser) {
-    let marker = parser.open();
+    if parser.at_any(PARAM_START) {
+        let marker = parser.open();
 
-    if parser.eat(SyntaxKind::UNDERSCORE) {
-        parser.close(marker, SyntaxKind::UNDERSCORE_PATTERN);
-    } else if parser.eat(SyntaxKind::IDENT) {
-        parser.close(marker, SyntaxKind::IDENT_PATTERN);
-    } else if parser.eat(SyntaxKind::L_PAREN) {
-        parser.expect(SyntaxKind::R_PAREN);
-        parser.close(marker, SyntaxKind::UNIT_PATTERN);
+        if parser.eat(SyntaxKind::UNDERSCORE) {
+            parser.close(marker, SyntaxKind::UNDERSCORE_PATTERN);
+        } else if parser.eat(SyntaxKind::IDENT) {
+            parser.close(marker, SyntaxKind::IDENT_PATTERN);
+        } else if parser.eat(SyntaxKind::L_PAREN) {
+            parser.expect(SyntaxKind::R_PAREN);
+            parser.close(marker, SyntaxKind::UNIT_PATTERN);
+        } else {
+            unreachable!("Unhandled pattern");
+        }
     } else {
         parser.error("Expected pattern".into());
     }
