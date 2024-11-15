@@ -1,0 +1,12 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+expect-test.workspace = true
+parser.workspace = true
+core.workspace = true
+
+[lints]
+workspace = true
