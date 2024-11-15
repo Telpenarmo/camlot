@@ -1,0 +1,8 @@
+def zero = 0;
+def one_annotated : int = 1;
+
+def unit = ();
+def unit_with_ws = ( );
+def two_line_unit = (
+    
+);

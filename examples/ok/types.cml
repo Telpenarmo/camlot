@@ -1,0 +1,6 @@
+type a = int;
+type b = (a);
+type c = unit;
+type ab = a -> b;
+type abc = a -> b -> c;
+type ab_c = (a -> b) -> c;

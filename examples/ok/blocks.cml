@@ -1,0 +1,26 @@
+def use_ident_then_return_number_block {
+    x;
+    42
+}
+
+def nested_block_with_number {
+    { 0 }
+}
+
+def let_x_be_number { let x = 42; }
+
+def empty_block {}
+
+def let_discard_unit { let _ = (); }
+def let_discard_annotated_unit { let _ : unit = (); }
+
+def let_func_discarding_param_returning_unit { let f _ = (); (f 5) }
+
+def let_deconstruct_unit_as_unit { let () = (); }
+
+def let_func_deconstructing_unit_returning_unit { let f () = (); }
+
+def let_x_annotated_be_number {
+    let x: Int = 42;
+    x
+}

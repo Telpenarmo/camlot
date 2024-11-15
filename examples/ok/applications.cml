@@ -1,0 +1,3 @@
+def apply (f: int -> int) (x: int) = (f x);
+def apply_3_idents (f: int -> int -> int) x y = (f x y);
+def apply_application f (g: int -> int) x = (f (g x));
