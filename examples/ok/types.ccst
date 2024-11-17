@@ -1,0 +1,103 @@
+MODULE@0..112
+  TYPE_DEFINITION@0..14
+    TYPE_KW@0..4 "type"
+    WHITESPACE@4..5 " "
+    IDENT@5..6 "a"
+    WHITESPACE@6..7 " "
+    EQUAL@7..8 "="
+    WHITESPACE@8..9 " "
+    TYPE_IDENT@9..12
+      IDENT@9..12 "int"
+    SEMICOLON@12..13 ";"
+    WHITESPACE@13..14 "\n"
+  TYPE_DEFINITION@14..28
+    TYPE_KW@14..18 "type"
+    WHITESPACE@18..19 " "
+    IDENT@19..20 "b"
+    WHITESPACE@20..21 " "
+    EQUAL@21..22 "="
+    WHITESPACE@22..23 " "
+    TYPE_PAREN@23..26
+      L_PAREN@23..24 "("
+      TYPE_IDENT@24..25
+        IDENT@24..25 "a"
+      R_PAREN@25..26 ")"
+    SEMICOLON@26..27 ";"
+    WHITESPACE@27..28 "\n"
+  TYPE_DEFINITION@28..43
+    TYPE_KW@28..32 "type"
+    WHITESPACE@32..33 " "
+    IDENT@33..34 "c"
+    WHITESPACE@34..35 " "
+    EQUAL@35..36 "="
+    WHITESPACE@36..37 " "
+    TYPE_IDENT@37..41
+      IDENT@37..41 "unit"
+    SEMICOLON@41..42 ";"
+    WHITESPACE@42..43 "\n"
+  TYPE_DEFINITION@43..61
+    TYPE_KW@43..47 "type"
+    WHITESPACE@47..48 " "
+    IDENT@48..50 "ab"
+    WHITESPACE@50..51 " "
+    EQUAL@51..52 "="
+    WHITESPACE@52..53 " "
+    TYPE_ARROW@53..59
+      TYPE_IDENT@53..55
+        IDENT@53..54 "a"
+        WHITESPACE@54..55 " "
+      ARROW@55..57 "->"
+      WHITESPACE@57..58 " "
+      TYPE_IDENT@58..59
+        IDENT@58..59 "b"
+    SEMICOLON@59..60 ";"
+    WHITESPACE@60..61 "\n"
+  TYPE_DEFINITION@61..85
+    TYPE_KW@61..65 "type"
+    WHITESPACE@65..66 " "
+    IDENT@66..69 "abc"
+    WHITESPACE@69..70 " "
+    EQUAL@70..71 "="
+    WHITESPACE@71..72 " "
+    TYPE_ARROW@72..83
+      TYPE_IDENT@72..74
+        IDENT@72..73 "a"
+        WHITESPACE@73..74 " "
+      ARROW@74..76 "->"
+      WHITESPACE@76..77 " "
+      TYPE_ARROW@77..83
+        TYPE_IDENT@77..79
+          IDENT@77..78 "b"
+          WHITESPACE@78..79 " "
+        ARROW@79..81 "->"
+        WHITESPACE@81..82 " "
+        TYPE_IDENT@82..83
+          IDENT@82..83 "c"
+    SEMICOLON@83..84 ";"
+    WHITESPACE@84..85 "\n"
+  TYPE_DEFINITION@85..112
+    TYPE_KW@85..89 "type"
+    WHITESPACE@89..90 " "
+    IDENT@90..94 "ab_c"
+    WHITESPACE@94..95 " "
+    EQUAL@95..96 "="
+    WHITESPACE@96..97 " "
+    TYPE_ARROW@97..110
+      TYPE_PAREN@97..106
+        L_PAREN@97..98 "("
+        TYPE_ARROW@98..104
+          TYPE_IDENT@98..100
+            IDENT@98..99 "a"
+            WHITESPACE@99..100 " "
+          ARROW@100..102 "->"
+          WHITESPACE@102..103 " "
+          TYPE_IDENT@103..104
+            IDENT@103..104 "b"
+        R_PAREN@104..105 ")"
+        WHITESPACE@105..106 " "
+      ARROW@106..108 "->"
+      WHITESPACE@108..109 " "
+      TYPE_IDENT@109..110
+        IDENT@109..110 "c"
+    SEMICOLON@110..111 ";"
+    WHITESPACE@111..112 "\n"

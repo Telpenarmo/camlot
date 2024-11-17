@@ -1,0 +1,10 @@
+def unannotated_ident_param x = x;
+def unannotated_unit_param_with_ret_type () : int = 1;
+def unannotated_unit_with_ws_param () = ();
+def unannotated_wildcard_pattern _ = ();
+def annotated_ident_param (x: int) = x;
+def annotated_unit_param ((): unit) = ();
+def annotated_wildcard_pattern (_: unit) = ();
+def two_ident_params x y = x;
+def two_wildcard_params _ _ = ();
+def arrow_annotated_param (f: int -> int) = f;

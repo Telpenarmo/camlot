@@ -1,0 +1,77 @@
+MODULE@0..113
+  DEFINITION@0..14
+    DEF_KW@0..3 "def"
+    WHITESPACE@3..4 " "
+    IDENT@4..8 "zero"
+    WHITESPACE@8..9 " "
+    PARAMS@9..9
+    DEF_BODY@9..14
+      EQUAL@9..10 "="
+      WHITESPACE@10..11 " "
+      LITERAL_EXPR@11..12
+        INT@11..12 "0"
+      SEMICOLON@12..13 ";"
+      WHITESPACE@13..14 "\n"
+  DEFINITION@14..44
+    DEF_KW@14..17 "def"
+    WHITESPACE@17..18 " "
+    IDENT@18..31 "one_annotated"
+    WHITESPACE@31..32 " "
+    PARAMS@32..32
+    TYPE_ANNOTATION@32..38
+      COLON@32..33 ":"
+      WHITESPACE@33..34 " "
+      TYPE_IDENT@34..38
+        IDENT@34..37 "int"
+        WHITESPACE@37..38 " "
+    DEF_BODY@38..44
+      EQUAL@38..39 "="
+      WHITESPACE@39..40 " "
+      LITERAL_EXPR@40..41
+        INT@40..41 "1"
+      SEMICOLON@41..42 ";"
+      WHITESPACE@42..44 "\n\n"
+  DEFINITION@44..59
+    DEF_KW@44..47 "def"
+    WHITESPACE@47..48 " "
+    IDENT@48..52 "unit"
+    WHITESPACE@52..53 " "
+    PARAMS@53..53
+    DEF_BODY@53..59
+      EQUAL@53..54 "="
+      WHITESPACE@54..55 " "
+      PAREN_EXPR@55..57
+        L_PAREN@55..56 "("
+        R_PAREN@56..57 ")"
+      SEMICOLON@57..58 ";"
+      WHITESPACE@58..59 "\n"
+  DEFINITION@59..83
+    DEF_KW@59..62 "def"
+    WHITESPACE@62..63 " "
+    IDENT@63..75 "unit_with_ws"
+    WHITESPACE@75..76 " "
+    PARAMS@76..76
+    DEF_BODY@76..83
+      EQUAL@76..77 "="
+      WHITESPACE@77..78 " "
+      PAREN_EXPR@78..81
+        L_PAREN@78..79 "("
+        WHITESPACE@79..80 " "
+        R_PAREN@80..81 ")"
+      SEMICOLON@81..82 ";"
+      WHITESPACE@82..83 "\n"
+  DEFINITION@83..113
+    DEF_KW@83..86 "def"
+    WHITESPACE@86..87 " "
+    IDENT@87..100 "two_line_unit"
+    WHITESPACE@100..101 " "
+    PARAMS@101..101
+    DEF_BODY@101..113
+      EQUAL@101..102 "="
+      WHITESPACE@102..103 " "
+      PAREN_EXPR@103..111
+        L_PAREN@103..104 "("
+        WHITESPACE@104..110 "\n    \n"
+        R_PAREN@110..111 ")"
+      SEMICOLON@111..112 ";"
+      WHITESPACE@112..113 "\n"

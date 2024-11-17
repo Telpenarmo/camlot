@@ -1,0 +1,156 @@
+MODULE@0..156
+  DEFINITION@0..44
+    DEF_KW@0..3 "def"
+    WHITESPACE@3..4 " "
+    IDENT@4..9 "apply"
+    WHITESPACE@9..10 " "
+    PARAMS@10..35
+      PARAM@10..26
+        L_PAREN@10..11 "("
+        IDENT_PATTERN@11..12
+          IDENT@11..12 "f"
+        TYPE_ANNOTATION@12..24
+          COLON@12..13 ":"
+          WHITESPACE@13..14 " "
+          TYPE_ARROW@14..24
+            TYPE_IDENT@14..18
+              IDENT@14..17 "int"
+              WHITESPACE@17..18 " "
+            ARROW@18..20 "->"
+            WHITESPACE@20..21 " "
+            TYPE_IDENT@21..24
+              IDENT@21..24 "int"
+        R_PAREN@24..25 ")"
+        WHITESPACE@25..26 " "
+      PARAM@26..35
+        L_PAREN@26..27 "("
+        IDENT_PATTERN@27..28
+          IDENT@27..28 "x"
+        TYPE_ANNOTATION@28..33
+          COLON@28..29 ":"
+          WHITESPACE@29..30 " "
+          TYPE_IDENT@30..33
+            IDENT@30..33 "int"
+        R_PAREN@33..34 ")"
+        WHITESPACE@34..35 " "
+    DEF_BODY@35..44
+      EQUAL@35..36 "="
+      WHITESPACE@36..37 " "
+      PAREN_EXPR@37..42
+        L_PAREN@37..38 "("
+        APP_EXPR@38..41
+          IDENT_EXPR@38..40
+            IDENT@38..39 "f"
+            WHITESPACE@39..40 " "
+          IDENT_EXPR@40..41
+            IDENT@40..41 "x"
+        R_PAREN@41..42 ")"
+      SEMICOLON@42..43 ";"
+      WHITESPACE@43..44 "\n"
+  DEFINITION@44..101
+    DEF_KW@44..47 "def"
+    WHITESPACE@47..48 " "
+    IDENT@48..62 "apply_3_idents"
+    WHITESPACE@62..63 " "
+    PARAMS@63..90
+      PARAM@63..86
+        L_PAREN@63..64 "("
+        IDENT_PATTERN@64..65
+          IDENT@64..65 "f"
+        TYPE_ANNOTATION@65..84
+          COLON@65..66 ":"
+          WHITESPACE@66..67 " "
+          TYPE_ARROW@67..84
+            TYPE_IDENT@67..71
+              IDENT@67..70 "int"
+              WHITESPACE@70..71 " "
+            ARROW@71..73 "->"
+            WHITESPACE@73..74 " "
+            TYPE_ARROW@74..84
+              TYPE_IDENT@74..78
+                IDENT@74..77 "int"
+                WHITESPACE@77..78 " "
+              ARROW@78..80 "->"
+              WHITESPACE@80..81 " "
+              TYPE_IDENT@81..84
+                IDENT@81..84 "int"
+        R_PAREN@84..85 ")"
+        WHITESPACE@85..86 " "
+      PARAM@86..88
+        IDENT_PATTERN@86..88
+          IDENT@86..87 "x"
+          WHITESPACE@87..88 " "
+      PARAM@88..90
+        IDENT_PATTERN@88..90
+          IDENT@88..89 "y"
+          WHITESPACE@89..90 " "
+    DEF_BODY@90..101
+      EQUAL@90..91 "="
+      WHITESPACE@91..92 " "
+      PAREN_EXPR@92..99
+        L_PAREN@92..93 "("
+        APP_EXPR@93..98
+          APP_EXPR@93..97
+            IDENT_EXPR@93..95
+              IDENT@93..94 "f"
+              WHITESPACE@94..95 " "
+            IDENT_EXPR@95..97
+              IDENT@95..96 "x"
+              WHITESPACE@96..97 " "
+          IDENT_EXPR@97..98
+            IDENT@97..98 "y"
+        R_PAREN@98..99 ")"
+      SEMICOLON@99..100 ";"
+      WHITESPACE@100..101 "\n"
+  DEFINITION@101..156
+    DEF_KW@101..104 "def"
+    WHITESPACE@104..105 " "
+    IDENT@105..122 "apply_application"
+    WHITESPACE@122..123 " "
+    PARAMS@123..143
+      PARAM@123..125
+        IDENT_PATTERN@123..125
+          IDENT@123..124 "f"
+          WHITESPACE@124..125 " "
+      PARAM@125..141
+        L_PAREN@125..126 "("
+        IDENT_PATTERN@126..127
+          IDENT@126..127 "g"
+        TYPE_ANNOTATION@127..139
+          COLON@127..128 ":"
+          WHITESPACE@128..129 " "
+          TYPE_ARROW@129..139
+            TYPE_IDENT@129..133
+              IDENT@129..132 "int"
+              WHITESPACE@132..133 " "
+            ARROW@133..135 "->"
+            WHITESPACE@135..136 " "
+            TYPE_IDENT@136..139
+              IDENT@136..139 "int"
+        R_PAREN@139..140 ")"
+        WHITESPACE@140..141 " "
+      PARAM@141..143
+        IDENT_PATTERN@141..143
+          IDENT@141..142 "x"
+          WHITESPACE@142..143 " "
+    DEF_BODY@143..156
+      EQUAL@143..144 "="
+      WHITESPACE@144..145 " "
+      PAREN_EXPR@145..154
+        L_PAREN@145..146 "("
+        APP_EXPR@146..153
+          IDENT_EXPR@146..148
+            IDENT@146..147 "f"
+            WHITESPACE@147..148 " "
+          PAREN_EXPR@148..153
+            L_PAREN@148..149 "("
+            APP_EXPR@149..152
+              IDENT_EXPR@149..151
+                IDENT@149..150 "g"
+                WHITESPACE@150..151 " "
+              IDENT_EXPR@151..152
+                IDENT@151..152 "x"
+            R_PAREN@152..153 ")"
+        R_PAREN@153..154 ")"
+      SEMICOLON@154..155 ";"
+      WHITESPACE@155..156 "\n"

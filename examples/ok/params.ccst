@@ -1,0 +1,229 @@
+MODULE@0..423
+  DEFINITION@0..36
+    DEF_KW@0..3 "def"
+    WHITESPACE@3..4 " "
+    IDENT@4..27 "unannotated_ident_param"
+    WHITESPACE@27..28 " "
+    PARAMS@28..30
+      PARAM@28..30
+        IDENT_PATTERN@28..30
+          IDENT@28..29 "x"
+          WHITESPACE@29..30 " "
+    DEF_BODY@30..36
+      EQUAL@30..31 "="
+      WHITESPACE@31..32 " "
+      IDENT_EXPR@32..33
+        IDENT@32..33 "x"
+      SEMICOLON@33..34 ";"
+      WHITESPACE@34..36 "\n\n"
+  DEFINITION@36..91
+    DEF_KW@36..39 "def"
+    WHITESPACE@39..40 " "
+    IDENT@40..76 "unannotated_unit_para ..."
+    WHITESPACE@76..77 " "
+    PARAMS@77..80
+      PARAM@77..80
+        UNIT_PATTERN@77..80
+          L_PAREN@77..78 "("
+          R_PAREN@78..79 ")"
+          WHITESPACE@79..80 " "
+    TYPE_ANNOTATION@80..86
+      COLON@80..81 ":"
+      WHITESPACE@81..82 " "
+      TYPE_IDENT@82..86
+        IDENT@82..85 "int"
+        WHITESPACE@85..86 " "
+    DEF_BODY@86..91
+      EQUAL@86..87 "="
+      WHITESPACE@87..88 " "
+      LITERAL_EXPR@88..89
+        INT@88..89 "1"
+      SEMICOLON@89..90 ";"
+      WHITESPACE@90..91 "\n"
+  DEFINITION@91..137
+    DEF_KW@91..94 "def"
+    WHITESPACE@94..95 " "
+    IDENT@95..125 "unannotated_unit_with ..."
+    WHITESPACE@125..126 " "
+    PARAMS@126..130
+      PARAM@126..130
+        UNIT_PATTERN@126..130
+          L_PAREN@126..127 "("
+          WHITESPACE@127..128 " "
+          R_PAREN@128..129 ")"
+          WHITESPACE@129..130 " "
+    DEF_BODY@130..137
+      EQUAL@130..131 "="
+      WHITESPACE@131..132 " "
+      PAREN_EXPR@132..134
+        L_PAREN@132..133 "("
+        R_PAREN@133..134 ")"
+      SEMICOLON@134..135 ";"
+      WHITESPACE@135..137 "\n\n"
+  DEFINITION@137..179
+    DEF_KW@137..140 "def"
+    WHITESPACE@140..141 " "
+    IDENT@141..169 "unannotated_wildcard_ ..."
+    WHITESPACE@169..170 " "
+    PARAMS@170..172
+      PARAM@170..172
+        UNDERSCORE_PATTERN@170..172
+          UNDERSCORE@170..171 "_"
+          WHITESPACE@171..172 " "
+    DEF_BODY@172..179
+      EQUAL@172..173 "="
+      WHITESPACE@173..174 " "
+      PAREN_EXPR@174..176
+        L_PAREN@174..175 "("
+        R_PAREN@175..176 ")"
+      SEMICOLON@176..177 ";"
+      WHITESPACE@177..179 "\n\n"
+  DEFINITION@179..219
+    DEF_KW@179..182 "def"
+    WHITESPACE@182..183 " "
+    IDENT@183..204 "annotated_ident_param"
+    WHITESPACE@204..205 " "
+    PARAMS@205..214
+      PARAM@205..214
+        L_PAREN@205..206 "("
+        IDENT_PATTERN@206..207
+          IDENT@206..207 "x"
+        TYPE_ANNOTATION@207..212
+          COLON@207..208 ":"
+          WHITESPACE@208..209 " "
+          TYPE_IDENT@209..212
+            IDENT@209..212 "int"
+        R_PAREN@212..213 ")"
+        WHITESPACE@213..214 " "
+    DEF_BODY@214..219
+      EQUAL@214..215 "="
+      WHITESPACE@215..216 " "
+      IDENT_EXPR@216..217
+        IDENT@216..217 "x"
+      SEMICOLON@217..218 ";"
+      WHITESPACE@218..219 "\n"
+  DEFINITION@219..261
+    DEF_KW@219..222 "def"
+    WHITESPACE@222..223 " "
+    IDENT@223..243 "annotated_unit_param"
+    WHITESPACE@243..244 " "
+    PARAMS@244..255
+      PARAM@244..255
+        L_PAREN@244..245 "("
+        UNIT_PATTERN@245..247
+          L_PAREN@245..246 "("
+          R_PAREN@246..247 ")"
+        TYPE_ANNOTATION@247..253
+          COLON@247..248 ":"
+          WHITESPACE@248..249 " "
+          TYPE_IDENT@249..253
+            IDENT@249..253 "unit"
+        R_PAREN@253..254 ")"
+        WHITESPACE@254..255 " "
+    DEF_BODY@255..261
+      EQUAL@255..256 "="
+      WHITESPACE@256..257 " "
+      PAREN_EXPR@257..259
+        L_PAREN@257..258 "("
+        R_PAREN@258..259 ")"
+      SEMICOLON@259..260 ";"
+      WHITESPACE@260..261 "\n"
+  DEFINITION@261..309
+    DEF_KW@261..264 "def"
+    WHITESPACE@264..265 " "
+    IDENT@265..291 "annotated_wildcard_pa ..."
+    WHITESPACE@291..292 " "
+    PARAMS@292..302
+      PARAM@292..302
+        L_PAREN@292..293 "("
+        UNDERSCORE_PATTERN@293..294
+          UNDERSCORE@293..294 "_"
+        TYPE_ANNOTATION@294..300
+          COLON@294..295 ":"
+          WHITESPACE@295..296 " "
+          TYPE_IDENT@296..300
+            IDENT@296..300 "unit"
+        R_PAREN@300..301 ")"
+        WHITESPACE@301..302 " "
+    DEF_BODY@302..309
+      EQUAL@302..303 "="
+      WHITESPACE@303..304 " "
+      PAREN_EXPR@304..306
+        L_PAREN@304..305 "("
+        R_PAREN@305..306 ")"
+      SEMICOLON@306..307 ";"
+      WHITESPACE@307..309 "\n\n"
+  DEFINITION@309..340
+    DEF_KW@309..312 "def"
+    WHITESPACE@312..313 " "
+    IDENT@313..329 "two_ident_params"
+    WHITESPACE@329..330 " "
+    PARAMS@330..334
+      PARAM@330..332
+        IDENT_PATTERN@330..332
+          IDENT@330..331 "x"
+          WHITESPACE@331..332 " "
+      PARAM@332..334
+        IDENT_PATTERN@332..334
+          IDENT@332..333 "y"
+          WHITESPACE@333..334 " "
+    DEF_BODY@334..340
+      EQUAL@334..335 "="
+      WHITESPACE@335..336 " "
+      IDENT_EXPR@336..337
+        IDENT@336..337 "x"
+      SEMICOLON@337..338 ";"
+      WHITESPACE@338..340 "\n\n"
+  DEFINITION@340..376
+    DEF_KW@340..343 "def"
+    WHITESPACE@343..344 " "
+    IDENT@344..363 "two_wildcard_params"
+    WHITESPACE@363..364 " "
+    PARAMS@364..368
+      PARAM@364..366
+        UNDERSCORE_PATTERN@364..366
+          UNDERSCORE@364..365 "_"
+          WHITESPACE@365..366 " "
+      PARAM@366..368
+        UNDERSCORE_PATTERN@366..368
+          UNDERSCORE@366..367 "_"
+          WHITESPACE@367..368 " "
+    DEF_BODY@368..376
+      EQUAL@368..369 "="
+      WHITESPACE@369..370 " "
+      PAREN_EXPR@370..373
+        L_PAREN@370..371 "("
+        WHITESPACE@371..372 " "
+        R_PAREN@372..373 ")"
+      SEMICOLON@373..374 ";"
+      WHITESPACE@374..376 "\n\n"
+  DEFINITION@376..423
+    DEF_KW@376..379 "def"
+    WHITESPACE@379..380 " "
+    IDENT@380..401 "arrow_annotated_param"
+    WHITESPACE@401..402 " "
+    PARAMS@402..418
+      PARAM@402..418
+        L_PAREN@402..403 "("
+        IDENT_PATTERN@403..404
+          IDENT@403..404 "f"
+        TYPE_ANNOTATION@404..416
+          COLON@404..405 ":"
+          WHITESPACE@405..406 " "
+          TYPE_ARROW@406..416
+            TYPE_IDENT@406..410
+              IDENT@406..409 "int"
+              WHITESPACE@409..410 " "
+            ARROW@410..412 "->"
+            WHITESPACE@412..413 " "
+            TYPE_IDENT@413..416
+              IDENT@413..416 "int"
+        R_PAREN@416..417 ")"
+        WHITESPACE@417..418 " "
+    DEF_BODY@418..423
+      EQUAL@418..419 "="
+      WHITESPACE@419..420 " "
+      IDENT_EXPR@420..421
+        IDENT@420..421 "f"
+      SEMICOLON@421..422 ";"
+      WHITESPACE@422..423 "\n"
