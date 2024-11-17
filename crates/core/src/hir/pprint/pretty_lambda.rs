@@ -1,4 +1,4 @@
-use crate::{Expr, Module, TypeExpr};
+use crate::{Module, TypeExpr};
 
 impl Module {
     pub(super) fn fmt_lambda(
@@ -9,15 +9,6 @@ impl Module {
     ) -> std::fmt::Result {
         f.write_str("\\")?;
         self.fmt_param(f, &e.param)?;
-        let mut body = e.body;
-        while let Expr::LambdaExpr(inner) = self.get_expr(body) {
-            if *self.get_type_expr(inner.return_type) != TypeExpr::Missing {
-                break;
-            }
-            f.write_str(" ")?;
-            self.fmt_param(f, &inner.param)?;
-            body = inner.body;
-        }
         match *self.get_type_expr(e.return_type) {
             TypeExpr::TypeArrow { .. } => {
                 f.write_str(" : ")?;
@@ -32,7 +23,7 @@ impl Module {
             }
         }
         f.write_str(" -> ")?;
-        self.fmt_expr(f, body, false, indent)?;
+        self.fmt_expr(f, e.body, false, indent)?;
         Ok(())
     }
 }
@@ -41,7 +32,7 @@ impl Module {
 mod tests {
     use crate::{
         hir::{ident_param, pprint::InModule},
-        Interner, LambdaExpr, TypeExpr,
+        Expr, Interner, LambdaExpr, TypeExpr,
     };
 
     use super::*;
@@ -131,7 +122,7 @@ mod tests {
             body: inner,
             return_type: int,
         };
-        let expected = &expect![[r"\(a: int) (b: int) : int -> b"]];
+        let expected = &expect![[r"\(a: int) : int -> \(b: int) -> b"]];
         expected.assert_eq(&format!("{:?}", InModule(module, lambda)));
     }
 
@@ -164,7 +155,7 @@ mod tests {
             body: inner,
             return_type: int,
         };
-        let expected = &expect![[r"\(a: int) (b: int) (c: int) : int -> c"]];
+        let expected = &expect![[r"\(a: int) : int -> \(b: int) -> \(c: int) -> c"]];
         expected.assert_eq(&format!("{:?}", InModule(module, lambda)));
     }
 
