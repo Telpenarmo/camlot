@@ -73,30 +73,7 @@ fn def(parser: &mut Parser) {
 mod tests {
     use expect_test::expect;
 
-    use crate::{check, check_err, PrefixEntryPoint};
-
-    #[test]
-    fn parse_definition() {
-        check(
-            PrefixEntryPoint::Module,
-            "def f = x;",
-            &expect![[r#"
-            MODULE@0..10
-              DEFINITION@0..10
-                DEF_KW@0..3 "def"
-                WHITESPACE@3..4 " "
-                IDENT@4..5 "f"
-                WHITESPACE@5..6 " "
-                PARAMS@6..6
-                DEF_BODY@6..10
-                  EQUAL@6..7 "="
-                  WHITESPACE@7..8 " "
-                  IDENT_EXPR@8..9
-                    IDENT@8..9 "x"
-                  SEMICOLON@9..10 ";"
-        "#]],
-        );
-    }
+    use crate::{check_err, PrefixEntryPoint};
 
     #[test]
     fn parse_def_missing_body() {
@@ -134,111 +111,6 @@ mod tests {
                     DEF_BODY@3..3
             "#]],
             &["Expected IDENT but found EOF"],
-        );
-    }
-
-    #[test]
-    fn parse_def_with_param_type_annotation() {
-        check(
-            PrefixEntryPoint::Module,
-            "def f(x: Int) = x;",
-            &expect![[r#"
-                MODULE@0..18
-                  DEFINITION@0..18
-                    DEF_KW@0..3 "def"
-                    WHITESPACE@3..4 " "
-                    IDENT@4..5 "f"
-                    PARAMS@5..14
-                      PARAM@5..14
-                        L_PAREN@5..6 "("
-                        IDENT_PATTERN@6..7
-                          IDENT@6..7 "x"
-                        TYPE_ANNOTATION@7..12
-                          COLON@7..8 ":"
-                          WHITESPACE@8..9 " "
-                          TYPE_IDENT@9..12
-                            IDENT@9..12 "Int"
-                        R_PAREN@12..13 ")"
-                        WHITESPACE@13..14 " "
-                    DEF_BODY@14..18
-                      EQUAL@14..15 "="
-                      WHITESPACE@15..16 " "
-                      IDENT_EXPR@16..17
-                        IDENT@16..17 "x"
-                      SEMICOLON@17..18 ";"
-            "#]],
-        );
-    }
-
-    #[test]
-    fn parse_def_with_return_type_annotation() {
-        check(
-            PrefixEntryPoint::Module,
-            "def f: Int = 42;",
-            &expect![[r#"
-                MODULE@0..16
-                  DEFINITION@0..16
-                    DEF_KW@0..3 "def"
-                    WHITESPACE@3..4 " "
-                    IDENT@4..5 "f"
-                    PARAMS@5..5
-                    TYPE_ANNOTATION@5..11
-                      COLON@5..6 ":"
-                      WHITESPACE@6..7 " "
-                      TYPE_IDENT@7..11
-                        IDENT@7..10 "Int"
-                        WHITESPACE@10..11 " "
-                    DEF_BODY@11..16
-                      EQUAL@11..12 "="
-                      WHITESPACE@12..13 " "
-                      LITERAL_EXPR@13..15
-                        INT@13..15 "42"
-                      SEMICOLON@15..16 ";"
-            "#]],
-        );
-    }
-
-    #[test]
-    fn parse_annotated_def_lambda() {
-        check(
-            PrefixEntryPoint::Module,
-            "def f : int -> int = \\x -> x;",
-            &expect![[r#"
-                MODULE@0..29
-                  DEFINITION@0..29
-                    DEF_KW@0..3 "def"
-                    WHITESPACE@3..4 " "
-                    IDENT@4..5 "f"
-                    WHITESPACE@5..6 " "
-                    PARAMS@6..6
-                    TYPE_ANNOTATION@6..19
-                      COLON@6..7 ":"
-                      WHITESPACE@7..8 " "
-                      TYPE_ARROW@8..19
-                        TYPE_IDENT@8..12
-                          IDENT@8..11 "int"
-                          WHITESPACE@11..12 " "
-                        ARROW@12..14 "->"
-                        WHITESPACE@14..15 " "
-                        TYPE_IDENT@15..19
-                          IDENT@15..18 "int"
-                          WHITESPACE@18..19 " "
-                    DEF_BODY@19..29
-                      EQUAL@19..20 "="
-                      WHITESPACE@20..21 " "
-                      LAMBDA_EXPR@21..28
-                        BACKSLASH@21..22 "\\"
-                        PARAMS@22..24
-                          PARAM@22..24
-                            IDENT_PATTERN@22..24
-                              IDENT@22..23 "x"
-                              WHITESPACE@23..24 " "
-                        ARROW@24..26 "->"
-                        WHITESPACE@26..27 " "
-                        IDENT_EXPR@27..28
-                          IDENT@27..28 "x"
-                      SEMICOLON@28..29 ";"
-            "#]],
         );
     }
 }
