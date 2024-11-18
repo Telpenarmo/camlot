@@ -32,3 +32,10 @@ def let_x_annotated_be_number = {
     let x : Int = 42;
     x
 };
+def nested_lets : unit = {
+    let outer = {
+        let inner : int = 1;
+        ()
+    };
+    outer
+};

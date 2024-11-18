@@ -7,7 +7,7 @@ def nested_block_with_number {
     { 0 }
 }
 
-def let_x_be_number { let x = 42; }
+def let_x_be_number =  { let x = 42; };
 
 def empty_block {}
 
@@ -23,4 +23,11 @@ def let_func_deconstructing_unit_returning_unit { let f () = (); }
 def let_x_annotated_be_number {
     let x: Int = 42;
     x
+}
+
+def nested_lets : unit {
+    let outer = {
+        let inner : int = 1;
+    };
+    outer
 }
