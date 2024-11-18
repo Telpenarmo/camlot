@@ -4,9 +4,9 @@ mod pretty_type;
 
 use std::fmt::Display;
 
-use crate::hir::{Expr, ExprIdx, Param};
+use crate::hir::{Expr, ExprIdx};
 
-use super::{LetExpr, Module, Pattern, TypeExpr};
+use super::{LetExpr, Module, ParamIdx, Pattern, TypeExpr};
 
 impl Module {
     fn fmt_pattern(&self, f: &mut std::fmt::Formatter<'_>, patt: Pattern) -> std::fmt::Result {
@@ -17,7 +17,8 @@ impl Module {
         }
     }
 
-    fn fmt_param(&self, f: &mut std::fmt::Formatter<'_>, param: &Param) -> std::fmt::Result {
+    fn fmt_param(&self, f: &mut std::fmt::Formatter<'_>, param: ParamIdx) -> std::fmt::Result {
+        let param = self.get_param(param);
         if self.get_type_expr(param.typ) == &TypeExpr::Missing {
             self.fmt_pattern(f, param.pattern)
         } else {
@@ -88,7 +89,7 @@ impl Display for Module {
             f.write_str(self.get_name(defn.name))?;
             for param in &defn.params {
                 f.write_str(" ")?;
-                self.fmt_param(f, param)?;
+                self.fmt_param(f, *param)?;
             }
             if self.get_type_expr(defn.return_type) != &TypeExpr::Missing {
                 f.write_str(" : ")?;

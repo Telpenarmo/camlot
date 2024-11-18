@@ -133,6 +133,7 @@ impl TypeInference {
             .params
             .iter()
             .map(|param| {
+                let param = module.get_param(*param);
                 let typ = self.resolve_type_expr(module, types, param.typ);
                 let (pat_env, typ) = self.resolve_pattern(param.pattern, unit(types), typ);
                 def_env = pat_env.union(def_env.clone());
@@ -243,9 +244,10 @@ impl TypeInference {
                 }
             }
             Expr::LambdaExpr(lambda) => {
-                let from = self.resolve_type_expr(module, types, lambda.param.typ);
+                let param = module.get_param(lambda.param);
+                let from = self.resolve_type_expr(module, types, param.typ);
 
-                let (pat_env, from) = self.resolve_pattern(lambda.param.pattern, unit(types), from);
+                let (pat_env, from) = self.resolve_pattern(param.pattern, unit(types), from);
                 let env = pat_env.union(env.clone());
                 let to = self.resolve_type_expr(module, types, lambda.return_type);
                 self.check_expr(module, types, lambda.body, &env, to);
@@ -294,7 +296,8 @@ impl TypeInference {
             | (Expr::LiteralExpr(Literal::Unit), Type::Unit) => {}
 
             (Expr::LambdaExpr(lambda), Type::Arrow(from, to)) => {
-                let (env, _) = self.resolve_pattern(lambda.param.pattern, unit_type, *from);
+                let param = module.get_param(lambda.param);
+                let (env, _) = self.resolve_pattern(param.pattern, unit_type, *from);
                 self.check_expr(module, types, lambda.body, &env, *to);
             }
 

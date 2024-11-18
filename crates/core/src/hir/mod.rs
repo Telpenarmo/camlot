@@ -12,13 +12,14 @@ pub type ExprIdx = Idx<Expr>;
 pub type TypeExprIdx = Idx<TypeExpr>;
 pub type DefinitionIdx = Idx<Definition>;
 pub type TypeDefinitionIdx = Idx<TypeDefinition>;
+pub type ParamIdx = Idx<Param>;
 
 pub(crate) type Name = Interned<String>;
 
 #[derive(PartialEq, Debug)]
 pub struct Definition {
     pub name: Name,
-    pub params: Box<[Param]>,
+    pub params: Box<[ParamIdx]>,
     pub return_type: TypeExprIdx,
     pub defn: ExprIdx,
 }
@@ -39,7 +40,7 @@ pub enum Expr {
     Missing,
     LetExpr(Box<LetExpr>),
     IdentExpr { name: Name },
-    LambdaExpr(Box<LambdaExpr>),
+    LambdaExpr(LambdaExpr),
     AppExpr { func: ExprIdx, arg: ExprIdx },
     LiteralExpr(Literal),
 }
@@ -59,12 +60,12 @@ impl Expr {
         }))
     }
 
-    pub(crate) fn lambda_expr(param: Param, return_type: TypeExprIdx, body: ExprIdx) -> Self {
-        Self::LambdaExpr(Box::new(LambdaExpr {
+    pub(crate) fn lambda_expr(param: ParamIdx, return_type: TypeExprIdx, body: ExprIdx) -> Self {
+        Self::LambdaExpr(LambdaExpr {
             param,
             return_type,
             body,
-        }))
+        })
     }
 
     pub(crate) fn ident_expr<T: Into<Name>>(name: T) -> Self {
@@ -98,7 +99,7 @@ pub struct LetExpr {
 #[allow(unused)]
 #[derive(PartialEq, Debug)]
 pub struct LambdaExpr {
-    pub param: Param,
+    pub param: ParamIdx,
     pub return_type: TypeExprIdx,
     pub body: ExprIdx,
 }

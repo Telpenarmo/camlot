@@ -8,7 +8,7 @@ impl Module {
         indent: usize,
     ) -> std::fmt::Result {
         f.write_str("\\")?;
-        self.fmt_param(f, &e.param)?;
+        self.fmt_param(f, e.param)?;
         match *self.get_type_expr(e.return_type) {
             TypeExpr::TypeArrow { .. } => {
                 f.write_str(" : ")?;

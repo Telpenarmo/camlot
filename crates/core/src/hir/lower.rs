@@ -3,8 +3,8 @@ use parser::{nodes as ast, AstToken};
 use crate::Name;
 
 use super::{
-    module::Module, Definition, Expr, ExprIdx, Literal, Param, Pattern, TypeDefinition, TypeExpr,
-    TypeExprIdx,
+    module::Module, Definition, Expr, ExprIdx, Literal, Param, ParamIdx, Pattern, TypeDefinition,
+    TypeExpr, TypeExprIdx,
 };
 
 impl Module {
@@ -56,19 +56,18 @@ impl Module {
         }
     }
 
-    fn lower_params(&mut self, ast: Option<ast::Params>) -> Box<[Param]> {
+    fn lower_params(&mut self, ast: Option<ast::Params>) -> Box<[ParamIdx]> {
         ast.map(|ast| ast.params().map(|ast| self.lower_param(&ast)).collect())
             .unwrap_or_default()
     }
 
-    fn lower_param(&mut self, ast: &ast::Param) -> Param {
+    fn lower_param(&mut self, ast: &ast::Param) -> ParamIdx {
         let pattern = self.lower_pattern(&ast.pattern().expect("Empty param indicates parser bug"));
 
         let typ = self.lower_type_annotation(ast.type_annotation());
-        Param {
-            pattern,
-            typ: self.alloc_type_expr(typ),
-        }
+        let typ = self.alloc_type_expr(typ);
+
+        self.alloc_param(Param { pattern, typ })
     }
 
     fn lower_pattern(&mut self, ast: &ast::Pattern) -> Pattern {
@@ -112,11 +111,11 @@ impl Module {
         }
     }
 
-    fn curry<'a, T: Iterator<Item = &'a Param>>(&mut self, body: Expr, params: T) -> Expr {
+    fn curry<'a, T: Iterator<Item = &'a ParamIdx>>(&mut self, body: Expr, params: T) -> Expr {
         params.fold(body, |body, param| {
             let body = self.alloc_expr(body);
 
-            Expr::lambda_expr(param.clone(), self.alloc_type_expr(TypeExpr::Missing), body)
+            Expr::lambda_expr(*param, self.alloc_type_expr(TypeExpr::Missing), body)
         })
     }
 
@@ -162,9 +161,12 @@ impl Module {
                 let return_type = self.lower_type_annotation(ast.type_annotation());
                 let return_type = self.alloc_type_expr(return_type);
 
-                let innermost_param = params_rev.next().cloned().unwrap_or_else(|| Param {
-                    pattern: Pattern::Wildcard,
-                    typ: self.alloc_type_expr(TypeExpr::Missing),
+                let innermost_param = params_rev.next().copied().unwrap_or_else(|| {
+                    let typ = self.alloc_type_expr(TypeExpr::Missing);
+                    self.alloc_param(Param {
+                        pattern: Pattern::Wildcard,
+                        typ,
+                    })
                 });
                 let innermost = Expr::lambda_expr(innermost_param, return_type, body);
 
@@ -225,7 +227,7 @@ impl Module {
                 let (defn, return_type) = match params_rev.next() {
                     Some(tail_param) => {
                         let defn = self.alloc_expr(defn);
-                        let defn = Expr::lambda_expr(tail_param.clone(), return_type, defn);
+                        let defn = Expr::lambda_expr(*tail_param, return_type, defn);
                         (defn, self.alloc_type_expr(TypeExpr::Missing))
                     }
                     None => (defn, return_type),
@@ -253,12 +255,13 @@ impl Module {
 mod tests {
     use crate::hir::ident_param;
     use crate::hir::module::{expr_deep_eq, type_expr_deep_eq};
-    use crate::Interner;
+    use crate::{Interner, ParamIdx};
 
     use super::{Expr, Module, Param, TypeExpr};
 
-    fn unannotated_param(module: &mut Module, name: &str) -> Param {
-        ident_param(module.name(name), module.alloc_type_expr(TypeExpr::Missing))
+    fn unannotated_param(module: &mut Module, name: &str) -> ParamIdx {
+        let param = ident_param(module.name(name), module.alloc_type_expr(TypeExpr::Missing));
+        module.alloc_param(param)
     }
 
     fn module() -> Module {
@@ -326,6 +329,8 @@ mod tests {
             pattern: crate::Pattern::Wildcard,
             typ,
         };
+
+        let param = module.alloc_param(param);
         module.alloc_expr(Expr::lambda_expr(param, typ, body));
 
         check_expr("\\-> x", &module);

@@ -1,14 +1,14 @@
 use imbl::HashMap;
 use la_arena::{Arena, ArenaMap};
 
-use parser::{DefinitionPtr, ExprPtr, TypeDefinitionPtr, TypeExprPtr};
+use parser::{DefinitionPtr, ExprPtr, ParamPtr, TypeDefinitionPtr, TypeExprPtr};
 
 use crate::types::Type;
 use crate::{builtin, TypeIdx};
 use crate::{intern::Interner, Name};
 
 use super::{
-    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, Pattern, TypeDefinition,
+    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, ParamIdx, Pattern, TypeDefinition,
     TypeDefinitionIdx, TypeExpr, TypeExprIdx,
 };
 
@@ -24,6 +24,8 @@ pub struct Module {
     exprs_syntax: ArenaMap<ExprIdx, ExprPtr>,
     type_expressions: Arena<TypeExpr>,
     type_exprs_syntax: ArenaMap<TypeExprIdx, TypeExprPtr>,
+    parameters: Arena<Param>,
+    parameters_syntax: ArenaMap<ParamIdx, ParamPtr>,
     names: Interner<String>,
     known_definitions: HashMap<Name, TypeIdx>,
     known_types: HashMap<Name, TypeIdx>,
@@ -41,7 +43,9 @@ fn pattern_deep_eq(a_module: &Module, b_module: &Module, a: Pattern, b: Pattern)
     }
 }
 
-fn param_deep_eq(a_module: &Module, b_module: &Module, a: &Param, b: &Param) -> bool {
+fn param_deep_eq(a_module: &Module, b_module: &Module, a: ParamIdx, b: ParamIdx) -> bool {
+    let a = a_module.get_param(a);
+    let b = b_module.get_param(b);
     pattern_deep_eq(a_module, b_module, a.pattern, b.pattern)
         && type_expr_deep_eq(a_module, b_module, a.typ, b.typ)
 }
@@ -93,7 +97,7 @@ pub(super) fn expr_deep_eq(a_module: &Module, b_module: &Module, a: ExprIdx, b: 
                 && expr_deep_eq(a_module, b_module, *arg, *b_arg)
         }
         (Expr::LambdaExpr(l_lambda), Expr::LambdaExpr(b_lambda)) => {
-            param_deep_eq(a_module, b_module, &l_lambda.param, &b_lambda.param)
+            param_deep_eq(a_module, b_module, l_lambda.param, b_lambda.param)
                 && expr_deep_eq(a_module, b_module, l_lambda.body, b_lambda.body)
                 && type_expr_deep_eq(
                     a_module,
@@ -147,6 +151,8 @@ impl Module {
             definitions: Arena::new(),
             opens: Arena::new(),
             type_definitions: Arena::new(),
+            parameters: Arena::new(),
+            parameters_syntax: ArenaMap::new(),
             names: Interner::new(),
             exprs_syntax: ArenaMap::new(),
             type_exprs_syntax: ArenaMap::new(),
@@ -196,6 +202,10 @@ impl Module {
         self.expressions.alloc(expr)
     }
 
+    pub(super) fn alloc_param(&mut self, param: Param) -> ParamIdx {
+        self.parameters.alloc(param)
+    }
+
     pub(crate) fn get_expr(&self, idx: ExprIdx) -> &Expr {
         &self.expressions[idx]
     }
@@ -210,6 +220,10 @@ impl Module {
 
     pub(crate) fn get_name(&self, name: Name) -> &str {
         self.names.lookup(name)
+    }
+
+    pub(crate) fn get_param(&self, idx: ParamIdx) -> &Param {
+        &self.parameters[idx]
     }
 
     pub(crate) fn iter_definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> {
