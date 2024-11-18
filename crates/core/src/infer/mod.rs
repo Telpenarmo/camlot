@@ -24,7 +24,7 @@ pub enum Diagnostic {
         name: Name,
     },
     UnifcationError {
-        expr: ExprIdx,
+        expr: ConstraintReason,
         error: UnifcationError,
     },
 }
@@ -38,8 +38,15 @@ pub struct TypeInference {
     types_env: Environment,
 }
 
+#[derive(PartialEq, Debug)]
+pub enum ConstraintReason {
+    ApplicationTarget(ExprIdx),
+    Checking(ExprIdx),
+    UnitPattern,
+}
+
 enum Constraint {
-    TypeEqual(ExprIdx, TypeIdx, TypeIdx),
+    TypeEqual(ConstraintReason, TypeIdx, TypeIdx),
 }
 
 type Environment = imbl::HashMap<Name, TypeIdx>;
@@ -265,8 +272,9 @@ impl TypeInference {
 
                 let func_typ = arrow(types, arg_typ, ret_typ);
 
+                let reason = ConstraintReason::ApplicationTarget(lhs);
                 self.constraints
-                    .push(Constraint::TypeEqual(lhs, func_typ, lhs_typ));
+                    .push(Constraint::TypeEqual(reason, func_typ, lhs_typ));
 
                 self.check_expr(module, types, rhs, env, arg_typ);
 
@@ -303,8 +311,9 @@ impl TypeInference {
 
             _ => {
                 let actual = self.infer_expr(module, types, env, expr);
+                let reason = ConstraintReason::Checking(expr);
                 self.constraints
-                    .push(Constraint::TypeEqual(expr, typ, actual));
+                    .push(Constraint::TypeEqual(reason, typ, actual));
             }
         }
     }
@@ -319,8 +328,11 @@ impl TypeInference {
             Pattern::Ident(name) => (Environment::unit(name, ann), ann),
             Pattern::Wildcard => (Environment::new(), ann),
             Pattern::Unit => {
-                // self.constraints
-                //     .push(Constraint::TypeEqual(_, ann, unit_type));
+                self.constraints.push(Constraint::TypeEqual(
+                    ConstraintReason::UnitPattern,
+                    ann,
+                    unit_type,
+                ));
                 (Environment::new(), unit_type)
             }
         }

@@ -1,9 +1,10 @@
 use ena::unify::InPlaceUnificationTable;
 
-use crate::hir::ExprIdx;
 use crate::intern::Interner;
 use crate::types::{TypeIdx, UnificationVar};
 use crate::{infer::Constraint, types::Type};
+
+use super::ConstraintReason;
 
 impl Type {
     fn occurs(&self, types: &Interner<Type>, v: UnificationVar) -> bool {
@@ -44,7 +45,7 @@ impl<'a> Unifcation<'a> {
     pub(super) fn unify(
         &mut self,
         constraints: Vec<Constraint>,
-    ) -> Vec<(ExprIdx, UnifcationError)> {
+    ) -> Vec<(ConstraintReason, UnifcationError)> {
         constraints
             .into_iter()
             .filter_map(|constraint| match constraint {
