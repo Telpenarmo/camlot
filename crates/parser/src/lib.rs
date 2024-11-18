@@ -85,15 +85,6 @@ impl Parse {
 #[cfg(test)]
 #[track_caller]
 #[inline]
-fn check_file(input: &str, expected_tree: &expect_test::ExpectFile) {
-    let parse = parse(input);
-    expected_tree.assert_eq(&parse.debug_tree());
-    assert!(parse.errors.is_empty());
-}
-
-#[cfg(test)]
-#[track_caller]
-#[inline]
 fn check_err(
     entry_point: PrefixEntryPoint,
     input: &str,
