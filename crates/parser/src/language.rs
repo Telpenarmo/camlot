@@ -2,7 +2,7 @@ use rowan::Language;
 
 use crate::{
     generated::syntax_kinds::SyntaxKind,
-    nodes::{Definition, Param, TypeDefinition, TypeExpr},
+    nodes::{Definition, Param, Pattern, TypeDefinition, TypeExpr},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -31,4 +31,5 @@ pub type DefinitionPtr = rowan::ast::AstPtr<Definition>;
 pub type TypeDefinitionPtr = rowan::ast::AstPtr<TypeDefinition>;
 pub type TypeExprPtr = rowan::ast::AstPtr<TypeExpr>;
 pub type ParamPtr = rowan::ast::AstPtr<Param>;
+pub type PatternPtr = rowan::ast::AstPtr<Pattern>;
 pub type ExprPtr = rowan::ast::SyntaxNodePtr<CamlotLanguage>;

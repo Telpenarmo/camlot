@@ -3,8 +3,8 @@ use parser::{nodes as ast, AstToken};
 use crate::Name;
 
 use super::{
-    module::Module, Definition, Expr, ExprIdx, Literal, Param, ParamIdx, Pattern, TypeDefinition,
-    TypeExpr, TypeExprIdx,
+    module::Module, Definition, Expr, ExprIdx, Literal, Param, ParamIdx, Pattern, PatternIdx,
+    TypeDefinition, TypeExpr, TypeExprIdx,
 };
 
 impl Module {
@@ -70,14 +70,16 @@ impl Module {
         self.alloc_param(Param { pattern, typ })
     }
 
-    fn lower_pattern(&mut self, ast: &ast::Pattern) -> Pattern {
-        match ast {
+    fn lower_pattern(&mut self, ast: &ast::Pattern) -> PatternIdx {
+        let pat = match ast {
             ast::Pattern::IdentPattern(ident_pattern) => {
                 Pattern::Ident(self.lower_ident(ident_pattern.ident_lit()))
             }
             ast::Pattern::UnderscorePattern(_) => Pattern::Wildcard,
             ast::Pattern::UnitPattern(_) => Pattern::Unit,
-        }
+        };
+
+        self.alloc_pattern(pat)
     }
 
     fn lower_type_annotation(&mut self, ast: Option<ast::TypeAnnotation>) -> TypeExpr {
@@ -163,10 +165,8 @@ impl Module {
 
                 let innermost_param = params_rev.next().copied().unwrap_or_else(|| {
                     let typ = self.alloc_type_expr(TypeExpr::Missing);
-                    self.alloc_param(Param {
-                        pattern: Pattern::Wildcard,
-                        typ,
-                    })
+                    let pattern = self.alloc_pattern(Pattern::Wildcard);
+                    self.alloc_param(Param { pattern, typ })
                 });
                 let innermost = Expr::lambda_expr(innermost_param, return_type, body);
 
@@ -202,18 +202,14 @@ impl Module {
             ast::Stmt::ExprStmt(ast) => {
                 let expr = self.lower_expr_defaulting_to_unit(ast.expr());
                 let expr = self.alloc_expr(expr);
-                Expr::let_expr(
-                    Pattern::Unit,
-                    self.alloc_type_expr(TypeExpr::Missing),
-                    expr,
-                    cont,
-                )
+                let pat = self.alloc_pattern(Pattern::Unit);
+                Expr::let_expr(pat, self.alloc_type_expr(TypeExpr::Missing), expr, cont)
             }
             ast::Stmt::LetStmt(ast) => {
-                let wildcard_pattern = Pattern::Wildcard;
-                let pattern = ast
-                    .pattern()
-                    .map_or(wildcard_pattern, |ast| self.lower_pattern(&ast));
+                let pattern = match ast.pattern() {
+                    Some(pat) => self.lower_pattern(&pat),
+                    None => self.alloc_pattern(Pattern::Wildcard),
+                };
 
                 let params = self.lower_params(ast.params());
 
@@ -253,14 +249,18 @@ impl Module {
 
 #[cfg(test)]
 mod tests {
-    use crate::hir::ident_param;
     use crate::hir::module::{expr_deep_eq, type_expr_deep_eq};
-    use crate::{Interner, ParamIdx};
+    use crate::{Interner, ParamIdx, Pattern};
 
     use super::{Expr, Module, Param, TypeExpr};
 
     fn unannotated_param(module: &mut Module, name: &str) -> ParamIdx {
-        let param = ident_param(module.name(name), module.alloc_type_expr(TypeExpr::Missing));
+        let param = {
+            let name = module.name(name);
+            let typ = module.alloc_type_expr(TypeExpr::Missing);
+            let pattern = module.alloc_pattern(Pattern::Ident(name));
+            Param { pattern, typ }
+        };
         module.alloc_param(param)
     }
 
@@ -325,10 +325,8 @@ mod tests {
         let body = module.alloc_expr(Expr::ident_expr(x));
 
         let typ = module.alloc_type_expr(TypeExpr::Missing);
-        let param = Param {
-            pattern: crate::Pattern::Wildcard,
-            typ,
-        };
+        let pattern = module.alloc_pattern(Pattern::Wildcard);
+        let param = Param { pattern, typ };
 
         let param = module.alloc_param(param);
         module.alloc_expr(Expr::lambda_expr(param, typ, body));
@@ -351,7 +349,9 @@ mod tests {
 
         let defn = module.alloc_expr(Expr::lambda_expr(param, typ, defn));
 
-        module.alloc_expr(Expr::ident_let(name, typ, defn, body));
+        let pat = Pattern::Ident(name);
+        let pat = module.alloc_pattern(pat);
+        module.alloc_expr(Expr::let_expr(pat, typ, defn, body));
 
         check_expr("{ let a b; d }", &module);
     }

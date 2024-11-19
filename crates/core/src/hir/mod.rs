@@ -13,6 +13,7 @@ pub type TypeExprIdx = Idx<TypeExpr>;
 pub type DefinitionIdx = Idx<Definition>;
 pub type TypeDefinitionIdx = Idx<TypeDefinition>;
 pub type ParamIdx = Idx<Param>;
+pub type PatternIdx = Idx<Pattern>;
 
 pub(crate) type Name = Interned<String>;
 
@@ -38,7 +39,7 @@ pub struct TypeDefinition {
 #[derive(PartialEq, Debug)]
 pub enum Expr {
     Missing,
-    LetExpr(Box<LetExpr>),
+    LetExpr(LetExpr),
     IdentExpr { name: Name },
     LambdaExpr(LambdaExpr),
     AppExpr { func: ExprIdx, arg: ExprIdx },
@@ -47,17 +48,17 @@ pub enum Expr {
 
 impl Expr {
     pub(crate) fn let_expr(
-        lhs: Pattern,
+        lhs: PatternIdx,
         return_type: TypeExprIdx,
         defn: ExprIdx,
         body: ExprIdx,
     ) -> Self {
-        Self::LetExpr(Box::new(LetExpr {
+        Self::LetExpr(LetExpr {
             lhs,
             return_type,
             defn,
             body,
-        }))
+        })
     }
 
     pub(crate) fn lambda_expr(param: ParamIdx, return_type: TypeExprIdx, body: ExprIdx) -> Self {
@@ -80,17 +81,12 @@ impl Expr {
     pub(crate) fn bool_expr(val: bool) -> Self {
         Self::LiteralExpr(Literal::BoolLiteral(val))
     }
-
-    #[cfg(test)]
-    fn ident_let(name: Name, typ: TypeExprIdx, defn: ExprIdx, body: ExprIdx) -> Self {
-        Self::let_expr(Pattern::Ident(name), typ, defn, body)
-    }
 }
 
 #[allow(unused)]
 #[derive(PartialEq, Debug)]
 pub struct LetExpr {
-    pub lhs: Pattern,
+    pub lhs: PatternIdx,
     pub return_type: TypeExprIdx,
     pub defn: ExprIdx,
     pub body: ExprIdx,
@@ -131,16 +127,8 @@ impl std::fmt::Display for Literal {
 #[allow(unused)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Param {
-    pub(crate) pattern: Pattern,
+    pub(crate) pattern: PatternIdx,
     pub(crate) typ: TypeExprIdx,
-}
-
-#[cfg(test)]
-fn ident_param(name: Name, typ: TypeExprIdx) -> Param {
-    Param {
-        pattern: Pattern::Ident(name),
-        typ,
-    }
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]

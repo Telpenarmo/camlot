@@ -1,15 +1,15 @@
 use imbl::HashMap;
 use la_arena::{Arena, ArenaMap};
 
-use parser::{DefinitionPtr, ExprPtr, ParamPtr, TypeDefinitionPtr, TypeExprPtr};
+use parser::{DefinitionPtr, ExprPtr, ParamPtr, PatternPtr, TypeDefinitionPtr, TypeExprPtr};
 
 use crate::types::Type;
 use crate::{builtin, TypeIdx};
 use crate::{intern::Interner, Name};
 
 use super::{
-    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, ParamIdx, Pattern, TypeDefinition,
-    TypeDefinitionIdx, TypeExpr, TypeExprIdx,
+    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, ParamIdx, Pattern, PatternIdx,
+    TypeDefinition, TypeDefinitionIdx, TypeExpr, TypeExprIdx,
 };
 
 #[derive(Debug)]
@@ -17,16 +17,26 @@ use super::{
 pub struct Module {
     definitions: Arena<Definition>,
     definitions_syntax: ArenaMap<DefinitionIdx, DefinitionPtr>,
+
     opens: Arena<Open>,
+
     type_definitions: Arena<TypeDefinition>,
     type_definitions_syntax: ArenaMap<TypeDefinitionIdx, TypeDefinitionPtr>,
+
     expressions: Arena<Expr>,
     exprs_syntax: ArenaMap<ExprIdx, ExprPtr>,
+
     type_expressions: Arena<TypeExpr>,
     type_exprs_syntax: ArenaMap<TypeExprIdx, TypeExprPtr>,
+
     parameters: Arena<Param>,
     parameters_syntax: ArenaMap<ParamIdx, ParamPtr>,
+
+    patterns: Arena<Pattern>,
+    patterns_syntax: ArenaMap<PatternIdx, PatternPtr>,
+
     names: Interner<String>,
+
     known_definitions: HashMap<Name, TypeIdx>,
     known_types: HashMap<Name, TypeIdx>,
 }
@@ -35,9 +45,11 @@ fn name_deep_eq(a_module: &Module, b_module: &Module, a: Name, b: Name) -> bool 
     a_module.names.lookup(a) == b_module.names.lookup(b)
 }
 
-fn pattern_deep_eq(a_module: &Module, b_module: &Module, a: Pattern, b: Pattern) -> bool {
+fn pattern_deep_eq(a_module: &Module, b_module: &Module, a: PatternIdx, b: PatternIdx) -> bool {
+    let a = a_module.get_pattern(a);
+    let b = b_module.get_pattern(b);
     match (a, b) {
-        (Pattern::Ident(a), Pattern::Ident(b)) => name_deep_eq(a_module, b_module, a, b),
+        (Pattern::Ident(a), Pattern::Ident(b)) => name_deep_eq(a_module, b_module, *a, *b),
         (Pattern::Wildcard, Pattern::Wildcard) | (Pattern::Unit, Pattern::Unit) => true,
         _ => false,
     }
@@ -153,6 +165,8 @@ impl Module {
             type_definitions: Arena::new(),
             parameters: Arena::new(),
             parameters_syntax: ArenaMap::new(),
+            patterns: Arena::new(),
+            patterns_syntax: ArenaMap::new(),
             names: Interner::new(),
             exprs_syntax: ArenaMap::new(),
             type_exprs_syntax: ArenaMap::new(),
@@ -206,6 +220,10 @@ impl Module {
         self.parameters.alloc(param)
     }
 
+    pub(super) fn alloc_pattern(&mut self, pattern: Pattern) -> PatternIdx {
+        self.patterns.alloc(pattern)
+    }
+
     pub(crate) fn get_expr(&self, idx: ExprIdx) -> &Expr {
         &self.expressions[idx]
     }
@@ -224,6 +242,10 @@ impl Module {
 
     pub(crate) fn get_param(&self, idx: ParamIdx) -> &Param {
         &self.parameters[idx]
+    }
+
+    pub(crate) fn get_pattern(&self, idx: PatternIdx) -> &Pattern {
+        &self.patterns[idx]
     }
 
     pub(crate) fn iter_definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> {

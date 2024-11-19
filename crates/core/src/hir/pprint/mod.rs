@@ -6,12 +6,12 @@ use std::fmt::Display;
 
 use crate::hir::{Expr, ExprIdx};
 
-use super::{LetExpr, Module, ParamIdx, Pattern, TypeExpr};
+use super::{LetExpr, Module, ParamIdx, Pattern, PatternIdx, TypeExpr};
 
 impl Module {
-    fn fmt_pattern(&self, f: &mut std::fmt::Formatter<'_>, patt: Pattern) -> std::fmt::Result {
-        match patt {
-            Pattern::Ident(interned) => f.write_str(self.get_name(interned)),
+    fn fmt_pattern(&self, f: &mut std::fmt::Formatter<'_>, patt: PatternIdx) -> std::fmt::Result {
+        match self.get_pattern(patt) {
+            Pattern::Ident(interned) => f.write_str(self.get_name(*interned)),
             Pattern::Wildcard => f.write_str("_"),
             Pattern::Unit => f.write_str("()"),
         }

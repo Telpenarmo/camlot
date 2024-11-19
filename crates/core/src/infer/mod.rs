@@ -7,7 +7,7 @@ use unify::UnifcationError;
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
 use crate::intern::{Interned, Interner};
 use crate::types::{Type, TypeIdx, UnificationTable};
-use crate::{Definition, DefinitionIdx, Name, Pattern};
+use crate::{Definition, DefinitionIdx, Name, Pattern, PatternIdx};
 
 #[derive(PartialEq, Debug)]
 pub enum Diagnostic {
@@ -42,7 +42,7 @@ pub struct TypeInference {
 pub enum ConstraintReason {
     ApplicationTarget(ExprIdx),
     Checking(ExprIdx),
-    UnitPattern,
+    UnitPattern(PatternIdx),
 }
 
 enum Constraint {
@@ -142,7 +142,7 @@ impl TypeInference {
             .map(|param| {
                 let param = module.get_param(*param);
                 let typ = self.resolve_type_expr(module, types, param.typ);
-                let (pat_env, typ) = self.resolve_pattern(param.pattern, unit(types), typ);
+                let (pat_env, typ) = self.resolve_pattern(module, param.pattern, unit(types), typ);
                 def_env = pat_env.union(def_env.clone());
                 typ
             })
@@ -237,7 +237,8 @@ impl TypeInference {
                 let def_typ = self.resolve_type_expr(module, types, let_expr.return_type);
                 self.check_expr(module, types, let_expr.defn, env, def_typ);
 
-                let (pat_env, _def_typ) = self.resolve_pattern(let_expr.lhs, unit(types), def_typ);
+                let (pat_env, _def_typ) =
+                    self.resolve_pattern(module, let_expr.lhs, unit(types), def_typ);
                 let env = pat_env.union(env.clone());
                 self.infer_expr(module, types, &env, let_expr.body)
             }
@@ -254,7 +255,8 @@ impl TypeInference {
                 let param = module.get_param(lambda.param);
                 let from = self.resolve_type_expr(module, types, param.typ);
 
-                let (pat_env, from) = self.resolve_pattern(param.pattern, unit(types), from);
+                let (pat_env, from) =
+                    self.resolve_pattern(module, param.pattern, unit(types), from);
                 let env = pat_env.union(env.clone());
                 let to = self.resolve_type_expr(module, types, lambda.return_type);
                 self.check_expr(module, types, lambda.body, &env, to);
@@ -305,7 +307,7 @@ impl TypeInference {
 
             (Expr::LambdaExpr(lambda), Type::Arrow(from, to)) => {
                 let param = module.get_param(lambda.param);
-                let (env, _) = self.resolve_pattern(param.pattern, unit_type, *from);
+                let (env, _) = self.resolve_pattern(module, param.pattern, unit_type, *from);
                 self.check_expr(module, types, lambda.body, &env, *to);
             }
 
@@ -320,16 +322,17 @@ impl TypeInference {
 
     fn resolve_pattern(
         &mut self,
-        pat: Pattern,
+        module: &Module,
+        pat_idx: PatternIdx,
         unit_type: TypeIdx,
         ann: TypeIdx,
     ) -> (Environment, TypeIdx) {
-        match pat {
-            Pattern::Ident(name) => (Environment::unit(name, ann), ann),
+        match module.get_pattern(pat_idx) {
+            Pattern::Ident(name) => (Environment::unit(*name, ann), ann),
             Pattern::Wildcard => (Environment::new(), ann),
             Pattern::Unit => {
                 self.constraints.push(Constraint::TypeEqual(
-                    ConstraintReason::UnitPattern,
+                    ConstraintReason::UnitPattern(pat_idx),
                     ann,
                     unit_type,
                 ));
