@@ -1,7 +1,10 @@
 use imbl::HashMap;
 use la_arena::{Arena, ArenaMap};
 
-use parser::{DefinitionPtr, ExprPtr, ParamPtr, PatternPtr, TypeDefinitionPtr, TypeExprPtr};
+use parser::{
+    DefinitionPtr, ExprPtr, ParamPtr, PatternPtr, SyntaxNode, SyntaxNodePtr, TypeDefinitionPtr,
+    TypeExprPtr,
+};
 
 use crate::types::Type;
 use crate::{builtin, TypeIdx};
@@ -90,8 +93,8 @@ pub(super) fn type_expr_deep_eq(
 }
 
 pub(super) fn expr_deep_eq(a_module: &Module, b_module: &Module, a: ExprIdx, b: ExprIdx) -> bool {
-    let a = a_module.get_expr(a);
-    let b = b_module.get_expr(b);
+    let a = a_module.lookup(a);
+    let b = b_module.lookup(b);
     match (a, b) {
         (Expr::Missing, Expr::Missing) => true,
         (Expr::LiteralExpr(a), Expr::LiteralExpr(b)) => a == b,
@@ -189,6 +192,10 @@ impl Module {
         self.definitions.alloc(definition)
     }
 
+    pub(crate) fn lookup<T: StoredInArena>(&self, idx: la_arena::Idx<T>) -> &T {
+        &T::arena(self)[idx]
+    }
+
     pub(crate) fn get_definition(&self, idx: DefinitionIdx) -> &Definition {
         &self.definitions[idx]
     }
@@ -212,20 +219,12 @@ impl Module {
         &self.type_expressions[idx]
     }
 
-    pub(super) fn alloc_expr(&mut self, expr: Expr) -> ExprIdx {
-        self.expressions.alloc(expr)
-    }
-
     pub(super) fn alloc_param(&mut self, param: Param) -> ParamIdx {
         self.parameters.alloc(param)
     }
 
     pub(super) fn alloc_pattern(&mut self, pattern: Pattern) -> PatternIdx {
         self.patterns.alloc(pattern)
-    }
-
-    pub(crate) fn get_expr(&self, idx: ExprIdx) -> &Expr {
-        &self.expressions[idx]
     }
 
     pub(super) fn empty_name(&mut self) -> Name {
@@ -280,5 +279,75 @@ impl Module {
 
     pub(super) fn iter_type_expressions(&self) -> impl Iterator<Item = (TypeExprIdx, &TypeExpr)> {
         self.type_expressions.iter()
+    }
+}
+
+pub(crate) trait StoredInArena: std::marker::Sized {
+    fn arena(module: &Module) -> &Arena<Self>;
+    fn arena_mut(module: &mut Module) -> &mut Arena<Self>;
+    #[allow(unused)]
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr>;
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr>;
+    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr;
+
+    type Syntax;
+    type SyntaxPtr;
+
+    fn alloc_opt_syntax(
+        self,
+        module: &mut Module,
+        syntax: Option<&Self::Syntax>,
+    ) -> la_arena::Idx<Self> {
+        let idx = Self::arena_mut(module).alloc(self);
+        if let Some(syntax) = syntax {
+            Self::syntax_map_mut(module).insert(idx, Self::make_ptr(syntax));
+        }
+        idx
+    }
+
+    fn alloc(self, module: &mut Module, syntax: &Self::Syntax) -> la_arena::Idx<Self> {
+        self.alloc_opt_syntax(module, Some(syntax))
+    }
+
+    fn alloc_no_syntax(self, module: &mut Module) -> la_arena::Idx<Self> {
+        self.alloc_opt_syntax(module, None)
+    }
+}
+
+pub(super) trait Missable: StoredInArena {
+    fn missing() -> Self;
+    fn alloc_missing(module: &mut Module) -> la_arena::Idx<Self> {
+        Self::missing().alloc_no_syntax(module)
+    }
+}
+
+impl StoredInArena for Expr {
+    type Syntax = SyntaxNode;
+    type SyntaxPtr = SyntaxNodePtr;
+
+    fn arena(module: &Module) -> &Arena<Self> {
+        &module.expressions
+    }
+
+    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+        &mut module.expressions
+    }
+
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &module.exprs_syntax
+    }
+
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &mut module.exprs_syntax
+    }
+
+    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
+        SyntaxNodePtr::new(syntax)
+    }
+}
+
+impl Missable for Expr {
+    fn missing() -> Self {
+        Expr::Missing
     }
 }

@@ -36,7 +36,7 @@ impl Module {
         expr: ExprIdx,
         indent: usize,
     ) -> std::fmt::Result {
-        match self.get_expr(expr) {
+        match self.lookup(expr) {
             Expr::LambdaExpr(_) => {
                 f.write_str("(")?;
                 self.fmt_expr(f, expr, false, indent)?;
@@ -53,7 +53,7 @@ impl Module {
         already_in_block: bool,
         indent: usize,
     ) -> std::fmt::Result {
-        match self.get_expr(expr) {
+        match self.lookup(expr) {
             Expr::Missing => f.write_str("_"),
             Expr::LiteralExpr(lit) => f.write_fmt(format_args!("{lit}")),
             &Expr::IdentExpr { name } => f.write_str(self.get_name(name)),

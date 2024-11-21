@@ -231,7 +231,7 @@ impl TypeInference {
         env: &Environment,
         expr: ExprIdx,
     ) -> TypeIdx {
-        match module.get_expr(expr) {
+        match module.lookup(expr) {
             Expr::Missing => self.next_unification_var(types),
             Expr::LetExpr(let_expr) => {
                 let def_typ = self.resolve_type_expr(module, types, let_expr.return_type);
@@ -300,7 +300,7 @@ impl TypeInference {
     ) {
         let unit_type = unit(types);
         let expected = types.lookup(typ);
-        match (module.get_expr(expr), expected) {
+        match (module.lookup(expr), expected) {
             (Expr::LiteralExpr(Literal::BoolLiteral(_)), Type::Bool)
             | (Expr::LiteralExpr(Literal::IntLiteral(_)), Type::Int)
             | (Expr::LiteralExpr(Literal::Unit), Type::Unit) => {}
