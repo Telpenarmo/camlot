@@ -184,25 +184,6 @@ impl Module {
         self.known_types = builtin::builtin_types(self, types);
     }
 
-    pub(super) fn alloc_definition(&mut self, definition: Definition) -> DefinitionIdx {
-        self.definitions.alloc(definition)
-    }
-
-    pub(crate) fn get_definition(&self, idx: DefinitionIdx) -> &Definition {
-        &self.definitions[idx]
-    }
-
-    pub(super) fn alloc_type_definition(
-        &mut self,
-        type_definition: TypeDefinition,
-    ) -> TypeDefinitionIdx {
-        self.type_definitions.alloc(type_definition)
-    }
-
-    pub(crate) fn get_type_definition(&self, idx: TypeDefinitionIdx) -> &TypeDefinition {
-        &self.type_definitions[idx]
-    }
-
     pub(super) fn empty_name(&mut self) -> Name {
         self.names.intern("_".into())
     }
@@ -406,5 +387,55 @@ impl StoredInArena for Pattern {
 
     fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
         PatternPtr::new(syntax)
+    }
+}
+
+impl StoredInArena for Definition {
+    type Syntax = ast::Definition;
+    type SyntaxPtr = DefinitionPtr;
+
+    fn arena(module: &Module) -> &Arena<Self> {
+        &module.definitions
+    }
+
+    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+        &mut module.definitions
+    }
+
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &module.definitions_syntax
+    }
+
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &mut module.definitions_syntax
+    }
+
+    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
+        DefinitionPtr::new(syntax)
+    }
+}
+
+impl StoredInArena for TypeDefinition {
+    type Syntax = ast::TypeDefinition;
+    type SyntaxPtr = TypeDefinitionPtr;
+
+    fn arena(module: &Module) -> &Arena<Self> {
+        &module.type_definitions
+    }
+
+    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+        &mut module.type_definitions
+    }
+
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &module.type_definitions_syntax
+    }
+
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &mut module.type_definitions_syntax
+    }
+
+    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
+        TypeDefinitionPtr::new(syntax)
     }
 }

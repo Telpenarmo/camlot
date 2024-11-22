@@ -4,26 +4,24 @@ use crate::Name;
 
 use super::{
     module::{Missable, Module, StoredInArena},
-    Definition, Expr, ExprIdx, Literal, Param, ParamIdx, Pattern, PatternIdx, TypeDefinition,
-    TypeExpr, TypeExprIdx,
+    Definition, DefinitionIdx, Expr, ExprIdx, Literal, Param, ParamIdx, Pattern, PatternIdx,
+    TypeDefinition, TypeExpr, TypeExprIdx,
 };
 
 impl Module {
     pub fn lower_module(&mut self, ast: &ast::Module) {
         ast.module_items().for_each(|ast| match ast {
             ast::ModuleItem::Definition(ast) => {
-                let definition = self.lower_definition(&ast);
-                self.alloc_definition(definition);
+                self.lower_definition(&ast);
             }
             ast::ModuleItem::Open(_ast) => {}
             ast::ModuleItem::TypeDefinition(ast) => {
-                let type_definition = self.lower_type_definition(&ast);
-                self.alloc_type_definition(type_definition);
+                self.lower_type_definition(&ast).alloc(self, &ast);
             }
         });
     }
 
-    fn lower_definition(&mut self, ast: &ast::Definition) -> Definition {
+    fn lower_definition(&mut self, ast: &ast::Definition) -> DefinitionIdx {
         let params = self.lower_params(ast.params());
         let body = ast.def_body();
         let defn = {
@@ -43,6 +41,7 @@ impl Module {
             return_type,
             defn,
         }
+        .alloc(self, ast)
     }
 
     fn lower_type_definition(&mut self, ast: &ast::TypeDefinition) -> TypeDefinition {
