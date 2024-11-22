@@ -36,7 +36,6 @@ impl Module {
         };
 
         let return_type = self.lower_type_annotation(ast.type_annotation());
-        let return_type = self.alloc_type_expr(return_type);
 
         Definition {
             name: self.lower_ident(ast.ident_lit()),
@@ -47,7 +46,7 @@ impl Module {
     }
 
     fn lower_type_definition(&mut self, ast: &ast::TypeDefinition) -> TypeDefinition {
-        let defn = self.lower_alloc_type_expr(ast.type_expr());
+        let defn = self.lower_type_expr(ast.type_expr());
 
         TypeDefinition {
             name: self.lower_ident(ast.ident_lit()),
@@ -64,7 +63,6 @@ impl Module {
         let pattern = self.lower_pattern(&ast.pattern().expect("Empty param indicates parser bug"));
 
         let typ = self.lower_type_annotation(ast.type_annotation());
-        let typ = self.alloc_type_expr(typ);
 
         self.alloc_param(Param { pattern, typ })
     }
@@ -81,34 +79,32 @@ impl Module {
         self.alloc_pattern(pat)
     }
 
-    fn lower_type_annotation(&mut self, ast: Option<ast::TypeAnnotation>) -> TypeExpr {
-        ast.map_or(TypeExpr::Missing, |ast| {
-            self.lower_type_expr(ast.type_expr())
-        })
-    }
-
-    fn lower_alloc_type_expr(&mut self, type_expr: Option<ast::TypeExpr>) -> TypeExprIdx {
-        let type_expr = self.lower_type_expr(type_expr);
-
-        self.alloc_type_expr(type_expr)
-    }
-
-    fn lower_type_expr(&mut self, type_expr: Option<ast::TypeExpr>) -> TypeExpr {
-        if type_expr.is_none() {
-            return TypeExpr::Missing;
+    fn lower_type_annotation(&mut self, ast: Option<ast::TypeAnnotation>) -> TypeExprIdx {
+        match ast {
+            Some(ast) => self.lower_type_expr(ast.type_expr()),
+            None => TypeExpr::alloc_missing(self),
         }
-        match type_expr.unwrap() {
-            ast::TypeExpr::TypeIdent(ast) => ast.ident_lit().map_or(TypeExpr::Missing, |name| {
-                let name = self.name(name.text());
-                TypeExpr::IdentTypeExpr { name }
-            }),
-            ast::TypeExpr::TypeArrow(ast) => {
-                let from = self.lower_alloc_type_expr(ast.from());
+    }
 
-                let to = self.lower_alloc_type_expr(ast.to());
-                TypeExpr::TypeArrow { from, to }
-            }
-            ast::TypeExpr::TypeParen(ast) => self.lower_type_expr(ast.type_expr()),
+    fn lower_type_expr(&mut self, type_expr: Option<ast::TypeExpr>) -> TypeExprIdx {
+        match type_expr {
+            None => TypeExpr::alloc_missing(self),
+            Some(type_expr) => match type_expr.clone() {
+                ast::TypeExpr::TypeIdent(ast) => match ast.ident_lit() {
+                    Some(name) => {
+                        let name = self.name(name.text());
+                        TypeExpr::IdentTypeExpr { name }.alloc(self, &type_expr)
+                    }
+                    None => TypeExpr::alloc_missing(self),
+                },
+                ast::TypeExpr::TypeArrow(ast) => {
+                    let from = self.lower_type_expr(ast.from());
+                    let to = self.lower_type_expr(ast.to());
+
+                    TypeExpr::TypeArrow { from, to }.alloc(self, &type_expr)
+                }
+                ast::TypeExpr::TypeParen(ast) => self.lower_type_expr(ast.type_expr()),
+            },
         }
     }
 
@@ -117,13 +113,13 @@ impl Module {
         body: ExprIdx,
         params: T,
         return_type: &mut Option<TypeExprIdx>,
-        ast: &parser::SyntaxNode,
+        whole_expr_ast: &parser::SyntaxNode,
     ) -> ExprIdx {
         params.fold(body, |body, param| {
             let return_type = return_type
                 .take()
-                .unwrap_or_else(|| self.alloc_type_expr(TypeExpr::Missing));
-            Expr::lambda_expr(*param, return_type, body).alloc(self, ast)
+                .unwrap_or_else(|| TypeExpr::alloc_missing(self));
+            Expr::lambda_expr(*param, return_type, body).alloc(self, whole_expr_ast)
         })
     }
 
@@ -166,7 +162,7 @@ impl Module {
                 let params = {
                     let params = self.lower_params(ast.params());
                     if params.is_empty() {
-                        let typ = self.alloc_type_expr(TypeExpr::Missing);
+                        let typ = TypeExpr::alloc_missing(self);
                         let pattern = self.alloc_pattern(Pattern::Wildcard);
                         Box::new([self.alloc_param(Param { pattern, typ })])
                     } else {
@@ -178,7 +174,6 @@ impl Module {
                 let body = self.lower_expr(ast.body());
 
                 let return_type = self.lower_type_annotation(ast.type_annotation());
-                let return_type = self.alloc_type_expr(return_type);
 
                 let mut return_type = Some(return_type);
                 let e = self.curry(body, params_rev, &mut return_type, ast.syntax());
@@ -216,7 +211,7 @@ impl Module {
             ast::Stmt::ExprStmt(ast) => {
                 let expr = self.lower_expr_defaulting_to_unit(ast.expr());
                 let pat = self.alloc_pattern(Pattern::Unit);
-                Expr::let_expr(pat, self.alloc_type_expr(TypeExpr::Missing), expr, cont)
+                Expr::let_expr(pat, TypeExpr::alloc_missing(self), expr, cont)
                     .alloc(self, ast.syntax())
             }
             ast::Stmt::LetStmt(ast) => {
@@ -229,13 +224,12 @@ impl Module {
                 let params_rev = params.iter().rev();
 
                 let return_type = self.lower_type_annotation(ast.type_annotation());
-                let mut return_type = Some(self.alloc_type_expr(return_type));
+                let mut return_type = Some(return_type);
 
                 let defn = self.lower_expr(ast.def());
                 let defn = self.curry(defn, params_rev, &mut return_type, ast.syntax());
 
-                let return_type =
-                    return_type.unwrap_or_else(|| self.alloc_type_expr(TypeExpr::Missing));
+                let return_type = return_type.unwrap_or_else(|| TypeExpr::alloc_missing(self));
 
                 Expr::let_expr(pattern, return_type, defn, cont).alloc(self, ast.syntax())
             }
@@ -263,7 +257,7 @@ mod tests {
     fn unannotated_param(module: &mut Module, name: &str) -> ParamIdx {
         let param = {
             let name = module.name(name);
-            let typ = module.alloc_type_expr(TypeExpr::Missing);
+            let typ = TypeExpr::alloc_missing(module);
             let pattern = module.alloc_pattern(Pattern::Ident(name));
             Param { pattern, typ }
         };
@@ -316,7 +310,7 @@ mod tests {
         let mut module = module();
 
         let param = unannotated_param(&mut module, "x");
-        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        let typ = TypeExpr::alloc_missing(&mut module);
         let body = Expr::alloc_missing(&mut module);
         Expr::lambda_expr(param, typ, body).alloc_no_syntax(&mut module);
 
@@ -330,7 +324,7 @@ mod tests {
         let x = module.name("x");
         let body = Expr::ident_expr(x).alloc_no_syntax(&mut module);
 
-        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        let typ = TypeExpr::alloc_missing(&mut module);
         let pattern = module.alloc_pattern(Pattern::Wildcard);
         let param = Param { pattern, typ };
 
@@ -350,7 +344,7 @@ mod tests {
         let body = Expr::ident_expr(d).alloc_no_syntax(&mut module);
 
         let name = module.name("a");
-        let typ = module.alloc_type_expr(TypeExpr::Missing);
+        let typ = TypeExpr::alloc_missing(&mut module);
         let defn = Expr::alloc_missing(&mut module);
         let defn = Expr::lambda_expr(param, typ, defn).alloc_no_syntax(&mut module);
 

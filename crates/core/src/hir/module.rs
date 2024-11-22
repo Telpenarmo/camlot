@@ -4,8 +4,8 @@ use imbl::HashMap;
 use la_arena::{Arena, ArenaMap};
 
 use parser::{
-    DefinitionPtr, ExprPtr, ParamPtr, PatternPtr, SyntaxNode, SyntaxNodePtr, TypeDefinitionPtr,
-    TypeExprPtr,
+    nodes as ast, DefinitionPtr, ExprPtr, ParamPtr, PatternPtr, SyntaxNode, SyntaxNodePtr,
+    TypeDefinitionPtr, TypeExprPtr,
 };
 
 use crate::types::Type;
@@ -205,14 +205,6 @@ impl Module {
         &self.type_definitions[idx]
     }
 
-    pub(super) fn alloc_type_expr(&mut self, type_expr: TypeExpr) -> TypeExprIdx {
-        self.type_expressions.alloc(type_expr)
-    }
-
-    pub(crate) fn get_type_expr(&self, idx: TypeExprIdx) -> &TypeExpr {
-        &self.type_expressions[idx]
-    }
-
     pub(super) fn alloc_param(&mut self, param: Param) -> ParamIdx {
         self.parameters.alloc(param)
     }
@@ -351,5 +343,36 @@ impl StoredInArena for Expr {
 impl Missable for Expr {
     fn missing() -> Self {
         Expr::Missing
+    }
+}
+
+impl StoredInArena for TypeExpr {
+    type Syntax = ast::TypeExpr;
+    type SyntaxPtr = TypeExprPtr;
+
+    fn arena(module: &Module) -> &Arena<Self> {
+        &module.type_expressions
+    }
+
+    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+        &mut module.type_expressions
+    }
+
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &module.type_exprs_syntax
+    }
+
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &mut module.type_exprs_syntax
+    }
+
+    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
+        TypeExprPtr::new(syntax)
+    }
+}
+
+impl Missable for TypeExpr {
+    fn missing() -> Self {
+        TypeExpr::Missing
     }
 }
