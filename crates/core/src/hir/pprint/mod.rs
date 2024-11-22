@@ -10,15 +10,15 @@ use super::{LetExpr, Module, ParamIdx, Pattern, PatternIdx, TypeExpr};
 
 impl Module {
     fn fmt_pattern(&self, f: &mut std::fmt::Formatter<'_>, patt: PatternIdx) -> std::fmt::Result {
-        match self.get_pattern(patt) {
-            Pattern::Ident(interned) => f.write_str(self.get_name(*interned)),
+        match self[patt] {
+            Pattern::Ident(interned) => f.write_str(self.get_name(interned)),
             Pattern::Wildcard => f.write_str("_"),
             Pattern::Unit => f.write_str("()"),
         }
     }
 
     fn fmt_param(&self, f: &mut std::fmt::Formatter<'_>, param: ParamIdx) -> std::fmt::Result {
-        let param = self.get_param(param);
+        let param = &self[param];
         if self[param.typ] == TypeExpr::Missing {
             self.fmt_pattern(f, param.pattern)
         } else {

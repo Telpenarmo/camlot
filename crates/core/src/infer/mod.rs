@@ -140,7 +140,7 @@ impl TypeInference {
             .params
             .iter()
             .map(|param| {
-                let param = module.get_param(*param);
+                let param = &module[*param];
                 let typ = self.resolve_type_expr(module, types, param.typ);
                 let (pat_env, typ) = self.resolve_pattern(module, param.pattern, unit(types), typ);
                 def_env = pat_env.union(def_env.clone());
@@ -252,7 +252,7 @@ impl TypeInference {
                 }
             }
             Expr::LambdaExpr(lambda) => {
-                let param = module.get_param(lambda.param);
+                let param = &module[lambda.param];
                 let from = self.resolve_type_expr(module, types, param.typ);
 
                 let (pat_env, from) =
@@ -306,7 +306,7 @@ impl TypeInference {
             | (Expr::LiteralExpr(Literal::Unit), Type::Unit) => {}
 
             (Expr::LambdaExpr(lambda), Type::Arrow(from, to)) => {
-                let param = module.get_param(lambda.param);
+                let param = &module[lambda.param];
                 let (env, _) = self.resolve_pattern(module, param.pattern, unit_type, *from);
                 self.check_expr(module, types, lambda.body, &env, *to);
             }
@@ -327,8 +327,8 @@ impl TypeInference {
         unit_type: TypeIdx,
         ann: TypeIdx,
     ) -> (Environment, TypeIdx) {
-        match module.get_pattern(pat_idx) {
-            Pattern::Ident(name) => (Environment::unit(*name, ann), ann),
+        match module[pat_idx] {
+            Pattern::Ident(name) => (Environment::unit(name, ann), ann),
             Pattern::Wildcard => (Environment::new(), ann),
             Pattern::Unit => {
                 self.constraints.push(Constraint::TypeEqual(

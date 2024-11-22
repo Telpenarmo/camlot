@@ -64,19 +64,18 @@ impl Module {
 
         let typ = self.lower_type_annotation(ast.type_annotation());
 
-        self.alloc_param(Param { pattern, typ })
+        Param { pattern, typ }.alloc(self, ast)
     }
 
     fn lower_pattern(&mut self, ast: &ast::Pattern) -> PatternIdx {
-        let pat = match ast {
+        match ast {
             ast::Pattern::IdentPattern(ident_pattern) => {
                 Pattern::Ident(self.lower_ident(ident_pattern.ident_lit()))
             }
             ast::Pattern::UnderscorePattern(_) => Pattern::Wildcard,
             ast::Pattern::UnitPattern(_) => Pattern::Unit,
-        };
-
-        self.alloc_pattern(pat)
+        }
+        .alloc(self, ast)
     }
 
     fn lower_type_annotation(&mut self, ast: Option<ast::TypeAnnotation>) -> TypeExprIdx {
@@ -163,8 +162,8 @@ impl Module {
                     let params = self.lower_params(ast.params());
                     if params.is_empty() {
                         let typ = TypeExpr::alloc_missing(self);
-                        let pattern = self.alloc_pattern(Pattern::Wildcard);
-                        Box::new([self.alloc_param(Param { pattern, typ })])
+                        let pattern = Pattern::Wildcard.alloc_no_syntax(self);
+                        Box::new([Param { pattern, typ }.alloc_no_syntax(self)])
                     } else {
                         params
                     }
@@ -210,14 +209,14 @@ impl Module {
         match ast {
             ast::Stmt::ExprStmt(ast) => {
                 let expr = self.lower_expr_defaulting_to_unit(ast.expr());
-                let pat = self.alloc_pattern(Pattern::Unit);
+                let pat = Pattern::Unit.alloc_no_syntax(self);
                 Expr::let_expr(pat, TypeExpr::alloc_missing(self), expr, cont)
                     .alloc(self, ast.syntax())
             }
             ast::Stmt::LetStmt(ast) => {
                 let pattern = match ast.pattern() {
                     Some(pat) => self.lower_pattern(&pat),
-                    None => self.alloc_pattern(Pattern::Wildcard),
+                    None => Pattern::Wildcard.alloc_no_syntax(self),
                 };
 
                 let params = self.lower_params(ast.params());
@@ -255,13 +254,10 @@ mod tests {
     use super::{Expr, Missable, Module, Param, StoredInArena, TypeExpr};
 
     fn unannotated_param(module: &mut Module, name: &str) -> ParamIdx {
-        let param = {
-            let name = module.name(name);
-            let typ = TypeExpr::alloc_missing(module);
-            let pattern = module.alloc_pattern(Pattern::Ident(name));
-            Param { pattern, typ }
-        };
-        module.alloc_param(param)
+        let name = module.name(name);
+        let typ = TypeExpr::alloc_missing(module);
+        let pattern = Pattern::Ident(name).alloc_no_syntax(module);
+        Param { pattern, typ }.alloc_no_syntax(module)
     }
 
     fn module() -> Module {
@@ -325,10 +321,9 @@ mod tests {
         let body = Expr::ident_expr(x).alloc_no_syntax(&mut module);
 
         let typ = TypeExpr::alloc_missing(&mut module);
-        let pattern = module.alloc_pattern(Pattern::Wildcard);
-        let param = Param { pattern, typ };
+        let pattern = Pattern::Wildcard.alloc_no_syntax(&mut module);
+        let param = Param { pattern, typ }.alloc_no_syntax(&mut module);
 
-        let param = module.alloc_param(param);
         Expr::lambda_expr(param, typ, body).alloc_no_syntax(&mut module);
 
         check_expr("\\-> x", &module);
@@ -348,7 +343,7 @@ mod tests {
         let defn = Expr::alloc_missing(&mut module);
         let defn = Expr::lambda_expr(param, typ, defn).alloc_no_syntax(&mut module);
 
-        let pat = module.alloc_pattern(Pattern::Ident(name));
+        let pat = Pattern::Ident(name).alloc_no_syntax(&mut module);
 
         Expr::let_expr(pat, typ, defn, body).alloc_no_syntax(&mut module);
 

@@ -51,18 +51,16 @@ fn name_deep_eq(a_module: &Module, b_module: &Module, a: Name, b: Name) -> bool 
 }
 
 fn pattern_deep_eq(a_module: &Module, b_module: &Module, a: PatternIdx, b: PatternIdx) -> bool {
-    let a = a_module.get_pattern(a);
-    let b = b_module.get_pattern(b);
-    match (a, b) {
-        (Pattern::Ident(a), Pattern::Ident(b)) => name_deep_eq(a_module, b_module, *a, *b),
+    match (a_module[a], b_module[b]) {
+        (Pattern::Ident(a), Pattern::Ident(b)) => name_deep_eq(a_module, b_module, a, b),
         (Pattern::Wildcard, Pattern::Wildcard) | (Pattern::Unit, Pattern::Unit) => true,
         _ => false,
     }
 }
 
 fn param_deep_eq(a_module: &Module, b_module: &Module, a: ParamIdx, b: ParamIdx) -> bool {
-    let a = a_module.get_param(a);
-    let b = b_module.get_param(b);
+    let a = &a_module[a];
+    let b = &b_module[b];
     pattern_deep_eq(a_module, b_module, a.pattern, b.pattern)
         && type_expr_deep_eq(a_module, b_module, a.typ, b.typ)
 }
@@ -205,14 +203,6 @@ impl Module {
         &self.type_definitions[idx]
     }
 
-    pub(super) fn alloc_param(&mut self, param: Param) -> ParamIdx {
-        self.parameters.alloc(param)
-    }
-
-    pub(super) fn alloc_pattern(&mut self, pattern: Pattern) -> PatternIdx {
-        self.patterns.alloc(pattern)
-    }
-
     pub(super) fn empty_name(&mut self) -> Name {
         self.names.intern("_".into())
     }
@@ -223,14 +213,6 @@ impl Module {
 
     pub(crate) fn get_name(&self, name: Name) -> &str {
         self.names.lookup(name)
-    }
-
-    pub(crate) fn get_param(&self, idx: ParamIdx) -> &Param {
-        &self.parameters[idx]
-    }
-
-    pub(crate) fn get_pattern(&self, idx: PatternIdx) -> &Pattern {
-        &self.patterns[idx]
     }
 
     pub(crate) fn iter_definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> {
@@ -374,5 +356,55 @@ impl StoredInArena for TypeExpr {
 impl Missable for TypeExpr {
     fn missing() -> Self {
         TypeExpr::Missing
+    }
+}
+
+impl StoredInArena for Param {
+    type Syntax = ast::Param;
+    type SyntaxPtr = ParamPtr;
+
+    fn arena(module: &Module) -> &Arena<Self> {
+        &module.parameters
+    }
+
+    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+        &mut module.parameters
+    }
+
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &module.parameters_syntax
+    }
+
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &mut module.parameters_syntax
+    }
+
+    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
+        ParamPtr::new(syntax)
+    }
+}
+
+impl StoredInArena for Pattern {
+    type Syntax = ast::Pattern;
+    type SyntaxPtr = PatternPtr;
+
+    fn arena(module: &Module) -> &Arena<Self> {
+        &module.patterns
+    }
+
+    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+        &mut module.patterns
+    }
+
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &module.patterns_syntax
+    }
+
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+        &mut module.patterns_syntax
+    }
+
+    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
+        PatternPtr::new(syntax)
     }
 }
