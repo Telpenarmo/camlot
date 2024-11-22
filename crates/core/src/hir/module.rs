@@ -184,6 +184,10 @@ impl Module {
         self.known_types = builtin::builtin_types(self, types);
     }
 
+    pub(super) fn alloc_missing<T: Missable>(&mut self) -> la_arena::Idx<T> {
+        T::missing().alloc_no_syntax(self)
+    }
+
     pub(super) fn empty_name(&mut self) -> Name {
         self.names.intern("_".into())
     }
@@ -273,9 +277,6 @@ pub(crate) trait StoredInArena: std::marker::Sized {
 
 pub(super) trait Missable: StoredInArena {
     fn missing() -> Self;
-    fn alloc_missing(module: &mut Module) -> la_arena::Idx<Self> {
-        Self::missing().alloc_no_syntax(module)
-    }
 }
 
 impl StoredInArena for Expr {

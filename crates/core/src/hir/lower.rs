@@ -3,7 +3,7 @@ use parser::{nodes as ast, AstNode, AstToken};
 use crate::Name;
 
 use super::{
-    module::{Missable, Module, StoredInArena},
+    module::{Module, StoredInArena},
     Definition, DefinitionIdx, Expr, ExprIdx, Literal, Param, ParamIdx, Pattern, PatternIdx,
     TypeDefinition, TypeExpr, TypeExprIdx,
 };
@@ -80,20 +80,20 @@ impl Module {
     fn lower_type_annotation(&mut self, ast: Option<ast::TypeAnnotation>) -> TypeExprIdx {
         match ast {
             Some(ast) => self.lower_type_expr(ast.type_expr()),
-            None => TypeExpr::alloc_missing(self),
+            None => self.alloc_missing(),
         }
     }
 
     fn lower_type_expr(&mut self, type_expr: Option<ast::TypeExpr>) -> TypeExprIdx {
         match type_expr {
-            None => TypeExpr::alloc_missing(self),
+            None => self.alloc_missing(),
             Some(type_expr) => match type_expr.clone() {
                 ast::TypeExpr::TypeIdent(ast) => match ast.ident_lit() {
                     Some(name) => {
                         let name = self.name(name.text());
                         TypeExpr::IdentTypeExpr { name }.alloc(self, &type_expr)
                     }
-                    None => TypeExpr::alloc_missing(self),
+                    None => self.alloc_missing(),
                 },
                 ast::TypeExpr::TypeArrow(ast) => {
                     let from = self.lower_type_expr(ast.from());
@@ -114,9 +114,7 @@ impl Module {
         whole_expr_ast: &parser::SyntaxNode,
     ) -> ExprIdx {
         params.fold(body, |body, param| {
-            let return_type = return_type
-                .take()
-                .unwrap_or_else(|| TypeExpr::alloc_missing(self));
+            let return_type = return_type.take().unwrap_or_else(|| self.alloc_missing());
             Expr::lambda_expr(*param, return_type, body).alloc(self, whole_expr_ast)
         })
     }
@@ -131,12 +129,12 @@ impl Module {
 
     fn lower_expr(&mut self, expr: Option<ast::Expr>) -> ExprIdx {
         if expr.is_none() {
-            return Expr::alloc_missing(self);
+            return self.alloc_missing();
         }
         match expr.unwrap() {
             ast::Expr::IdentExpr(ast) => match ast.ident_lit() {
                 Some(lit) => Expr::ident_expr(self.name(lit.text())).alloc(self, ast.syntax()),
-                None => Expr::alloc_missing(self),
+                None => self.alloc_missing(),
             },
             ast::Expr::ParenExpr(ast) => {
                 if let Some(app) = ast.app_expr() {
@@ -154,13 +152,13 @@ impl Module {
 
                     ast::LiteralKind::DummyKw => unreachable!(),
                 },
-                None => Expr::alloc_missing(self),
+                None => self.alloc_missing(),
             },
             ast::Expr::LambdaExpr(ast) => {
                 let params = {
                     let params = self.lower_params(ast.params());
                     if params.is_empty() {
-                        let typ = TypeExpr::alloc_missing(self);
+                        let typ = self.alloc_missing();
                         let pattern = Pattern::Wildcard.alloc_no_syntax(self);
                         Box::new([Param { pattern, typ }.alloc_no_syntax(self)])
                     } else {
@@ -209,8 +207,7 @@ impl Module {
             ast::Stmt::ExprStmt(ast) => {
                 let expr = self.lower_expr_defaulting_to_unit(ast.expr());
                 let pat = Pattern::Unit.alloc_no_syntax(self);
-                Expr::let_expr(pat, TypeExpr::alloc_missing(self), expr, cont)
-                    .alloc(self, ast.syntax())
+                Expr::let_expr(pat, self.alloc_missing(), expr, cont).alloc(self, ast.syntax())
             }
             ast::Stmt::LetStmt(ast) => {
                 let pattern = match ast.pattern() {
@@ -227,7 +224,7 @@ impl Module {
                 let defn = self.lower_expr(ast.def());
                 let defn = self.curry(defn, params_rev, &mut return_type, ast.syntax());
 
-                let return_type = return_type.unwrap_or_else(|| TypeExpr::alloc_missing(self));
+                let return_type = return_type.unwrap_or_else(|| self.alloc_missing());
 
                 Expr::let_expr(pattern, return_type, defn, cont).alloc(self, ast.syntax())
             }
@@ -250,11 +247,11 @@ mod tests {
     use crate::hir::module::{expr_deep_eq, type_expr_deep_eq};
     use crate::{Interner, ParamIdx, Pattern};
 
-    use super::{Expr, Missable, Module, Param, StoredInArena, TypeExpr};
+    use super::{Expr, Module, Param, StoredInArena};
 
     fn unannotated_param(module: &mut Module, name: &str) -> ParamIdx {
         let name = module.name(name);
-        let typ = TypeExpr::alloc_missing(module);
+        let typ = module.alloc_missing();
         let pattern = Pattern::Ident(name).alloc_no_syntax(module);
         Param { pattern, typ }.alloc_no_syntax(module)
     }
@@ -305,8 +302,8 @@ mod tests {
         let mut module = module();
 
         let param = unannotated_param(&mut module, "x");
-        let typ = TypeExpr::alloc_missing(&mut module);
-        let body = Expr::alloc_missing(&mut module);
+        let typ = module.alloc_missing();
+        let body = module.alloc_missing();
         Expr::lambda_expr(param, typ, body).alloc_no_syntax(&mut module);
 
         check_expr("\\x ->", &module);
@@ -319,7 +316,7 @@ mod tests {
         let x = module.name("x");
         let body = Expr::ident_expr(x).alloc_no_syntax(&mut module);
 
-        let typ = TypeExpr::alloc_missing(&mut module);
+        let typ = module.alloc_missing();
         let pattern = Pattern::Wildcard.alloc_no_syntax(&mut module);
         let param = Param { pattern, typ }.alloc_no_syntax(&mut module);
 
@@ -338,8 +335,8 @@ mod tests {
         let body = Expr::ident_expr(d).alloc_no_syntax(&mut module);
 
         let name = module.name("a");
-        let typ = TypeExpr::alloc_missing(&mut module);
-        let defn = Expr::alloc_missing(&mut module);
+        let typ = module.alloc_missing();
+        let defn = module.alloc_missing();
         let defn = Expr::lambda_expr(param, typ, defn).alloc_no_syntax(&mut module);
 
         let pat = Pattern::Ident(name).alloc_no_syntax(&mut module);
