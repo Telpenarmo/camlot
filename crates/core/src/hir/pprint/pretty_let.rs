@@ -18,7 +18,7 @@ impl Module {
         }
         f.write_str("let ")?;
         self.fmt_pattern(f, e.lhs)?;
-        if *self.get_type_expr(e.return_type) != TypeExpr::Missing {
+        if self[e.return_type] != TypeExpr::Missing {
             f.write_str(" : ")?;
             self.fmt_type_expr(f, e.return_type)?;
         }

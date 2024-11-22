@@ -9,7 +9,7 @@ impl Module {
     ) -> std::fmt::Result {
         f.write_str("\\")?;
         self.fmt_param(f, e.param)?;
-        match *self.get_type_expr(e.return_type) {
+        match self[e.return_type] {
             TypeExpr::TypeArrow { .. } => {
                 f.write_str(" : ")?;
                 f.write_str("(")?;

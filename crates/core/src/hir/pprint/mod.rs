@@ -19,7 +19,7 @@ impl Module {
 
     fn fmt_param(&self, f: &mut std::fmt::Formatter<'_>, param: ParamIdx) -> std::fmt::Result {
         let param = self.get_param(param);
-        if self.get_type_expr(param.typ) == &TypeExpr::Missing {
+        if self[param.typ] == TypeExpr::Missing {
             self.fmt_pattern(f, param.pattern)
         } else {
             f.write_str("(")?;
@@ -36,7 +36,7 @@ impl Module {
         expr: ExprIdx,
         indent: usize,
     ) -> std::fmt::Result {
-        match self.lookup(expr) {
+        match self[expr] {
             Expr::LambdaExpr(_) => {
                 f.write_str("(")?;
                 self.fmt_expr(f, expr, false, indent)?;
@@ -53,7 +53,7 @@ impl Module {
         already_in_block: bool,
         indent: usize,
     ) -> std::fmt::Result {
-        match self.lookup(expr) {
+        match &self[expr] {
             Expr::Missing => f.write_str("_"),
             Expr::LiteralExpr(lit) => f.write_fmt(format_args!("{lit}")),
             &Expr::IdentExpr { name } => f.write_str(self.get_name(name)),
@@ -91,7 +91,7 @@ impl Display for Module {
                 f.write_str(" ")?;
                 self.fmt_param(f, *param)?;
             }
-            if self.get_type_expr(defn.return_type) != &TypeExpr::Missing {
+            if self[defn.return_type] != TypeExpr::Missing {
                 f.write_str(" : ")?;
                 self.fmt_type_expr(f, defn.return_type)?;
             }

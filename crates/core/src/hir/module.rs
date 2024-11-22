@@ -1,3 +1,5 @@
+use std::ops::Index;
+
 use imbl::HashMap;
 use la_arena::{Arena, ArenaMap};
 
@@ -71,9 +73,7 @@ pub(super) fn type_expr_deep_eq(
     a: TypeExprIdx,
     b: TypeExprIdx,
 ) -> bool {
-    let a = a_module.get_type_expr(a);
-    let b = b_module.get_type_expr(b);
-    match (a, b) {
+    match (&a_module[a], &b_module[b]) {
         (TypeExpr::Missing, TypeExpr::Missing) => true,
         (TypeExpr::IdentTypeExpr { name: a }, TypeExpr::IdentTypeExpr { name: b }) => {
             name_deep_eq(a_module, b_module, *a, *b)
@@ -93,9 +93,7 @@ pub(super) fn type_expr_deep_eq(
 }
 
 pub(super) fn expr_deep_eq(a_module: &Module, b_module: &Module, a: ExprIdx, b: ExprIdx) -> bool {
-    let a = a_module.lookup(a);
-    let b = b_module.lookup(b);
-    match (a, b) {
+    match (&a_module[a], &b_module[b]) {
         (Expr::Missing, Expr::Missing) => true,
         (Expr::LiteralExpr(a), Expr::LiteralExpr(b)) => a == b,
         (Expr::IdentExpr { name: a }, Expr::IdentExpr { name: b }) => {
@@ -192,10 +190,6 @@ impl Module {
         self.definitions.alloc(definition)
     }
 
-    pub(crate) fn lookup<T: StoredInArena>(&self, idx: la_arena::Idx<T>) -> &T {
-        &T::arena(self)[idx]
-    }
-
     pub(crate) fn get_definition(&self, idx: DefinitionIdx) -> &Definition {
         &self.definitions[idx]
     }
@@ -279,6 +273,14 @@ impl Module {
 
     pub(super) fn iter_type_expressions(&self) -> impl Iterator<Item = (TypeExprIdx, &TypeExpr)> {
         self.type_expressions.iter()
+    }
+}
+
+impl<T: StoredInArena> Index<la_arena::Idx<T>> for Module {
+    type Output = T;
+
+    fn index(&self, index: la_arena::Idx<T>) -> &T {
+        &T::arena(self)[index]
     }
 }
 
