@@ -60,11 +60,11 @@ impl Document {
         &self.inference_result.expr_types
     }
 
-    pub(crate) fn diagnostics(&self) -> Vec<lsp_types::Diagnostic> {
-        self.inference_result
-            .diagnostics
-            .iter()
-            .map(|diag| todo!(""))
-            .collect()
+    pub(crate) fn type_errors(&self) -> &Vec<core::TypeError> {
+        &self.inference_result.diagnostics
+    }
+
+    pub(crate) fn display_type(&self, idx: core::TypeIdx) -> String {
+        core::display_type(&self.types, idx)
     }
 }

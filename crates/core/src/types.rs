@@ -1,6 +1,6 @@
 use ena::unify::{EqUnifyValue, InPlaceUnificationTable, UnifyKey};
 
-use crate::intern;
+use crate::{intern, Interner};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UnificationVar(pub u32);
@@ -35,3 +35,21 @@ pub enum Type {
 }
 
 impl EqUnifyValue for TypeIdx {}
+
+#[must_use]
+pub fn display_type(types: &Interner<Type>, idx: TypeIdx) -> String {
+    match types.lookup(idx) {
+        Type::Int => "@int".to_string(),
+        Type::Bool => "@bool".to_string(),
+        Type::Unit => "@unit".to_string(),
+        Type::Error => "{Error}".to_string(),
+        Type::Unifier(var) => format!("_{}", var.0),
+        Type::Arrow(from, to) => {
+            format!(
+                "{} -> {}",
+                display_type(types, *from),
+                display_type(types, *to)
+            )
+        }
+    }
+}

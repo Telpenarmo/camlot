@@ -5,7 +5,7 @@ mod intern;
 mod types;
 pub use crate::hir::*;
 
-pub use types::{Type, TypeIdx};
+pub use types::{Type, TypeIdx, display_type};
 
 pub(crate) use hir::Name;
 

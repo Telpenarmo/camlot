@@ -4,6 +4,7 @@ mod pprint;
 
 pub use module::Module;
 pub use module::StoredInArena;
+pub type ArenaIdx<T> = la_arena::Idx<T>;
 
 use la_arena::Idx;
 
