@@ -3,6 +3,7 @@ mod module;
 mod pprint;
 
 pub use module::Module;
+pub use module::StoredInArena;
 
 use la_arena::Idx;
 

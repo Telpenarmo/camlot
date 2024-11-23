@@ -3,10 +3,7 @@ use std::ops::Index;
 use imbl::HashMap;
 use la_arena::{Arena, ArenaMap};
 
-use parser::{
-    nodes as ast, DefinitionPtr, ExprPtr, ParamPtr, PatternPtr, SyntaxNode, SyntaxNodePtr,
-    TypeDefinitionPtr, TypeExprPtr,
-};
+use parser::{SyntaxNode, SyntaxNodePtr};
 
 use crate::types::Type;
 use crate::{builtin, TypeIdx};
@@ -21,24 +18,24 @@ use super::{
 #[allow(unused)]
 pub struct Module {
     definitions: Arena<Definition>,
-    definitions_syntax: ArenaMap<DefinitionIdx, DefinitionPtr>,
+    definitions_syntax: ArenaMap<DefinitionIdx, SyntaxNodePtr>,
 
     opens: Arena<Open>,
 
     type_definitions: Arena<TypeDefinition>,
-    type_definitions_syntax: ArenaMap<TypeDefinitionIdx, TypeDefinitionPtr>,
+    type_definitions_syntax: ArenaMap<TypeDefinitionIdx, SyntaxNodePtr>,
 
     expressions: Arena<Expr>,
-    exprs_syntax: ArenaMap<ExprIdx, ExprPtr>,
+    exprs_syntax: ArenaMap<ExprIdx, SyntaxNodePtr>,
 
     type_expressions: Arena<TypeExpr>,
-    type_exprs_syntax: ArenaMap<TypeExprIdx, TypeExprPtr>,
+    type_exprs_syntax: ArenaMap<TypeExprIdx, SyntaxNodePtr>,
 
     parameters: Arena<Param>,
-    parameters_syntax: ArenaMap<ParamIdx, ParamPtr>,
+    parameters_syntax: ArenaMap<ParamIdx, SyntaxNodePtr>,
 
     patterns: Arena<Pattern>,
-    patterns_syntax: ArenaMap<PatternIdx, PatternPtr>,
+    patterns_syntax: ArenaMap<PatternIdx, SyntaxNodePtr>,
 
     names: Interner<String>,
 
@@ -196,7 +193,8 @@ impl Module {
         self.names.intern(name.into())
     }
 
-    pub(crate) fn get_name(&self, name: Name) -> &str {
+    #[must_use]
+    pub fn get_name(&self, name: Name) -> &str {
         self.names.lookup(name)
     }
 
@@ -233,6 +231,14 @@ impl Module {
     pub(super) fn iter_type_expressions(&self) -> impl Iterator<Item = (TypeExprIdx, &TypeExpr)> {
         self.type_expressions.iter()
     }
+
+    #[must_use]
+    pub fn syntax<'a, T: StoredInArena + 'a>(
+        &'a self,
+        idx: la_arena::Idx<T>,
+    ) -> Option<&SyntaxNodePtr> {
+        T::syntax_map(self).get(idx)
+    }
 }
 
 impl<T: StoredInArena> Index<la_arena::Idx<T>> for Module {
@@ -243,31 +249,26 @@ impl<T: StoredInArena> Index<la_arena::Idx<T>> for Module {
     }
 }
 
-pub(crate) trait StoredInArena: std::marker::Sized {
+pub trait StoredInArena: std::marker::Sized {
     fn arena(module: &Module) -> &Arena<Self>;
     fn arena_mut(module: &mut Module) -> &mut Arena<Self>;
-    #[allow(unused)]
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr>;
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr>;
-    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr;
-
-    type Syntax;
-    type SyntaxPtr;
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr>;
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr>;
 
     fn alloc_opt_syntax(
         self,
         module: &mut Module,
-        syntax: Option<&Self::Syntax>,
+        syntax: Option<&SyntaxNode>,
     ) -> la_arena::Idx<Self> {
         let idx = Self::arena_mut(module).alloc(self);
         if let Some(syntax) = syntax {
-            Self::syntax_map_mut(module).insert(idx, Self::make_ptr(syntax));
+            Self::syntax_map_mut(module).insert(idx, SyntaxNodePtr::new(syntax));
         }
         idx
     }
 
-    fn alloc(self, module: &mut Module, syntax: &Self::Syntax) -> la_arena::Idx<Self> {
-        self.alloc_opt_syntax(module, Some(syntax))
+    fn alloc<N: parser::AstNode>(self, module: &mut Module, node: &N) -> la_arena::Idx<Self> {
+        self.alloc_opt_syntax(module, Some(parser::AstNode::syntax(node)))
     }
 
     fn alloc_no_syntax(self, module: &mut Module) -> la_arena::Idx<Self> {
@@ -280,9 +281,6 @@ pub(super) trait Missable: StoredInArena {
 }
 
 impl StoredInArena for Expr {
-    type Syntax = SyntaxNode;
-    type SyntaxPtr = SyntaxNodePtr;
-
     fn arena(module: &Module) -> &Arena<Self> {
         &module.expressions
     }
@@ -291,16 +289,12 @@ impl StoredInArena for Expr {
         &mut module.expressions
     }
 
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &module.exprs_syntax
     }
 
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &mut module.exprs_syntax
-    }
-
-    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
-        SyntaxNodePtr::new(syntax)
     }
 }
 
@@ -311,9 +305,6 @@ impl Missable for Expr {
 }
 
 impl StoredInArena for TypeExpr {
-    type Syntax = ast::TypeExpr;
-    type SyntaxPtr = TypeExprPtr;
-
     fn arena(module: &Module) -> &Arena<Self> {
         &module.type_expressions
     }
@@ -322,16 +313,12 @@ impl StoredInArena for TypeExpr {
         &mut module.type_expressions
     }
 
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &module.type_exprs_syntax
     }
 
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &mut module.type_exprs_syntax
-    }
-
-    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
-        TypeExprPtr::new(syntax)
     }
 }
 
@@ -342,9 +329,6 @@ impl Missable for TypeExpr {
 }
 
 impl StoredInArena for Param {
-    type Syntax = ast::Param;
-    type SyntaxPtr = ParamPtr;
-
     fn arena(module: &Module) -> &Arena<Self> {
         &module.parameters
     }
@@ -353,23 +337,16 @@ impl StoredInArena for Param {
         &mut module.parameters
     }
 
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &module.parameters_syntax
     }
 
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &mut module.parameters_syntax
-    }
-
-    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
-        ParamPtr::new(syntax)
     }
 }
 
 impl StoredInArena for Pattern {
-    type Syntax = ast::Pattern;
-    type SyntaxPtr = PatternPtr;
-
     fn arena(module: &Module) -> &Arena<Self> {
         &module.patterns
     }
@@ -378,23 +355,16 @@ impl StoredInArena for Pattern {
         &mut module.patterns
     }
 
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &module.patterns_syntax
     }
 
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &mut module.patterns_syntax
-    }
-
-    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
-        PatternPtr::new(syntax)
     }
 }
 
 impl StoredInArena for Definition {
-    type Syntax = ast::Definition;
-    type SyntaxPtr = DefinitionPtr;
-
     fn arena(module: &Module) -> &Arena<Self> {
         &module.definitions
     }
@@ -403,23 +373,16 @@ impl StoredInArena for Definition {
         &mut module.definitions
     }
 
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &module.definitions_syntax
     }
 
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &mut module.definitions_syntax
-    }
-
-    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
-        DefinitionPtr::new(syntax)
     }
 }
 
 impl StoredInArena for TypeDefinition {
-    type Syntax = ast::TypeDefinition;
-    type SyntaxPtr = TypeDefinitionPtr;
-
     fn arena(module: &Module) -> &Arena<Self> {
         &module.type_definitions
     }
@@ -428,15 +391,11 @@ impl StoredInArena for TypeDefinition {
         &mut module.type_definitions
     }
 
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &module.type_definitions_syntax
     }
 
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, Self::SyntaxPtr> {
+    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
         &mut module.type_definitions_syntax
-    }
-
-    fn make_ptr(syntax: &Self::Syntax) -> Self::SyntaxPtr {
-        TypeDefinitionPtr::new(syntax)
     }
 }

@@ -1,4 +1,4 @@
-use parser::{nodes as ast, AstNode, AstToken};
+use parser::{nodes as ast, AstToken};
 
 use crate::Name;
 
@@ -106,12 +106,12 @@ impl Module {
         }
     }
 
-    fn curry<'a, T: Iterator<Item = &'a ParamIdx>>(
+    fn curry<'a, T: Iterator<Item = &'a ParamIdx>, N: parser::AstNode>(
         &mut self,
         body: ExprIdx,
         params: T,
         return_type: &mut Option<TypeExprIdx>,
-        whole_expr_ast: &parser::SyntaxNode,
+        whole_expr_ast: &N,
     ) -> ExprIdx {
         params.fold(body, |body, param| {
             let return_type = return_type.take().unwrap_or_else(|| self.alloc_missing());
@@ -133,7 +133,7 @@ impl Module {
         }
         match expr.unwrap() {
             ast::Expr::IdentExpr(ast) => match ast.ident_lit() {
-                Some(lit) => Expr::ident_expr(self.name(lit.text())).alloc(self, ast.syntax()),
+                Some(lit) => Expr::ident_expr(self.name(lit.text())).alloc(self, &ast),
                 None => self.alloc_missing(),
             },
             ast::Expr::ParenExpr(ast) => {
@@ -147,7 +147,7 @@ impl Module {
                 Some(lit) => match lit.kind() {
                     ast::LiteralKind::Int => {
                         Expr::int_expr(lit.syntax().text().parse().expect("Invalid int literal"))
-                            .alloc(self, ast.syntax())
+                            .alloc(self, &ast)
                     }
 
                     ast::LiteralKind::DummyKw => unreachable!(),
@@ -172,7 +172,7 @@ impl Module {
                 let return_type = self.lower_type_annotation(ast.type_annotation());
 
                 let mut return_type = Some(return_type);
-                let e = self.curry(body, params_rev, &mut return_type, ast.syntax());
+                let e = self.curry(body, params_rev, &mut return_type, &ast);
                 debug_assert!(
                     return_type.is_none(),
                     "Return type definition should be used"
@@ -195,7 +195,7 @@ impl Module {
 
         let arg = self.lower_expr(app.arg());
 
-        Expr::AppExpr { func, arg }.alloc(self, app.syntax())
+        Expr::AppExpr { func, arg }.alloc(self, app)
     }
 
     fn lower_ident(&mut self, ident: Option<parser::SyntaxToken>) -> Name {
@@ -206,8 +206,8 @@ impl Module {
         match ast {
             ast::Stmt::ExprStmt(ast) => {
                 let expr = self.lower_expr_defaulting_to_unit(ast.expr());
-                let pat = Pattern::Unit.alloc_no_syntax(self);
-                Expr::let_expr(pat, self.alloc_missing(), expr, cont).alloc(self, ast.syntax())
+                let pat = Pattern::Unit.alloc(self, &ast);
+                Expr::let_expr(pat, self.alloc_missing(), expr, cont).alloc(self, &ast)
             }
             ast::Stmt::LetStmt(ast) => {
                 let pattern = match ast.pattern() {
@@ -222,11 +222,11 @@ impl Module {
                 let mut return_type = Some(return_type);
 
                 let defn = self.lower_expr(ast.def());
-                let defn = self.curry(defn, params_rev, &mut return_type, ast.syntax());
+                let defn = self.curry(defn, params_rev, &mut return_type, &ast);
 
                 let return_type = return_type.unwrap_or_else(|| self.alloc_missing());
 
-                Expr::let_expr(pattern, return_type, defn, cont).alloc(self, ast.syntax())
+                Expr::let_expr(pattern, return_type, defn, cont).alloc(self, &ast)
             }
         }
     }
