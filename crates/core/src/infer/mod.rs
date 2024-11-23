@@ -10,8 +10,9 @@ use crate::types::{Type, TypeIdx, UnificationTable};
 use crate::{Definition, DefinitionIdx, Name, Pattern, PatternIdx};
 
 #[derive(PartialEq, Debug)]
-pub enum Diagnostic {
+pub enum TypeError {
     TypeMismatch {
+        src: ConstraintReason,
         expected: TypeIdx,
         actual: TypeIdx,
     },
@@ -23,18 +24,18 @@ pub enum Diagnostic {
         type_expr: TypeExprIdx,
         name: Name,
     },
-    UnifcationError {
-        expr: ConstraintReason,
-        error: UnifcationError,
+    CyclicType {
+        src: ConstraintReason,
+        typ: TypeIdx,
     },
 }
 
-pub struct TypeInference {
+pub(crate) struct TypeInference {
     unification_table: UnificationTable,
     defn_types: ArenaMap<DefinitionIdx, TypeIdx>,
     expr_types: ArenaMap<ExprIdx, TypeIdx>,
     constraints: Vec<Constraint>,
-    diagnostics: Vec<Diagnostic>,
+    diagnostics: Vec<TypeError>,
     types_env: Environment,
 }
 
@@ -54,7 +55,7 @@ type Environment = imbl::HashMap<Name, TypeIdx>;
 pub struct InferenceResult {
     pub expr_types: ArenaMap<ExprIdx, TypeIdx>,
     pub defn_types: ArenaMap<DefinitionIdx, TypeIdx>,
-    pub diagnostics: Vec<Diagnostic>,
+    pub diagnostics: Vec<TypeError>,
 }
 
 #[must_use]
@@ -65,7 +66,7 @@ pub fn infer(module: &Module, types: &mut Interner<Type>) -> InferenceResult {
 
 impl TypeInference {
     #[must_use]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             unification_table: UnificationTable::new(),
             defn_types: ArenaMap::new(),
@@ -109,7 +110,14 @@ impl TypeInference {
             unify::Unifcation::new(&mut self.unification_table, types)
                 .unify(self.constraints)
                 .into_iter()
-                .map(|(expr, error)| Diagnostic::UnifcationError { expr, error }),
+                .map(|(src, error)| match error {
+                    UnifcationError::Occurs(typ, _v) => TypeError::CyclicType { src, typ },
+                    UnifcationError::NotUnifiable(expected, actual) => TypeError::TypeMismatch {
+                        src,
+                        expected,
+                        actual,
+                    },
+                }),
         );
 
         Self::substitute(
@@ -247,7 +255,7 @@ impl TypeInference {
                     *typ
                 } else {
                     self.diagnostics
-                        .push(Diagnostic::UnboundVariable { expr, name: *name });
+                        .push(TypeError::UnboundVariable { expr, name: *name });
                     error(types)
                 }
             }
@@ -347,12 +355,11 @@ impl TypeInference {
         types: &mut Interner<Type>,
         ty_idx: TypeExprIdx,
     ) -> TypeIdx {
-        let ty = &module[ty_idx];
-        match ty {
+        match &module[ty_idx] {
             TypeExpr::Missing => self.next_unification_var(types),
             &TypeExpr::IdentTypeExpr { name } => self.types_env.get(&name).map_or_else(
                 || {
-                    self.diagnostics.push(Diagnostic::UnboundTypeVariable {
+                    self.diagnostics.push(TypeError::UnboundTypeVariable {
                         type_expr: ty_idx,
                         name,
                     });
@@ -627,12 +634,12 @@ mod tests {
 
         assert!(matches!(
             &result.diagnostics[0],
-            &crate::Diagnostic::UnboundTypeVariable { .. }
+            &crate::TypeError::UnboundTypeVariable { .. }
         ));
 
         assert!(matches!(
             &result.diagnostics[1],
-            &crate::Diagnostic::UnifcationError { .. }
+            &crate::TypeError::TypeMismatch { .. }
         ));
     }
 
