@@ -1,2 +1,5 @@
 [alias]
 xtask = "run --package xtask --"
+
+[build]
+rustflags = ["-W", "unreachable-pub", "-W", "rust-2021-compatibility"]
