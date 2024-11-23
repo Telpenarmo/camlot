@@ -23,7 +23,7 @@ export function viewHIR(ctx: Ctx) {
             if (doc.languageId !== 'camlot') {
                 return;
             };
-            afterLs(() => stcp.eventEmitter.fire(stcp.uri));
+            afterLs(() => { stcp.eventEmitter.fire(stcp.uri) });
         },
         ctx.subscriptions,
     );
@@ -53,7 +53,7 @@ export function viewHIR(ctx: Ctx) {
 
 // We need to order this after LS updates, but there's no API for that.
 // Hence, good old setTimeout.
-function afterLs(f: () => any) {
+function afterLs(f: () => unknown) {
     setTimeout(f, 10);
 }
 
@@ -71,7 +71,7 @@ export class HirContentProvider
         this.ctx = ctx;
     }
 
-    provideTextDocumentContent(uri: vscode.Uri): vscode.ProviderResult<string> {
+    provideTextDocumentContent(_uri: vscode.Uri): vscode.ProviderResult<string> {
         const editor = vscode.window.activeTextEditor;
         if (editor === undefined) {
             return '';

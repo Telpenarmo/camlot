@@ -14,7 +14,7 @@ import { viewHIR } from './hir';
 let client: LanguageClient | undefined;
 let commands: vscode.Disposable[] = [];
 
-async function initLanguageClient() {
+function initLanguageClient() {
 	const serverOptions: ServerOptions = {
 		command: "camlot-server",
 		args: ["lsp"],
@@ -35,10 +35,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	if (!client) {
 		try {
-			client = await initLanguageClient();
+			client = initLanguageClient();
 			await client.start();
 
-			let ctx = {
+			const ctx = {
 				subscriptions: context.subscriptions,
 				client,
 				pushCleanup: (disposable: vscode.Disposable) => {
@@ -49,8 +49,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			commands.push(vscode.commands.registerCommand('camlot-analyzer.syntaxTree', syntaxTree(ctx)));
 			commands.push(vscode.commands.registerCommand('camlot-analyzer.hirTree', viewHIR(ctx)));
 			commands.push(vscode.commands.registerCommand('camlot-analyzer.restartServer', restart(ctx)));
-		} catch (err: any) {
-			vscode.window.showErrorMessage(err);
+		} catch (err: unknown) {
+			vscode.window.showErrorMessage(err as string);
 		}
 	}
 }
@@ -58,9 +58,11 @@ export async function activate(context: vscode.ExtensionContext) {
 // This method is called when your extension is deactivated
 export function deactivate() {
 	if (client) {
-		client.stop();
+		client.stop().catch((e: unknown) => {
+			vscode.window.showErrorMessage(e as string);
+		});
 	}
-	commands.map((c) => c.dispose());
+	commands.map((c) => { c.dispose() });
 	commands = [];
 }
 function restart(ctx: Ctx) {

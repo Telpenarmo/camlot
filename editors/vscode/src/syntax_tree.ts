@@ -21,7 +21,7 @@ export function syntaxTree(ctx: Ctx) {
             if (doc.languageId !== 'camlot') {
                 return;
             };
-            afterLs(() => stcp.eventEmitter.fire(stcp.uri));
+            afterLs(() => { stcp.eventEmitter.fire(stcp.uri) });
         },
         ctx.subscriptions,
     );
@@ -58,7 +58,7 @@ export function syntaxTree(ctx: Ctx) {
 
 // We need to order this after LS updates, but there's no API for that.
 // Hence, good old setTimeout.
-function afterLs(f: () => any) {
+function afterLs(f: () => unknown) {
     setTimeout(f, 10);
 }
 
@@ -72,7 +72,7 @@ export class SyntaxTreeContentProvider
     ctx: Ctx;
     uri = vscode.Uri.parse('camlot-analyzer-cst://syntaxtree/syntax.cml_cst');
     eventEmitter = new vscode.EventEmitter<vscode.Uri>();
-    syntaxTree: string = 'Not available';
+    syntaxTree = 'Not available';
 
     constructor(ctx: Ctx) {
         this.ctx = ctx;
