@@ -26,6 +26,7 @@ fn open_destination_file() -> File {
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("examples_tests.rs");
     std::fs::OpenOptions::new()
+        .create(true)
         .write(true)
         .truncate(true)
         .open(&dest_path)
