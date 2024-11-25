@@ -91,7 +91,9 @@ impl TypeInference {
 
     fn load_type_aliases(&mut self, module: &Module, types: &mut Interner<Type>) {
         for (_, defn) in module.type_definitions() {
-            let typ = self.resolve_type_expr(module, types, defn.defn);
+            let typ = self
+                .resolve_type_expr(module, types, defn.defn)
+                .or_unification_var(self, types);
             self.types_env.insert(defn.name, typ);
         }
     }
@@ -150,13 +152,14 @@ impl TypeInference {
             .map(|param| {
                 let param = &module[*param];
                 let typ = self.resolve_type_expr(module, types, param.typ);
-                let (pat_env, typ) = self.resolve_pattern(module, param.pattern, unit(types), typ);
+                let (pat_env, typ) =
+                    self.resolve_pattern(module, param.pattern, unit(types), typ, types);
                 def_env = pat_env.union(def_env.clone());
                 typ
             })
             .collect();
 
-        self.check_expr(module, types, defn.defn, &def_env, ret_type);
+        let ret_type = self.check_or_infer_expr(module, types, &def_env, defn.defn, ret_type);
 
         let typ = curry(types, &params, ret_type);
 
@@ -243,10 +246,10 @@ impl TypeInference {
             Expr::Missing => self.next_unification_var(types),
             Expr::LetExpr(let_expr) => {
                 let def_typ = self.resolve_type_expr(module, types, let_expr.return_type);
+                let (pat_env, def_typ) =
+                    self.resolve_pattern(module, let_expr.lhs, unit(types), def_typ, types);
                 self.check_expr(module, types, let_expr.defn, env, def_typ);
 
-                let (pat_env, _def_typ) =
-                    self.resolve_pattern(module, let_expr.lhs, unit(types), def_typ);
                 let env = pat_env.union(env.clone());
                 self.infer_expr(module, types, &env, let_expr.body)
             }
@@ -264,10 +267,12 @@ impl TypeInference {
                 let from = self.resolve_type_expr(module, types, param.typ);
 
                 let (pat_env, from) =
-                    self.resolve_pattern(module, param.pattern, unit(types), from);
+                    self.resolve_pattern(module, param.pattern, unit(types), from, types);
+
                 let env = pat_env.union(env.clone());
                 let to = self.resolve_type_expr(module, types, lambda.return_type);
-                self.check_expr(module, types, lambda.body, &env, to);
+
+                let to = self.check_or_infer_expr(module, types, &env, lambda.body, to);
 
                 arrow(types, from, to)
             }
@@ -277,7 +282,7 @@ impl TypeInference {
             } => {
                 let lhs_typ = self.infer_expr(module, types, env, lhs);
 
-                let arg_typ = self.next_unification_var(types);
+                let arg_typ = self.infer_expr(module, types, env, rhs);
                 let ret_typ = self.next_unification_var(types);
 
                 let func_typ = arrow(types, arg_typ, ret_typ);
@@ -285,8 +290,6 @@ impl TypeInference {
                 let reason = ConstraintReason::ApplicationTarget(lhs);
                 self.constraints
                     .push(Constraint::TypeEqual(reason, func_typ, lhs_typ));
-
-                self.check_expr(module, types, rhs, env, arg_typ);
 
                 ret_typ
             }
@@ -296,6 +299,18 @@ impl TypeInference {
                 Literal::BoolLiteral(_) => Type::Bool,
             }),
         }
+    }
+
+    fn check_or_infer_expr(
+        &mut self,
+        module: &Module,
+        types: &mut Interner<Type>,
+        env: &Environment,
+        expr: ExprIdx,
+        typ: Option<TypeIdx>,
+    ) -> TypeIdx {
+        typ.inspect(|typ| self.check_expr(module, types, expr, env, *typ))
+            .unwrap_or_else(|| self.infer_expr(module, types, env, expr))
     }
 
     fn check_expr(
@@ -308,15 +323,17 @@ impl TypeInference {
     ) {
         let unit_type = unit(types);
         let expected = types.lookup(typ);
-        match (&module[expr], expected) {
+        match (&module[expr], expected.clone()) {
             (Expr::LiteralExpr(Literal::BoolLiteral(_)), Type::Bool)
             | (Expr::LiteralExpr(Literal::IntLiteral(_)), Type::Int)
             | (Expr::LiteralExpr(Literal::Unit), Type::Unit) => {}
 
             (Expr::LambdaExpr(lambda), Type::Arrow(from, to)) => {
                 let param = &module[lambda.param];
-                let (env, _) = self.resolve_pattern(module, param.pattern, unit_type, *from);
-                self.check_expr(module, types, lambda.body, &env, *to);
+                let (pat_env, _) =
+                    self.resolve_pattern(module, param.pattern, unit_type, Some(from), types);
+                let env = pat_env.union(env.clone());
+                self.check_expr(module, types, lambda.body, &env, to);
             }
 
             _ => {
@@ -333,17 +350,26 @@ impl TypeInference {
         module: &Module,
         pat_idx: PatternIdx,
         unit_type: TypeIdx,
-        ann: TypeIdx,
+        ann: Option<TypeIdx>,
+        types: &mut Interner<Type>,
     ) -> (Environment, TypeIdx) {
         match module[pat_idx] {
-            Pattern::Ident(name) => (Environment::unit(name, ann), ann),
-            Pattern::Wildcard => (Environment::new(), ann),
+            Pattern::Ident(name) => {
+                let ann = ann.or_unification_var(self, types);
+                (Environment::unit(name, ann), ann)
+            }
+            Pattern::Wildcard => {
+                let ann = ann.or_unification_var(self, types);
+                (Environment::new(), ann)
+            }
             Pattern::Unit => {
-                self.constraints.push(Constraint::TypeEqual(
-                    ConstraintReason::UnitPattern(pat_idx),
-                    ann,
-                    unit_type,
-                ));
+                if let Some(ann) = ann {
+                    self.constraints.push(Constraint::TypeEqual(
+                        ConstraintReason::UnitPattern(pat_idx),
+                        ann,
+                        unit_type,
+                    ));
+                }
                 (Environment::new(), unit_type)
             }
         }
@@ -354,10 +380,10 @@ impl TypeInference {
         module: &Module,
         types: &mut Interner<Type>,
         ty_idx: TypeExprIdx,
-    ) -> TypeIdx {
+    ) -> Option<TypeIdx> {
         match &module[ty_idx] {
-            TypeExpr::Missing => self.next_unification_var(types),
-            &TypeExpr::IdentTypeExpr { name } => self.types_env.get(&name).map_or_else(
+            TypeExpr::Missing => None,
+            &TypeExpr::IdentTypeExpr { name } => Some(self.types_env.get(&name).map_or_else(
                 || {
                     self.diagnostics.push(TypeError::UnboundTypeVariable {
                         type_expr: ty_idx,
@@ -366,11 +392,15 @@ impl TypeInference {
                     error(types)
                 },
                 |typ| *typ,
-            ),
+            )),
             &TypeExpr::TypeArrow { from, to } => {
-                let from = self.resolve_type_expr(module, types, from);
-                let to = self.resolve_type_expr(module, types, to);
-                arrow(types, from, to)
+                let from = self
+                    .resolve_type_expr(module, types, from)
+                    .or_unification_var(self, types);
+                let to = self
+                    .resolve_type_expr(module, types, to)
+                    .or_unification_var(self, types);
+                Some(arrow(types, from, to))
             }
         }
     }
@@ -392,6 +422,24 @@ fn arrow(types: &mut Interner<Type>, from: TypeIdx, to: TypeIdx) -> TypeIdx {
 
 fn unit(types: &mut Interner<Type>) -> TypeIdx {
     types.intern(Type::Unit)
+}
+
+trait MaybeType {
+    fn or_unification_var(
+        self,
+        inference: &mut TypeInference,
+        types: &mut Interner<Type>,
+    ) -> TypeIdx;
+}
+
+impl MaybeType for Option<TypeIdx> {
+    fn or_unification_var(
+        self,
+        inference: &mut TypeInference,
+        types: &mut Interner<Type>,
+    ) -> TypeIdx {
+        self.unwrap_or_else(|| inference.next_unification_var(types))
+    }
 }
 
 #[cfg(test)]
