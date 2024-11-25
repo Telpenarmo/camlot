@@ -1,80 +1,80 @@
 MODULE@0..327
-  DEFINITION@0..26
+  DEFINITION@0..25
     DEF_KW@0..3 "def"
     WHITESPACE@3..4 " "
     IDENT@4..13 "lambda_id"
     WHITESPACE@13..14 " "
     PARAMS@14..14
-    DEF_BODY@14..26
+    DEF_BODY@14..25
       EQUAL@14..15 "="
       WHITESPACE@15..16 " "
       LAMBDA_EXPR@16..24
         BACKSLASH@16..17 "\\"
         WHITESPACE@17..18 " "
-        PARAMS@18..20
-          PARAM@18..20
-            IDENT_PATTERN@18..20
+        PARAMS@18..19
+          PARAM@18..19
+            IDENT_PATTERN@18..19
               IDENT@18..19 "x"
-              WHITESPACE@19..20 " "
+        WHITESPACE@19..20 " "
         ARROW@20..22 "->"
         WHITESPACE@22..23 " "
         IDENT_EXPR@23..24
           IDENT@23..24 "x"
       SEMICOLON@24..25 ";"
-      WHITESPACE@25..26 "\n"
-  DEFINITION@26..58
+  WHITESPACE@25..26 "\n"
+  DEFINITION@26..56
     DEF_KW@26..29 "def"
     WHITESPACE@29..30 " "
     IDENT@30..44 "lambda_unicode"
     WHITESPACE@44..45 " "
     PARAMS@45..45
-    DEF_BODY@45..58
+    DEF_BODY@45..56
       EQUAL@45..46 "="
       WHITESPACE@46..47 " "
       LAMBDA_EXPR@47..55
         LAMBDA@47..49 "λ"
-        PARAMS@49..51
-          PARAM@49..51
-            IDENT_PATTERN@49..51
+        PARAMS@49..50
+          PARAM@49..50
+            IDENT_PATTERN@49..50
               IDENT@49..50 "x"
-              WHITESPACE@50..51 " "
+        WHITESPACE@50..51 " "
         ARROW@51..53 "->"
         WHITESPACE@53..54 " "
         IDENT_EXPR@54..55
           IDENT@54..55 "x"
       SEMICOLON@55..56 ";"
-      WHITESPACE@56..58 "\n\n"
-  DEFINITION@58..94
+  WHITESPACE@56..58 "\n\n"
+  DEFINITION@58..92
     DEF_KW@58..61 "def"
     WHITESPACE@61..62 " "
     IDENT@62..79 "lambda_unit_param"
     WHITESPACE@79..80 " "
     PARAMS@80..80
-    DEF_BODY@80..94
+    DEF_BODY@80..92
       EQUAL@80..81 "="
       WHITESPACE@81..82 " "
       LAMBDA_EXPR@82..91
         BACKSLASH@82..83 "\\"
         PARAMS@83..86
           PARAM@83..86
-            UNIT_PATTERN@83..86
+            UNIT_PATTERN@83..85
               L_PAREN@83..84 "("
               R_PAREN@84..85 ")"
-              WHITESPACE@85..86 " "
+            WHITESPACE@85..86 " "
         ARROW@86..88 "->"
         WHITESPACE@88..89 " "
         PAREN_EXPR@89..91
           L_PAREN@89..90 "("
           R_PAREN@90..91 ")"
       SEMICOLON@91..92 ";"
-      WHITESPACE@92..94 "\n\n"
-  DEFINITION@94..134
+  WHITESPACE@92..94 "\n\n"
+  DEFINITION@94..133
     DEF_KW@94..97 "def"
     WHITESPACE@97..98 " "
     IDENT@98..116 "lambda_return_type"
     WHITESPACE@116..117 " "
     PARAMS@117..117
-    DEF_BODY@117..134
+    DEF_BODY@117..133
       EQUAL@117..118 "="
       WHITESPACE@118..119 " "
       LAMBDA_EXPR@119..132
@@ -83,25 +83,25 @@ MODULE@0..327
           PARAM@120..121
             IDENT_PATTERN@120..121
               IDENT@120..121 "x"
-        TYPE_ANNOTATION@121..127
+        TYPE_ANNOTATION@121..126
           COLON@121..122 ":"
           WHITESPACE@122..123 " "
-          TYPE_IDENT@123..127
+          TYPE_IDENT@123..126
             IDENT@123..126 "int"
-            WHITESPACE@126..127 " "
+        WHITESPACE@126..127 " "
         ARROW@127..129 "->"
         WHITESPACE@129..130 " "
         LITERAL_EXPR@130..132
           INT@130..132 "10"
       SEMICOLON@132..133 ";"
-      WHITESPACE@133..134 "\n"
-  DEFINITION@134..195
+  WHITESPACE@133..134 "\n"
+  DEFINITION@134..193
     DEF_KW@134..137 "def"
     WHITESPACE@137..138 " "
     IDENT@138..162 "lambda_return_type_arrow"
     WHITESPACE@162..163 " "
     PARAMS@163..163
-    DEF_BODY@163..195
+    DEF_BODY@163..193
       EQUAL@163..164 "="
       WHITESPACE@164..165 " "
       LAMBDA_EXPR@165..192
@@ -110,49 +110,49 @@ MODULE@0..327
           PARAM@166..167
             IDENT_PATTERN@166..167
               IDENT@166..167 "x"
-        TYPE_ANNOTATION@167..182
+        TYPE_ANNOTATION@167..181
           COLON@167..168 ":"
           WHITESPACE@168..169 " "
-          TYPE_PAREN@169..182
+          TYPE_PAREN@169..181
             L_PAREN@169..170 "("
             TYPE_ARROW@170..180
-              TYPE_IDENT@170..174
+              TYPE_IDENT@170..173
                 IDENT@170..173 "int"
-                WHITESPACE@173..174 " "
+              WHITESPACE@173..174 " "
               ARROW@174..176 "->"
               WHITESPACE@176..177 " "
               TYPE_IDENT@177..180
                 IDENT@177..180 "int"
             R_PAREN@180..181 ")"
-            WHITESPACE@181..182 " "
+        WHITESPACE@181..182 " "
         ARROW@182..184 "->"
         WHITESPACE@184..185 " "
         LAMBDA_EXPR@185..192
           BACKSLASH@185..186 "\\"
-          PARAMS@186..188
-            PARAM@186..188
-              IDENT_PATTERN@186..188
+          PARAMS@186..187
+            PARAM@186..187
+              IDENT_PATTERN@186..187
                 IDENT@186..187 "y"
-                WHITESPACE@187..188 " "
+          WHITESPACE@187..188 " "
           ARROW@188..190 "->"
           WHITESPACE@190..191 " "
           IDENT_EXPR@191..192
             IDENT@191..192 "y"
       SEMICOLON@192..193 ";"
-      WHITESPACE@193..195 "\n\n"
-  DEFINITION@195..244
+  WHITESPACE@193..195 "\n\n"
+  DEFINITION@195..242
     DEF_KW@195..198 "def"
     WHITESPACE@198..199 " "
     IDENT@199..224 "lambda_id_annotated_p ..."
     WHITESPACE@224..225 " "
     PARAMS@225..225
-    DEF_BODY@225..244
+    DEF_BODY@225..242
       EQUAL@225..226 "="
       WHITESPACE@226..227 " "
       LAMBDA_EXPR@227..241
         BACKSLASH@227..228 "\\"
-        PARAMS@228..237
-          PARAM@228..237
+        PARAMS@228..236
+          PARAM@228..236
             L_PAREN@228..229 "("
             IDENT_PATTERN@229..230
               IDENT@229..230 "x"
@@ -162,74 +162,74 @@ MODULE@0..327
               TYPE_IDENT@232..235
                 IDENT@232..235 "Int"
             R_PAREN@235..236 ")"
-            WHITESPACE@236..237 " "
+        WHITESPACE@236..237 " "
         ARROW@237..239 "->"
         WHITESPACE@239..240 " "
         IDENT_EXPR@240..241
           IDENT@240..241 "x"
       SEMICOLON@241..242 ";"
-      WHITESPACE@242..244 "\n\n"
-  DEFINITION@244..280
+  WHITESPACE@242..244 "\n\n"
+  DEFINITION@244..278
     DEF_KW@244..247 "def"
     WHITESPACE@247..248 " "
     IDENT@248..265 "lambda_two_params"
     WHITESPACE@265..266 " "
     PARAMS@266..266
-    DEF_BODY@266..280
+    DEF_BODY@266..278
       EQUAL@266..267 "="
       WHITESPACE@267..268 " "
       LAMBDA_EXPR@268..277
         BACKSLASH@268..269 "\\"
-        PARAMS@269..273
-          PARAM@269..271
-            IDENT_PATTERN@269..271
+        PARAMS@269..272
+          PARAM@269..270
+            IDENT_PATTERN@269..270
               IDENT@269..270 "x"
-              WHITESPACE@270..271 " "
-          PARAM@271..273
-            IDENT_PATTERN@271..273
+          WHITESPACE@270..271 " "
+          PARAM@271..272
+            IDENT_PATTERN@271..272
               IDENT@271..272 "y"
-              WHITESPACE@272..273 " "
+        WHITESPACE@272..273 " "
         ARROW@273..275 "->"
         WHITESPACE@275..276 " "
         IDENT_EXPR@276..277
           IDENT@276..277 "x"
       SEMICOLON@277..278 ";"
-      WHITESPACE@278..280 "\n\n"
-  DEFINITION@280..327
+  WHITESPACE@278..280 "\n\n"
+  DEFINITION@280..326
     DEF_KW@280..283 "def"
     WHITESPACE@283..284 " "
     IDENT@284..300 "lambda_from_func"
     WHITESPACE@300..301 " "
-    PARAMS@301..303
-      PARAM@301..303
-        IDENT_PATTERN@301..303
+    PARAMS@301..302
+      PARAM@301..302
+        IDENT_PATTERN@301..302
           IDENT@301..302 "x"
-          WHITESPACE@302..303 " "
-    TYPE_ANNOTATION@303..316
+    WHITESPACE@302..303 " "
+    TYPE_ANNOTATION@303..315
       COLON@303..304 ":"
       WHITESPACE@304..305 " "
-      TYPE_ARROW@305..316
-        TYPE_IDENT@305..309
+      TYPE_ARROW@305..315
+        TYPE_IDENT@305..308
           IDENT@305..308 "int"
-          WHITESPACE@308..309 " "
+        WHITESPACE@308..309 " "
         ARROW@309..311 "->"
         WHITESPACE@311..312 " "
-        TYPE_IDENT@312..316
+        TYPE_IDENT@312..315
           IDENT@312..315 "int"
-          WHITESPACE@315..316 " "
-    DEF_BODY@316..327
+    WHITESPACE@315..316 " "
+    DEF_BODY@316..326
       EQUAL@316..317 "="
       WHITESPACE@317..318 " "
       LAMBDA_EXPR@318..325
         BACKSLASH@318..319 "\\"
-        PARAMS@319..321
-          PARAM@319..321
-            IDENT_PATTERN@319..321
+        PARAMS@319..320
+          PARAM@319..320
+            IDENT_PATTERN@319..320
               IDENT@319..320 "y"
-              WHITESPACE@320..321 " "
+        WHITESPACE@320..321 " "
         ARROW@321..323 "->"
         WHITESPACE@323..324 " "
         IDENT_EXPR@324..325
           IDENT@324..325 "x"
       SEMICOLON@325..326 ";"
-      WHITESPACE@326..327 "\n"
+  WHITESPACE@326..327 "\n"

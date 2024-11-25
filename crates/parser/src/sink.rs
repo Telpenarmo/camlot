@@ -107,19 +107,20 @@ impl<'t, 'input> Sink<'t, 'input> {
         self.cursor += 1;
     }
 
-    // This function implements a heuristic for errors location.
-    // In normal cases trivia are appended to the last opened node.
-    // However, errors often are related to the preceding nodes.
-    // For this reason we try to delay eating trivia until after the error.
     fn is_good_place_for_trivia(&self, idx: usize) -> bool {
-        for event in &self.events[idx..] {
-            match event {
-                Event::Open { .. } | Event::UnmatchedOpen | Event::Advance => return true,
-                Event::OpenError { .. } | Event::CloseError => return false,
-                Event::Close => continue,
-            }
-        }
+        match &self.events.get(idx) {
+            // This function implements a heuristic for errors location.
+            // In normal cases trivia are appended to the last opened node.
+            // However, errors often are related to the preceding nodes.
+            // For this reason we try to delay eating trivia until after the error.
+            Some(Event::OpenError { .. } | Event::CloseError) => false,
 
-        true
+            // Most nodes should not end with whitespace.
+            // The only case when trivia may occur before closing node is the root node,
+            // at the end of the file.
+            Some(Event::Close) => self.events.get(idx + 1).is_none(),
+
+            None | Some(Event::Open { .. } | Event::UnmatchedOpen | Event::Advance) => true,
+        }
     }
 }
