@@ -119,11 +119,15 @@ impl Module {
         })
     }
 
-    fn lower_expr_defaulting_to_unit(&mut self, expr: Option<ast::Expr>) -> ExprIdx {
+    fn lower_expr_defaulting_to_unit<N: parser::AstNode>(
+        &mut self,
+        expr: Option<ast::Expr>,
+        parent: &N,
+    ) -> ExprIdx {
         if expr.is_some() {
             self.lower_expr(expr)
         } else {
-            Expr::LiteralExpr(Literal::Unit).alloc_no_syntax(self)
+            Expr::LiteralExpr(Literal::Unit).alloc(self, parent)
         }
     }
 
@@ -140,7 +144,7 @@ impl Module {
                 if let Some(app) = ast.app_expr() {
                     self.lower_app(&app)
                 } else {
-                    self.lower_expr_defaulting_to_unit(ast.expr())
+                    self.lower_expr_defaulting_to_unit(ast.expr(), &ast)
                 }
             }
             ast::Expr::LiteralExpr(ast) => match ast.literal() {
@@ -205,7 +209,7 @@ impl Module {
     fn lower_stmt(&mut self, ast: ast::Stmt, cont: ExprIdx) -> ExprIdx {
         match ast {
             ast::Stmt::ExprStmt(ast) => {
-                let expr = self.lower_expr_defaulting_to_unit(ast.expr());
+                let expr = self.lower_expr_defaulting_to_unit(ast.expr(), &ast);
                 let pat = Pattern::Unit.alloc(self, &ast);
                 Expr::let_expr(pat, self.alloc_missing(), expr, cont).alloc(self, &ast)
             }
@@ -232,7 +236,7 @@ impl Module {
     }
 
     fn lower_block(&mut self, ast: &ast::BlockExpr) -> ExprIdx {
-        let tail_expr = self.lower_expr_defaulting_to_unit(ast.tail_expr());
+        let tail_expr = self.lower_expr_defaulting_to_unit(ast.tail_expr(), ast);
 
         let stmts: Vec<_> = ast.statements().collect();
         stmts
