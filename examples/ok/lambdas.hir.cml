@@ -3,6 +3,6 @@ def lambda_unicode = \x -> x;
 def lambda_unit_param = \() -> ();
 def lambda_return_type = \x : int -> 10;
 def lambda_return_type_arrow = \x : (int -> int) -> \y -> y;
-def lambda_id_annotated_param = \(x: Int) -> x;
+def lambda_id_annotated_param = \(x: int) -> x;
 def lambda_two_params = \x -> \y -> x;
 def lambda_from_func x : int -> int = \y -> x;

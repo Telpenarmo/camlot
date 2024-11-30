@@ -1,18 +1,17 @@
-type t = a;
-type t2 = a -> b;
-type t3 = a -> b -> c;
-type t4 = (a -> b) -> c;
+type a = int;
+type aa = a -> a;
+type aaa = (a -> a) -> a;
 
-def x : Int = 42;
+def x : int = 42;
 def x2 = 42;
-def const_42 = \(x: t) -> 42;
-def const_42_2 (x: t) = 42;
+def const_42 = \(x: a) -> 42;
+def const_42_2 (x: a) = 42;
 def id = \x -> x;
 def id2 x = x;
 def const x y = x;
 def const2 x = \x -> x;
-def const3 : a -> b -> a = \x -> \y : a -> x;
-def const4 = \x -> \(y: t) -> x;
+def const3 : a -> unit -> a = \x -> \y : a -> x;
+def const4 = \x -> \(y: unit) -> x;
 def const5 = \x -> \y -> x;
 def f = {
     let a = 1;
@@ -20,8 +19,7 @@ def f = {
     let f = \x -> \y -> x;
     let g = \a -> ();
     let () = (g a);
-    let () = ((f g) a);
-    ()
+    ((f g) a)
 };
 def g = {
     let const_5 = {

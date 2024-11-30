@@ -1,4 +1,4 @@
-MODULE@0..306
+MODULE@0..315
   DEFINITION@0..43
     DEF_KW@0..3 "def"
     WHITESPACE@3..4 " "
@@ -230,54 +230,63 @@ MODULE@0..306
         R_PAREN@247..248 ")"
       SEMICOLON@248..249 ";"
   WHITESPACE@249..251 "\n\n"
-  DEFINITION@251..305
+  DEFINITION@251..314
     DEF_KW@251..254 "def"
     WHITESPACE@254..255 " "
     IDENT@255..267 "apply_lambda"
     WHITESPACE@267..268 " "
-    PARAMS@268..283
-      PARAM@268..283
+    PARAMS@268..292
+      PARAM@268..292
         L_PAREN@268..269 "("
         IDENT_PATTERN@269..270
           IDENT@269..270 "f"
-        TYPE_ANNOTATION@270..282
+        TYPE_ANNOTATION@270..291
           COLON@270..271 ":"
           WHITESPACE@271..272 " "
-          TYPE_ARROW@272..282
-            TYPE_IDENT@272..275
-              IDENT@272..275 "int"
-            WHITESPACE@275..276 " "
-            ARROW@276..278 "->"
-            WHITESPACE@278..279 " "
-            TYPE_IDENT@279..282
-              IDENT@279..282 "int"
-        R_PAREN@282..283 ")"
-    WHITESPACE@283..284 " "
-    DEF_BODY@284..305
-      BLOCK_EXPR@284..305
-        L_BRACE@284..285 "{"
-        WHITESPACE@285..290 "\n    "
-        PAREN_EXPR@290..303
-          L_PAREN@290..291 "("
-          APP_EXPR@291..302
-            IDENT_EXPR@291..292
-              IDENT@291..292 "f"
-            WHITESPACE@292..293 " "
-            PAREN_EXPR@293..302
-              L_PAREN@293..294 "("
-              LAMBDA_EXPR@294..301
-                BACKSLASH@294..295 "\\"
-                PARAMS@295..296
-                  PARAM@295..296
-                    IDENT_PATTERN@295..296
-                      IDENT@295..296 "x"
-                WHITESPACE@296..297 " "
-                ARROW@297..299 "->"
-                WHITESPACE@299..300 " "
-                IDENT_EXPR@300..301
-                  IDENT@300..301 "x"
-              R_PAREN@301..302 ")"
-          R_PAREN@302..303 ")"
-        WHITESPACE@303..304 "\n"
-        R_BRACE@304..305 "}"
-  WHITESPACE@305..306 "\n"
+          TYPE_ARROW@272..291
+            TYPE_PAREN@272..284
+              L_PAREN@272..273 "("
+              TYPE_ARROW@273..283
+                TYPE_IDENT@273..276
+                  IDENT@273..276 "int"
+                WHITESPACE@276..277 " "
+                ARROW@277..279 "->"
+                WHITESPACE@279..280 " "
+                TYPE_IDENT@280..283
+                  IDENT@280..283 "int"
+              R_PAREN@283..284 ")"
+            WHITESPACE@284..285 " "
+            ARROW@285..287 "->"
+            WHITESPACE@287..288 " "
+            TYPE_IDENT@288..291
+              IDENT@288..291 "int"
+        R_PAREN@291..292 ")"
+    WHITESPACE@292..293 " "
+    DEF_BODY@293..314
+      BLOCK_EXPR@293..314
+        L_BRACE@293..294 "{"
+        WHITESPACE@294..299 "\n    "
+        PAREN_EXPR@299..312
+          L_PAREN@299..300 "("
+          APP_EXPR@300..311
+            IDENT_EXPR@300..301
+              IDENT@300..301 "f"
+            WHITESPACE@301..302 " "
+            PAREN_EXPR@302..311
+              L_PAREN@302..303 "("
+              LAMBDA_EXPR@303..310
+                BACKSLASH@303..304 "\\"
+                PARAMS@304..305
+                  PARAM@304..305
+                    IDENT_PATTERN@304..305
+                      IDENT@304..305 "x"
+                WHITESPACE@305..306 " "
+                ARROW@306..308 "->"
+                WHITESPACE@308..309 " "
+                IDENT_EXPR@309..310
+                  IDENT@309..310 "x"
+              R_PAREN@310..311 ")"
+          R_PAREN@311..312 ")"
+        WHITESPACE@312..313 "\n"
+        R_BRACE@313..314 "}"
+  WHITESPACE@314..315 "\n"

@@ -160,7 +160,7 @@ MODULE@0..327
               COLON@230..231 ":"
               WHITESPACE@231..232 " "
               TYPE_IDENT@232..235
-                IDENT@232..235 "Int"
+                IDENT@232..235 "int"
             R_PAREN@235..236 ")"
         WHITESPACE@236..237 " "
         ARROW@237..239 "->"

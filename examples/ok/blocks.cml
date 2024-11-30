@@ -1,4 +1,4 @@
-def use_ident_then_return_number_block {
+def use_ident_then_return_number_block x {
     x;
     42
 }
@@ -21,7 +21,7 @@ def let_deconstruct_unit_as_unit { let () = (); }
 def let_func_deconstructing_unit_returning_unit { let f () = (); }
 
 def let_x_annotated_be_number {
-    let x: Int = 42;
+    let x: int = 42;
     x
 }
 

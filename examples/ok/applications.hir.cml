@@ -6,4 +6,4 @@ def apply_to_block = ({
     f
 } 1);
 def apply_to_lambda = ((\x -> x) 1);
-def apply_lambda (f: int -> int) = (f (\x -> x));
+def apply_lambda (f: (int -> int) -> int) = (f (\x -> x));
