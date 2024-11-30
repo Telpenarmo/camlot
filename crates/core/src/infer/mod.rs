@@ -114,7 +114,7 @@ impl TypeInference {
                 .into_iter()
                 .map(|(src, error)| match error {
                     UnifcationError::Occurs(typ, _v) => TypeError::CyclicType { src, typ },
-                    UnifcationError::NotUnifiable(expected, actual) => TypeError::TypeMismatch {
+                    UnifcationError::NotUnifiable { expected, actual } => TypeError::TypeMismatch {
                         src,
                         expected,
                         actual,

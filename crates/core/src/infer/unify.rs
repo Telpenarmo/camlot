@@ -23,7 +23,7 @@ impl Type {
 #[derive(PartialEq, Debug)]
 pub(super) enum UnifcationError {
     Occurs(TypeIdx, UnificationVar),
-    NotUnifiable(TypeIdx, TypeIdx),
+    NotUnifiable { expected: TypeIdx, actual: TypeIdx },
 }
 
 pub(super) struct Unifcation<'a> {
@@ -59,15 +59,11 @@ impl<'a> Unifcation<'a> {
             .collect()
     }
 
-    fn unify_eq(
-        &mut self,
-        expected_idx: TypeIdx,
-        actual_idx: TypeIdx,
-    ) -> Result<(), Vec<UnifcationError>> {
-        let expected = self.types.lookup(expected_idx);
-        let actual = self.types.lookup(actual_idx);
-
-        match ((expected, expected_idx), (actual, actual_idx)) {
+    fn unify_eq(&mut self, expected: TypeIdx, actual: TypeIdx) -> Result<(), Vec<UnifcationError>> {
+        match (
+            (self.types.lookup(expected), expected),
+            (self.types.lookup(actual), actual),
+        ) {
             ((Type::Bool, _), (Type::Bool, _))
             | ((Type::Int, _), (Type::Int, _))
             | ((Type::Unit, _), (Type::Unit, _)) => Ok(()),
@@ -99,10 +95,7 @@ impl<'a> Unifcation<'a> {
                     .or_else(|(a, b)| self.unify_eq(a, b))
             }
 
-            _ => Err(vec![UnifcationError::NotUnifiable(
-                expected_idx,
-                actual_idx,
-            )]),
+            _ => Err(vec![UnifcationError::NotUnifiable { expected, actual }]),
         }
     }
 }
