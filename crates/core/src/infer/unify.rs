@@ -48,10 +48,13 @@ impl<'a> Unifcation<'a> {
     ) -> Vec<(ConstraintReason, UnifcationError)> {
         constraints
             .into_iter()
-            .filter_map(|constraint| match constraint {
-                Constraint::TypeEqual(idx, expected, actual) => {
-                    self.unify_eq(expected, actual).err().map(|e| (idx, e))
-                }
+            .flat_map(|constraint| match constraint {
+                Constraint::TypeEqual(idx, expected, actual) => self
+                    .unify_eq(expected, actual)
+                    .err()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(move |e| (idx, e)),
             })
             .collect()
     }
@@ -60,7 +63,7 @@ impl<'a> Unifcation<'a> {
         &mut self,
         expected_idx: TypeIdx,
         actual_idx: TypeIdx,
-    ) -> Result<(), UnifcationError> {
+    ) -> Result<(), Vec<UnifcationError>> {
         let expected = self.types.lookup(expected_idx);
         let actual = self.types.lookup(actual_idx);
 
@@ -72,7 +75,14 @@ impl<'a> Unifcation<'a> {
             ((&Type::Arrow(from, to), _), (&Type::Arrow(from2, to2), _)) => {
                 let from = self.unify_eq(from, from2);
                 let to = self.unify_eq(to, to2);
-                from.or(to)
+                match (from, to) {
+                    (Ok(()), to) => to,
+                    (Err(l), Ok(())) => Err(l),
+                    (Err(mut l), Err(mut r)) => {
+                        l.append(&mut r);
+                        Err(l)
+                    }
+                }
             }
 
             ((Type::Unifier(a), _), (Type::Unifier(b), _)) => self
@@ -82,14 +92,17 @@ impl<'a> Unifcation<'a> {
 
             ((Type::Unifier(u), _), (ty, ty_idx)) | ((ty, ty_idx), (Type::Unifier(u), _)) => {
                 if ty.occurs(self.types, *u) {
-                    return Err(UnifcationError::Occurs(ty_idx, *u));
+                    return Err(vec![UnifcationError::Occurs(ty_idx, *u)]);
                 }
                 self.unification_table
                     .unify_var_value(*u, Some(ty_idx))
                     .or_else(|(a, b)| self.unify_eq(a, b))
             }
 
-            _ => Err(UnifcationError::NotUnifiable(expected_idx, actual_idx)),
+            _ => Err(vec![UnifcationError::NotUnifiable(
+                expected_idx,
+                actual_idx,
+            )]),
         }
     }
 }
