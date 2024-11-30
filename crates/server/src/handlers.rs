@@ -7,7 +7,7 @@ use lsp_types::{
     DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
 };
 
-use analysis::{get_diagnostics, get_semantic_tokens};
+use analysis::{get_diagnostics, get_inlay_hints, get_semantic_tokens};
 
 use crate::server::{Context, Server};
 
@@ -144,6 +144,19 @@ pub(crate) fn handle_semantic_tokens_full_request(
             data: tokens,
         },
     )))
+}
+
+pub(crate) fn handle_inlay_hints_request(
+    req: &lsp_types::InlayHintParams,
+    _lsp: &Server,
+    ctx: &Context,
+) -> Result<Option<Vec<lsp_types::InlayHint>>, ResponseError> {
+    let path = req.text_document.uri.path().to_string();
+    let doc = ctx.get_document(&path).unwrap();
+
+    let hints = get_inlay_hints(doc);
+
+    Ok(Some(hints))
 }
 
 fn doc_not_found_error(path: &str) -> ResponseError {

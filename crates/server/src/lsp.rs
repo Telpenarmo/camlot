@@ -40,6 +40,10 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
         handlers::handle_did_close_text_document_params,
     );
 
+    server_builder.register_request::<lsp_types::request::InlayHintRequest, _>(
+        handlers::handle_inlay_hints_request,
+    );
+
     let server_capabilities = ServerCapabilities {
         text_document_sync: Some(lsp_types::TextDocumentSyncCapability::Kind(
             lsp_types::TextDocumentSyncKind::FULL,
@@ -56,6 +60,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
             }
             .into(),
         ),
+        inlay_hint_provider: Some(lsp_types::OneOf::Left(true)),
         ..Default::default()
     };
 

@@ -2,10 +2,12 @@ use std::ops::Range;
 
 mod diagnostics;
 mod document;
+mod inlay_hints;
 mod semantic_tokens;
 
 pub use diagnostics::*;
 pub use document::*;
+pub use inlay_hints::*;
 pub use semantic_tokens::*;
 
 pub struct ErrorDiagnostic {
