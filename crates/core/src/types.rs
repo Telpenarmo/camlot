@@ -46,7 +46,7 @@ pub fn display_type(types: &Interner<Type>, idx: TypeIdx) -> String {
         Type::Unifier(var) => format!("_{}", var.0),
         Type::Arrow(from, to) => {
             format!(
-                "{} -> {}",
+                "({} -> {})",
                 display_type(types, *from),
                 display_type(types, *to)
             )
