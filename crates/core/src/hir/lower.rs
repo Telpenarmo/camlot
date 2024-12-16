@@ -59,7 +59,10 @@ impl Module {
     }
 
     fn lower_param(&mut self, ast: &ast::Param) -> ParamIdx {
-        let pattern = self.lower_pattern(&ast.pattern().expect("Empty param indicates parser bug"));
+        let pattern = match ast.pattern() {
+            Some(pattern) => self.lower_pattern(&pattern),
+            None => Pattern::Wildcard.alloc_no_syntax(self),
+        };
 
         let typ = self.lower_type_annotation(ast.type_annotation());
 
