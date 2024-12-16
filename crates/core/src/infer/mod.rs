@@ -1,12 +1,12 @@
+mod normalize;
 mod unify;
 
-use imbl::HashMap;
 use la_arena::ArenaMap;
 use unify::UnifcationError;
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
-use crate::intern::{Interned, Interner};
-use crate::types::{Type, TypeIdx, UnificationTable};
+use crate::intern::Interner;
+use crate::types::{Type, TypeIdx, UnificationTable, UnificationVar};
 use crate::{Definition, DefinitionIdx, Name, Pattern, PatternIdx};
 
 #[derive(PartialEq, Debug)]
@@ -165,57 +165,6 @@ impl TypeInference {
 
         self.expr_types.insert(defn.defn, ret_type);
         self.defn_types.insert(idx, typ);
-    }
-
-    fn get_new_type(
-        types: &mut Interner<Type>,
-        old_to_new: &mut HashMap<TypeIdx, TypeIdx>,
-        unification_table: &mut UnificationTable,
-        idx: TypeIdx,
-    ) -> Interned<Type> {
-        if let Some(x) = old_to_new.get(&idx) {
-            *x
-        } else {
-            let res = Self::substitute_type(types, old_to_new, unification_table, idx);
-            old_to_new.insert(idx, res);
-            res
-        }
-    }
-
-    fn substitute_type(
-        types: &mut Interner<Type>,
-        old_to_new: &mut HashMap<TypeIdx, TypeIdx>,
-        unification_table: &mut UnificationTable,
-        idx: TypeIdx,
-    ) -> TypeIdx {
-        match types.lookup(idx) {
-            Type::Unifier(u) => unification_table.probe_value(*u).map_or(idx, |idx| {
-                Self::get_new_type(types, old_to_new, unification_table, idx)
-            }),
-            &Type::Arrow(from, to) => {
-                let from = Self::get_new_type(types, old_to_new, unification_table, from);
-                let to = Self::get_new_type(types, old_to_new, unification_table, to);
-                arrow(types, from, to)
-            }
-            _ => idx,
-        }
-    }
-
-    fn substitute(
-        types: &mut Interner<Type>,
-        expr_types: &mut ArenaMap<ExprIdx, TypeIdx>,
-        defn_types: &mut ArenaMap<DefinitionIdx, TypeIdx>,
-        unification_table: &mut UnificationTable,
-    ) {
-        let mut old_to_new = HashMap::new();
-
-        expr_types.values_mut().for_each(|idx| {
-            *idx = Self::get_new_type(types, &mut old_to_new, unification_table, *idx);
-        });
-
-        defn_types.values_mut().for_each(|idx| {
-            *idx = Self::get_new_type(types, &mut old_to_new, unification_table, *idx);
-        });
     }
 
     fn next_unification_var(&mut self, types: &mut Interner<Type>) -> TypeIdx {
