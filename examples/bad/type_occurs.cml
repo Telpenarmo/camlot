@@ -1,0 +1,2 @@
+def q = (f (\_ -> f));
+def f x = x;

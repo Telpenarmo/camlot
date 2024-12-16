@@ -27,6 +27,7 @@ pub enum TypeError {
     CyclicType {
         src: ConstraintReason,
         typ: TypeIdx,
+        var: UnificationVar,
     },
 }
 
@@ -113,7 +114,7 @@ impl TypeInference {
                 .unify(self.constraints)
                 .into_iter()
                 .map(|(src, error)| match error {
-                    UnifcationError::Occurs(typ, _v) => TypeError::CyclicType { src, typ },
+                    UnifcationError::Occurs(typ, var) => TypeError::CyclicType { src, typ, var },
                     UnifcationError::NotUnifiable { expected, actual } => TypeError::TypeMismatch {
                         src,
                         expected,

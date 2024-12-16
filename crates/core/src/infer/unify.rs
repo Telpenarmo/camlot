@@ -1,10 +1,11 @@
-use ena::unify::InPlaceUnificationTable;
+use std::collections::HashMap;
 
 use crate::intern::Interner;
 use crate::types::{TypeIdx, UnificationVar};
 use crate::{infer::Constraint, types::Type};
 
-use super::ConstraintReason;
+use super::normalize::normalize;
+use super::{ConstraintReason, UnificationTable};
 
 impl Type {
     fn occurs(&self, types: &Interner<Type>, v: UnificationVar) -> bool {
@@ -27,14 +28,14 @@ pub(super) enum UnifcationError {
 }
 
 pub(super) struct Unifcation<'a> {
-    unification_table: &'a mut InPlaceUnificationTable<UnificationVar>,
-    types: &'a Interner<Type>,
+    unification_table: &'a mut UnificationTable,
+    types: &'a mut Interner<Type>,
 }
 
 impl<'a> Unifcation<'a> {
     pub(super) fn new(
-        unification_table: &'a mut InPlaceUnificationTable<UnificationVar>,
-        types: &'a Interner<Type>,
+        unification_table: &'a mut UnificationTable,
+        types: &'a mut Interner<Type>,
     ) -> Self {
         Self {
             unification_table,
@@ -57,11 +58,14 @@ impl<'a> Unifcation<'a> {
             .collect()
     }
 
-    fn unify_eq(&mut self, expected: TypeIdx, actual: TypeIdx) -> Vec<UnifcationError> {
-        match (
-            (self.types.lookup(expected), expected),
-            (self.types.lookup(actual), actual),
-        ) {
+    fn unify_eq(&mut self, expected_idx: TypeIdx, actual_idx: TypeIdx) -> Vec<UnifcationError> {
+        let mut cache = HashMap::new();
+        let expected_idx = normalize(self.types, &mut cache, self.unification_table, expected_idx);
+        let actual_idx = normalize(self.types, &mut cache, self.unification_table, actual_idx);
+
+        let expected = self.types.lookup(expected_idx);
+        let actual = self.types.lookup(actual_idx);
+        match ((expected, expected_idx), (actual, actual_idx)) {
             ((Type::Bool, _), (Type::Bool, _))
             | ((Type::Int, _), (Type::Int, _))
             | ((Type::Unit, _), (Type::Unit, _)) => vec![],
@@ -91,7 +95,10 @@ impl<'a> Unifcation<'a> {
                     .unwrap_or_default()
             }
 
-            _ => vec![UnifcationError::NotUnifiable { expected, actual }],
+            _ => vec![UnifcationError::NotUnifiable {
+                expected: expected_idx,
+                actual: actual_idx,
+            }],
         }
     }
 }

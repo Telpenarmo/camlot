@@ -77,7 +77,19 @@ fn type_error_to_diagnostic(error: &TypeError, doc: &Document) -> Option<lsp_typ
             Some(syntax_error_to_diagnostic(&msg, range, doc))
         }
 
-        TypeError::CyclicType { src: _, typ: _ } => None,
+        TypeError::CyclicType { src, typ, var } => {
+            let msg = format!(
+                "Cyclic type: _{} appears in {}",
+                var.0,
+                doc.display_type(*typ)
+            );
+            let range = match *src {
+                core::ConstraintReason::Checking(idx) => range_of_expr(idx, doc),
+                core::ConstraintReason::ApplicationTarget(idx, idx1) => range_of_expr(idx1, doc),
+                core::ConstraintReason::AnnotatedUnit(idx) => range_of_expr(idx, doc),
+            }?;
+            Some(syntax_error_to_diagnostic(&msg, range, doc))
+        }
 
         TypeError::TypeMismatch {
             src,
