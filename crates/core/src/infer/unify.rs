@@ -45,15 +45,15 @@ impl<'a> Unifcation<'a> {
 
     pub(super) fn unify(
         &mut self,
-        constraints: Vec<Constraint>,
+        constraints: &[Constraint],
     ) -> Vec<(ConstraintReason, UnifcationError)> {
         constraints
-            .into_iter()
+            .iter()
             .flat_map(|constraint| match constraint {
                 Constraint::TypeEqual(idx, expected, actual) => self
-                    .unify_eq(expected, actual)
+                    .unify_eq(*expected, *actual)
                     .into_iter()
-                    .map(move |e| (idx, e)),
+                    .map(move |e| (*idx, e)),
             })
             .collect()
     }

@@ -1,13 +1,16 @@
 mod normalize;
 mod unify;
 
+use std::collections::HashMap;
+
 use la_arena::ArenaMap;
-use unify::UnifcationError;
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
 use crate::intern::Interner;
 use crate::types::{Type, TypeIdx, UnificationTable, UnificationVar};
 use crate::{Definition, DefinitionIdx, Name, Pattern, PatternIdx};
+
+use unify::UnifcationError;
 
 #[derive(PartialEq, Debug)]
 pub enum TypeError {
@@ -38,9 +41,10 @@ pub(crate) struct TypeInference {
     constraints: Vec<Constraint>,
     diagnostics: Vec<TypeError>,
     types_env: Environment,
+    substitution_cache: HashMap<TypeIdx, TypeIdx>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum ConstraintReason {
     ApplicationTarget(ExprIdx),
     Checking(ExprIdx),
@@ -75,6 +79,7 @@ impl TypeInference {
             constraints: Vec::new(),
             diagnostics: Vec::new(),
             types_env: Environment::new(),
+            substitution_cache: HashMap::new(),
         }
     }
 
@@ -109,31 +114,27 @@ impl TypeInference {
             self.check_definition(types, &initial_env, module, idx, defn);
         }
 
-        self.diagnostics.extend(
+        let mut diagnostics = std::mem::take(&mut self.diagnostics);
+        diagnostics.extend(
             unify::Unifcation::new(&mut self.unification_table, types)
-                .unify(self.constraints)
+                .unify(self.constraints.as_slice())
                 .into_iter()
                 .map(|(src, error)| match error {
                     UnifcationError::Occurs(typ, var) => TypeError::CyclicType { src, typ, var },
                     UnifcationError::NotUnifiable { expected, actual } => TypeError::TypeMismatch {
                         src,
-                        expected,
-                        actual,
+                        expected: self.normalize(types, expected),
+                        actual: self.normalize(types, actual),
                     },
                 }),
         );
 
-        Self::substitute(
-            types,
-            &mut self.expr_types,
-            &mut self.defn_types,
-            &mut self.unification_table,
-        );
+        self.substitute(types);
 
         InferenceResult {
             expr_types: self.expr_types,
             defn_types: self.defn_types,
-            diagnostics: self.diagnostics,
+            diagnostics,
         }
     }
 

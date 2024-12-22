@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 
 use crate::infer::arrow;
-use la_arena::ArenaMap;
 
-use crate::hir::ExprIdx;
 use crate::intern::Interner;
 use crate::types::{Type, TypeIdx, UnificationTable};
-use crate::DefinitionIdx;
 
 use super::TypeInference;
 
@@ -45,20 +42,25 @@ fn substitute_type(
 }
 
 impl TypeInference {
-    pub(super) fn substitute(
-        types: &mut Interner<Type>,
-        expr_types: &mut ArenaMap<ExprIdx, TypeIdx>,
-        defn_types: &mut ArenaMap<DefinitionIdx, TypeIdx>,
-        unification_table: &mut UnificationTable,
-    ) {
-        let mut old_to_new = HashMap::new();
-
-        expr_types.values_mut().for_each(|idx| {
-            *idx = normalize(types, &mut old_to_new, unification_table, *idx);
-        });
-
-        defn_types.values_mut().for_each(|idx| {
-            *idx = normalize(types, &mut old_to_new, unification_table, *idx);
-        });
+    pub(super) fn normalize(&mut self, types: &mut Interner<Type>, idx: TypeIdx) -> TypeIdx {
+        normalize(
+            types,
+            &mut self.substitution_cache,
+            &mut self.unification_table,
+            idx,
+        )
+    }
+    pub(super) fn substitute(&mut self, types: &mut Interner<Type>) {
+        self.expr_types
+            .values_mut()
+            .chain(self.defn_types.values_mut())
+            .for_each(|idx| {
+                *idx = normalize(
+                    types,
+                    &mut self.substitution_cache,
+                    &mut self.unification_table,
+                    *idx,
+                );
+            });
     }
 }
