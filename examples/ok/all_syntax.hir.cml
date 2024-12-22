@@ -26,6 +26,6 @@ def g = {
         let a = 5;
         (const a)
     };
-    let () = (const_5 0);
+    let five = (const_5 0);
     ()
 };

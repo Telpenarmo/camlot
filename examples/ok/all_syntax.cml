@@ -32,6 +32,6 @@ def g {
         let a = 5;
         (const a)
     };
-    ({ const_5 } 0);
+    let five =({ const_5 } 0);
     ()
 }

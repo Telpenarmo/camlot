@@ -145,6 +145,8 @@ impl TypeInference {
         idx: DefinitionIdx,
         defn: &Definition,
     ) {
+        let registered_unification_var = initial_env[&defn.name];
+
         let ret_type = self.resolve_type_expr(module, types, defn.return_type);
         let mut def_env = initial_env.clone();
         let params: Vec<_> = defn
@@ -163,6 +165,13 @@ impl TypeInference {
         let ret_type = self.check_or_infer_expr(module, types, &def_env, defn.defn, ret_type);
 
         let typ = curry(types, &params, ret_type);
+
+        let reason = ConstraintReason::Checking(defn.defn);
+        self.constraints.push(Constraint::TypeEqual(
+            reason,
+            registered_unification_var,
+            typ,
+        ));
 
         self.expr_types.insert(defn.defn, ret_type);
         self.defn_types.insert(idx, typ);
