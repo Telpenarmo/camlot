@@ -9,6 +9,6 @@ pub use types::{display_type, Type, TypeIdx};
 
 pub(crate) use hir::Name;
 
-pub use infer::{infer, ConstraintReason, InferenceResult, TypeError};
+pub use infer::{infer, InferenceResult, TypeError};
 
 pub use intern::{Interned, Interner};

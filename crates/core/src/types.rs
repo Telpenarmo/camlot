@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use ena::unify::{EqUnifyValue, InPlaceUnificationTable, UnifyKey};
 
 use crate::{intern, Interner};
@@ -17,6 +19,12 @@ impl UnifyKey for UnificationVar {
 
     fn tag() -> &'static str {
         "UnificationVar"
+    }
+}
+
+impl Display for UnificationVar {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("^{}", self.0))
     }
 }
 
@@ -43,7 +51,7 @@ pub fn display_type(types: &Interner<Type>, idx: TypeIdx) -> String {
         Type::Bool => "@bool".to_string(),
         Type::Unit => "@unit".to_string(),
         Type::Error => "{Error}".to_string(),
-        Type::Unifier(var) => format!("_{}", var.0),
+        Type::Unifier(var) => format!("{var}"),
         Type::Arrow(from, to) => {
             format!(
                 "({} -> {})",

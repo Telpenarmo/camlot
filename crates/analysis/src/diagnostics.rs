@@ -1,4 +1,4 @@
-use core::TypeError;
+use core::{display_type, Interner, Module, Type, TypeError};
 
 use line_index::TextRange;
 use parser::SyntaxKind;
@@ -29,24 +29,23 @@ fn parsing_errors(doc: &Document) -> Vec<lsp_types::Diagnostic> {
                 .expect("Missing error message")
                 .message;
             error_idx += 1;
-            syntax_error_to_diagnostic(msg, node.text_range(), doc)
+            diagnostic(msg, node.text_range(), doc)
         })
         .collect()
 }
 
-fn syntax_error_to_diagnostic(
-    message: &str,
-    range: TextRange,
-    doc: &Document,
-) -> lsp_types::Diagnostic {
-    let line_index = &doc.get_line_index();
-    let start = offset_to_position(line_index, range.start().into());
-    let end = offset_to_position(line_index, range.end().into());
-    let range = lsp_types::Range::new(start, end);
-
+fn diagnostic(message: &str, range: TextRange, doc: &Document) -> lsp_types::Diagnostic {
+    let range = convert_range(doc, range);
     let mut diagnostic = lsp_types::Diagnostic::new_simple(range, message.to_string());
     diagnostic.source = Some("Camlot".into());
     diagnostic
+}
+
+fn convert_range(doc: &Document, range: TextRange) -> lsp_types::Range {
+    let line_index = &doc.get_line_index();
+    let start = offset_to_position(line_index, range.start().into());
+    let end = offset_to_position(line_index, range.end().into());
+    lsp_types::Range::new(start, end)
 }
 
 fn range_of_expr<T: core::StoredInArena>(
@@ -63,51 +62,61 @@ fn type_errors(doc: &Document) -> Vec<lsp_types::Diagnostic> {
         .collect()
 }
 
-fn type_error_to_diagnostic(error: &TypeError, doc: &Document) -> Option<lsp_types::Diagnostic> {
-    let module = doc.hir();
-    match error {
-        TypeError::UnboundVariable { expr, name } => {
-            let msg = format!("Unbound variable {}", module.get_name(*name));
-            let range = range_of_expr(*expr, doc)?;
-            Some(syntax_error_to_diagnostic(&msg, range, doc))
+#[must_use]
+pub fn type_error_message(module: &Module, types: &Interner<Type>, error: &TypeError) -> String {
+    match *error {
+        TypeError::UnboundVariable { name, .. } => {
+            format!("Unbound variable {}", module.get_name(name))
         }
-        TypeError::UnboundTypeVariable { type_expr, name } => {
-            let msg = format!("Unbound type {}", module.get_name(*name));
-            let range = range_of_expr(*type_expr, doc)?;
-            Some(syntax_error_to_diagnostic(&msg, range, doc))
+        TypeError::UnboundTypeVariable { name, .. } => {
+            format!("Unbound type {}", module.get_name(name))
         }
-
-        TypeError::CyclicType { src, typ, var } => {
-            let msg = format!(
-                "Cyclic type: _{} appears in {}",
-                var.0,
-                doc.display_type(*typ)
-            );
-            let range = match *src {
-                core::ConstraintReason::Checking(idx) => range_of_expr(idx, doc),
-                core::ConstraintReason::ApplicationTarget(idx, idx1) => range_of_expr(idx1, doc),
-                core::ConstraintReason::AnnotatedUnit(idx) => range_of_expr(idx, doc),
-            }?;
-            Some(syntax_error_to_diagnostic(&msg, range, doc))
+        TypeError::CyclicType { typ, var, .. } => {
+            let typ = display_type(types, typ);
+            format!("Cyclic type: {var} appears in {typ}")
         }
-
-        TypeError::TypeMismatch {
-            src,
-            expected,
-            actual,
+        TypeError::WrongArgument {
+            expected, actual, ..
         } => {
-            let range = match src {
-                core::ConstraintReason::ApplicationTarget(expr)
-                | core::ConstraintReason::Checking(expr) => range_of_expr(*expr, doc),
-                core::ConstraintReason::UnitPattern(expr) => range_of_expr(*expr, doc),
-            }?;
-
-            let msg = format!(
-                "Type mismatch: expected {} but got {}",
-                doc.display_type(*expected),
-                doc.display_type(*actual)
-            );
-            Some(syntax_error_to_diagnostic(&msg, range, doc))
+            let expected = display_type(types, expected);
+            let actual = display_type(types, actual);
+            format!("Type mismatch: this function expects a value of type {expected} but {actual}.")
+        }
+        TypeError::TypeMismatch {
+            expected, actual, ..
+        } => {
+            let expected = display_type(types, expected);
+            let actual = display_type(types, actual);
+            format!("Type mismatch: expected {expected} but got {actual}.")
+        }
+        TypeError::UnexpectedUnitPattern { expected, .. } => {
+            let expected = display_type(types, expected);
+            format!("This pattern constraints the value to type @unit, but it is expected to have type {expected}.")
+        }
+        TypeError::AppliedToNonFunction { func_type, .. } => {
+            let func_type = display_type(types, func_type);
+            format!(
+                "This expression has a type {func_type}. It is not a function and cannot be applied.",
+            )
         }
     }
+}
+
+#[must_use]
+pub fn type_error_range(doc: &Document, error: &TypeError) -> Option<TextRange> {
+    match *error {
+        TypeError::AppliedToNonFunction { func: expr, .. }
+        | TypeError::WrongArgument { arg: expr, .. }
+        | TypeError::UnboundVariable { expr, .. }
+        | TypeError::CyclicType { expr, .. }
+        | TypeError::TypeMismatch { expr, .. } => range_of_expr(expr, doc),
+        TypeError::UnexpectedUnitPattern { pattern, .. } => range_of_expr(pattern, doc),
+        TypeError::UnboundTypeVariable { type_expr, .. } => range_of_expr(type_expr, doc),
+    }
+}
+
+fn type_error_to_diagnostic(error: &TypeError, doc: &Document) -> Option<lsp_types::Diagnostic> {
+    let msg = type_error_message(doc.hir(), doc.types(), error);
+    let range = type_error_range(doc, error)?;
+    Some(diagnostic(&msg, range, doc))
 }

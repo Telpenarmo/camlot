@@ -1,38 +1,16 @@
+mod errors;
 mod normalize;
 mod unify;
 
 use std::collections::HashMap;
 
+pub use errors::TypeError;
 use la_arena::ArenaMap;
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
 use crate::intern::Interner;
-use crate::types::{Type, TypeIdx, UnificationTable, UnificationVar};
+use crate::types::{Type, TypeIdx, UnificationTable};
 use crate::{Definition, DefinitionIdx, Name, Pattern, PatternIdx};
-
-use unify::UnifcationError;
-
-#[derive(PartialEq, Debug)]
-pub enum TypeError {
-    TypeMismatch {
-        src: ConstraintReason,
-        expected: TypeIdx,
-        actual: TypeIdx,
-    },
-    UnboundVariable {
-        expr: ExprIdx,
-        name: Name,
-    },
-    UnboundTypeVariable {
-        type_expr: TypeExprIdx,
-        name: Name,
-    },
-    CyclicType {
-        src: ConstraintReason,
-        typ: TypeIdx,
-        var: UnificationVar,
-    },
-}
 
 pub(crate) struct TypeInference {
     unification_table: UnificationTable,
@@ -45,10 +23,23 @@ pub(crate) struct TypeInference {
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub enum ConstraintReason {
-    ApplicationTarget(ExprIdx),
+pub(super) enum ConstraintReason {
+    Application(ExprIdx, ExprIdx),
     Checking(ExprIdx),
-    UnitPattern(PatternIdx),
+    AnnotatedUnit(PatternIdx),
+}
+
+impl ConstraintReason {
+    fn app_target(module: &Module, func: ExprIdx, arg: ExprIdx) -> Self {
+        let func = collapse_lets(module, func);
+        let arg = collapse_lets(module, arg);
+        Self::Application(func, arg)
+    }
+
+    fn check(module: &Module, expr: ExprIdx) -> Self {
+        let expr = collapse_lets(module, expr);
+        Self::Checking(expr)
+    }
 }
 
 enum Constraint {
@@ -56,6 +47,14 @@ enum Constraint {
 }
 
 type Environment = imbl::HashMap<Name, TypeIdx>;
+
+fn collapse_lets(module: &Module, expr: ExprIdx) -> ExprIdx {
+    let mut expr = expr;
+    while let Expr::LetExpr(let_expr) = &module[expr] {
+        expr = let_expr.body;
+    }
+    expr
+}
 
 pub struct InferenceResult {
     pub expr_types: ArenaMap<ExprIdx, TypeIdx>,
@@ -119,14 +118,7 @@ impl TypeInference {
             unify::Unifcation::new(&mut self.unification_table, types)
                 .unify(self.constraints.as_slice())
                 .into_iter()
-                .map(|(src, error)| match error {
-                    UnifcationError::Occurs(typ, var) => TypeError::CyclicType { src, typ, var },
-                    UnifcationError::NotUnifiable { expected, actual } => TypeError::TypeMismatch {
-                        src,
-                        expected: self.normalize(types, expected),
-                        actual: self.normalize(types, actual),
-                    },
-                }),
+                .map(|(src, error)| self.map_unification_error(types, src, &error)),
         );
 
         self.substitute(types);
@@ -167,7 +159,7 @@ impl TypeInference {
 
         let typ = curry(types, &params, ret_type);
 
-        let reason = ConstraintReason::Checking(defn.defn);
+        let reason = ConstraintReason::check(module, defn.defn);
         self.constraints.push(Constraint::TypeEqual(
             reason,
             registered_unification_var,
@@ -213,12 +205,12 @@ impl TypeInference {
                 let env = pat_env.union(env.clone());
                 self.infer_expr(module, types, &env, let_expr.body)
             }
-            Expr::IdentExpr { name } => {
-                if let Some(typ) = env.get(name) {
+            &Expr::IdentExpr { name } => {
+                if let Some(typ) = env.get(&name) {
                     *typ
                 } else {
                     self.diagnostics
-                        .push(TypeError::UnboundVariable { expr, name: *name });
+                        .push(TypeError::UnboundVariable { expr, name });
                     error(types)
                 }
             }
@@ -236,20 +228,17 @@ impl TypeInference {
 
                 arrow(types, from, to)
             }
-            &Expr::AppExpr {
-                func: lhs,
-                arg: rhs,
-            } => {
-                let lhs_typ = self.infer_expr(module, types, env, lhs);
+            &Expr::AppExpr { func, arg } => {
+                let lhs_typ = self.infer_expr(module, types, env, func);
 
-                let arg_typ = self.infer_expr(module, types, env, rhs);
+                let arg_typ = self.infer_expr(module, types, env, arg);
                 let ret_typ = self.next_unification_var(types);
 
                 let func_typ = arrow(types, arg_typ, ret_typ);
 
-                let reason = ConstraintReason::ApplicationTarget(lhs);
+                let reason = ConstraintReason::app_target(module, func, arg);
                 self.constraints
-                    .push(Constraint::TypeEqual(reason, func_typ, lhs_typ));
+                    .push(Constraint::TypeEqual(reason, lhs_typ, func_typ));
 
                 ret_typ
             }
@@ -298,7 +287,7 @@ impl TypeInference {
 
             _ => {
                 let actual = self.infer_expr(module, types, env, expr);
-                let reason = ConstraintReason::Checking(expr);
+                let reason = ConstraintReason::check(module, expr);
                 self.constraints
                     .push(Constraint::TypeEqual(reason, typ, actual));
             }
@@ -325,7 +314,7 @@ impl TypeInference {
             Pattern::Unit => {
                 if let Some(ann) = ann {
                     self.constraints.push(Constraint::TypeEqual(
-                        ConstraintReason::UnitPattern(pat_idx),
+                        ConstraintReason::AnnotatedUnit(pat_idx),
                         ann,
                         unit_type,
                     ));

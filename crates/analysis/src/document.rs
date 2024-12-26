@@ -56,8 +56,17 @@ impl Document {
         &self.hir
     }
 
-    pub(crate) fn types(&self) -> &la_arena::ArenaMap<core::ExprIdx, TypeIdx> {
+    #[must_use]
+    pub fn types(&self) -> &Interner<Type> {
+        &self.types
+    }
+
+    pub(crate) fn expr_types(&self) -> &la_arena::ArenaMap<core::ExprIdx, TypeIdx> {
         &self.inference_result.expr_types
+    }
+
+    pub(crate) fn defn_types(&self) -> &la_arena::ArenaMap<core::DefinitionIdx, TypeIdx> {
+        &self.inference_result.defn_types
     }
 
     pub(crate) fn type_errors(&self) -> &Vec<core::TypeError> {
@@ -66,5 +75,18 @@ impl Document {
 
     pub(crate) fn display_type(&self, idx: core::TypeIdx) -> String {
         core::display_type(&self.types, idx)
+    }
+
+    pub(crate) fn get_type(&self, idx: core::TypeIdx) -> &Type {
+        self.types.lookup(idx)
+    }
+
+    pub(crate) fn syntax<T: core::StoredInArena, N: parser::AstNode>(
+        &self,
+        idx: core::ArenaIdx<T>,
+    ) -> Option<N> {
+        let ptr = self.hir.syntax(idx)?;
+        let ptr = ptr.cast::<N>()?;
+        Some(ptr.to_node(&self.parsed.syntax()))
     }
 }
