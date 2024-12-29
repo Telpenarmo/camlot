@@ -1,7 +1,7 @@
 use core::{display_type, Interner, Module, Type, TypeError};
 
 use line_index::TextRange;
-use parser::SyntaxKind;
+use parser::{SyntaxKind, SyntaxNodePtr};
 
 use crate::{offset_to_position, Document};
 
@@ -48,17 +48,21 @@ fn convert_range(doc: &Document, range: TextRange) -> lsp_types::Range {
     lsp_types::Range::new(start, end)
 }
 
-fn range_of_expr<T: core::StoredInArena>(
+fn range_of_expr<T: core::StoredInArena + std::fmt::Debug>(
     hir: core::ArenaIdx<T>,
     doc: &Document,
-) -> Option<TextRange> {
-    doc.hir().syntax(hir).map(parser::SyntaxNodePtr::text_range)
+) -> TextRange {
+    let module = doc.hir();
+    let syntax = doc.parsed().syntax().clone();
+    let whole = SyntaxNodePtr::new(&syntax);
+    let syntax = module.syntax(hir).unwrap_or(&whole);
+    parser::SyntaxNodePtr::text_range(syntax)
 }
 
 fn type_errors(doc: &Document) -> Vec<lsp_types::Diagnostic> {
     doc.type_errors()
         .iter()
-        .filter_map(|error| type_error_to_diagnostic(error, doc))
+        .map(|error| type_error_to_diagnostic(error, doc))
         .collect()
 }
 
@@ -110,7 +114,7 @@ pub fn type_error_message(module: &Module, types: &Interner<Type>, error: &TypeE
 }
 
 #[must_use]
-pub fn type_error_range(doc: &Document, error: &TypeError) -> Option<TextRange> {
+pub fn type_error_range(doc: &Document, error: &TypeError) -> TextRange {
     match *error {
         TypeError::AppliedToNonFunction { func: expr, .. }
         | TypeError::WrongArgument { arg: expr, .. }
@@ -126,8 +130,8 @@ pub fn type_error_range(doc: &Document, error: &TypeError) -> Option<TextRange> 
     }
 }
 
-fn type_error_to_diagnostic(error: &TypeError, doc: &Document) -> Option<lsp_types::Diagnostic> {
+fn type_error_to_diagnostic(error: &TypeError, doc: &Document) -> lsp_types::Diagnostic {
     let msg = type_error_message(doc.hir(), doc.types(), error);
-    let range = type_error_range(doc, error)?;
-    Some(diagnostic(&msg, range, doc))
+    let range = type_error_range(doc, error);
+    diagnostic(&msg, range, doc)
 }
