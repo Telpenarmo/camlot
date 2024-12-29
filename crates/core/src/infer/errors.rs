@@ -39,6 +39,11 @@ pub enum TypeError {
         expected: TypeIdx,
         actual: TypeIdx,
     },
+    WrongAnnotation {
+        annotation: TypeExprIdx,
+        actual: TypeIdx,
+        expected: TypeIdx,
+    },
 }
 
 impl TypeInference {
@@ -56,6 +61,7 @@ impl TypeInference {
                     ConstraintReason::AnnotatedUnit(_) => {
                         unreachable!("No unification variable occurs in unit type.")
                     }
+                    ConstraintReason::WrongAnnotation(_idx) => panic!(),
                 };
                 TypeError::CyclicType {
                     expr: src,
@@ -93,6 +99,12 @@ impl TypeInference {
                     expr: src,
                     expected: self.normalize(types, expected),
                     actual: self.normalize(types, actual),
+                },
+
+                ConstraintReason::WrongAnnotation(idx) => TypeError::WrongAnnotation {
+                    annotation: idx,
+                    actual: self.normalize(types, actual),
+                    expected: self.normalize(types, expected),
                 },
             },
         }

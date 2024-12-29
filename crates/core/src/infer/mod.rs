@@ -27,6 +27,7 @@ pub(super) enum ConstraintReason {
     Application(ExprIdx, ExprIdx),
     Checking(ExprIdx),
     AnnotatedUnit(PatternIdx),
+    WrongAnnotation(TypeExprIdx),
 }
 
 impl ConstraintReason {
@@ -279,8 +280,19 @@ impl TypeInference {
 
             (Expr::LambdaExpr(lambda), Type::Arrow(from, to)) => {
                 let param = &module[lambda.param];
+
+                let from = self
+                    .resolve_type_expr(module, types, param.typ)
+                    .inspect(|annotation| {
+                        let reason = ConstraintReason::WrongAnnotation(param.typ);
+                        self.constraints
+                            .push(Constraint::TypeEqual(reason, from, *annotation));
+                    })
+                    .unwrap_or(from);
+
                 let (pat_env, _) =
                     self.resolve_pattern(module, param.pattern, unit_type, Some(from), types);
+
                 let env = pat_env.union(env.clone());
                 self.check_expr(module, types, lambda.body, &env, to);
             }

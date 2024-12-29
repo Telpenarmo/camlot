@@ -99,6 +99,13 @@ pub fn type_error_message(module: &Module, types: &Interner<Type>, error: &TypeE
                 "This expression has a type {func_type}. It is not a function and cannot be applied.",
             )
         }
+        TypeError::WrongAnnotation {
+            actual, expected, ..
+        } => {
+            let actual = display_type(types, actual);
+            let expected = display_type(types, expected);
+            format!("This parameter was expected to have type {expected}, but was annotated as {actual}.")
+        }
     }
 }
 
@@ -111,7 +118,11 @@ pub fn type_error_range(doc: &Document, error: &TypeError) -> Option<TextRange> 
         | TypeError::CyclicType { expr, .. }
         | TypeError::TypeMismatch { expr, .. } => range_of_expr(expr, doc),
         TypeError::UnexpectedUnitPattern { pattern, .. } => range_of_expr(pattern, doc),
-        TypeError::UnboundTypeVariable { type_expr, .. } => range_of_expr(type_expr, doc),
+        TypeError::UnboundTypeVariable { type_expr, .. }
+        | TypeError::WrongAnnotation {
+            annotation: type_expr,
+            ..
+        } => range_of_expr(type_expr, doc),
     }
 }
 
