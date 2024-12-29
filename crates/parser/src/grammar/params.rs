@@ -33,7 +33,11 @@ fn param(parser: &mut Parser) -> CompletedMarker {
             parser.expect(SyntaxKind::COLON);
             type_expr::type_expr(parser);
             parser.close(mark, SyntaxKind::TYPE_ANNOTATION);
-            parser.expect(SyntaxKind::R_PAREN);
+            if !parser.eat(SyntaxKind::R_PAREN) {
+                parser
+                    .eat_error_until(TokenSet::new(&[SyntaxKind::R_PAREN]), "Expected ')'".into());
+                parser.eat(SyntaxKind::R_PAREN);
+            }
         }
     } else {
         unreachable!();
