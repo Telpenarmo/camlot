@@ -16,7 +16,6 @@ pub(crate) struct TypeInference {
     unification_table: UnificationTable,
     defn_types: ArenaMap<DefinitionIdx, TypeIdx>,
     expr_types: ArenaMap<ExprIdx, TypeIdx>,
-    constraints: Vec<Constraint>,
     diagnostics: Vec<TypeError>,
     types_env: Environment,
     substitution_cache: HashMap<TypeIdx, TypeIdx>,
@@ -41,10 +40,6 @@ impl ConstraintReason {
         let expr = collapse_lets(module, expr);
         Self::Checking(expr)
     }
-}
-
-enum Constraint {
-    TypeEqual(ConstraintReason, TypeIdx, TypeIdx),
 }
 
 type Environment = imbl::HashMap<Name, TypeIdx>;
@@ -76,7 +71,6 @@ impl TypeInference {
             unification_table: UnificationTable::new(),
             defn_types: ArenaMap::new(),
             expr_types: ArenaMap::new(),
-            constraints: Vec::new(),
             diagnostics: Vec::new(),
             types_env: Environment::new(),
             substitution_cache: HashMap::new(),
@@ -114,20 +108,12 @@ impl TypeInference {
             self.check_definition(types, &initial_env, module, idx, defn);
         }
 
-        let mut diagnostics = std::mem::take(&mut self.diagnostics);
-        diagnostics.extend(
-            unify::Unifcation::new(&mut self.unification_table, types)
-                .unify(self.constraints.as_slice())
-                .into_iter()
-                .map(|(src, error)| self.map_unification_error(types, src, &error)),
-        );
-
         self.substitute(types);
 
         InferenceResult {
             expr_types: self.expr_types,
             defn_types: self.defn_types,
-            diagnostics,
+            diagnostics: self.diagnostics,
         }
     }
 
@@ -161,14 +147,20 @@ impl TypeInference {
         let typ = curry(types, &params, ret_type);
 
         let reason = ConstraintReason::check(module, defn.defn);
-        self.constraints.push(Constraint::TypeEqual(
-            reason,
-            registered_unification_var,
-            typ,
-        ));
+        self.eq(types, registered_unification_var, typ, reason);
 
         self.expr_types.insert(defn.defn, ret_type);
         self.defn_types.insert(idx, typ);
+    }
+
+    fn eq(&mut self, types: &mut Interner<Type>, a: TypeIdx, b: TypeIdx, src: ConstraintReason) {
+        let mut diagnostics = std::mem::take(&mut self.diagnostics);
+        diagnostics.extend(
+            self.unify_eq(types, a, b)
+                .into_iter()
+                .map(|error| self.map_unification_error(types, src, &error)),
+        );
+        self.diagnostics = diagnostics;
     }
 
     fn next_unification_var(&mut self, types: &mut Interner<Type>) -> TypeIdx {
@@ -238,8 +230,7 @@ impl TypeInference {
                 let func_typ = arrow(types, arg_typ, ret_typ);
 
                 let reason = ConstraintReason::app_target(module, func, arg);
-                self.constraints
-                    .push(Constraint::TypeEqual(reason, lhs_typ, func_typ));
+                self.eq(types, lhs_typ, func_typ, reason);
 
                 ret_typ
             }
@@ -285,8 +276,7 @@ impl TypeInference {
                     .resolve_type_expr(module, types, param.typ)
                     .inspect(|annotation| {
                         let reason = ConstraintReason::WrongAnnotation(param.typ);
-                        self.constraints
-                            .push(Constraint::TypeEqual(reason, from, *annotation));
+                        self.eq(types, from, *annotation, reason);
                     })
                     .unwrap_or(from);
 
@@ -300,8 +290,7 @@ impl TypeInference {
             _ => {
                 let actual = self.infer_expr(module, types, env, expr);
                 let reason = ConstraintReason::check(module, expr);
-                self.constraints
-                    .push(Constraint::TypeEqual(reason, typ, actual));
+                self.eq(types, typ, actual, reason);
             }
         }
     }
@@ -325,11 +314,8 @@ impl TypeInference {
             }
             Pattern::Unit => {
                 if let Some(ann) = ann {
-                    self.constraints.push(Constraint::TypeEqual(
-                        ConstraintReason::AnnotatedUnit(pat_idx),
-                        ann,
-                        unit_type,
-                    ));
+                    let reason = ConstraintReason::AnnotatedUnit(pat_idx);
+                    self.eq(types, ann, unit_type, reason);
                 }
                 (Environment::new(), unit_type)
             }
