@@ -77,3 +77,21 @@ impl TypeInference {
         }
     }
 }
+
+pub(super) trait MaybeType {
+    fn or_unification_var(
+        self,
+        inference: &mut TypeInference,
+        types: &mut Interner<Type>,
+    ) -> TypeIdx;
+}
+
+impl MaybeType for Option<TypeIdx> {
+    fn or_unification_var(
+        self,
+        inference: &mut TypeInference,
+        types: &mut Interner<Type>,
+    ) -> TypeIdx {
+        self.unwrap_or_else(|| inference.next_unification_var(types))
+    }
+}
