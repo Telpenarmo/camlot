@@ -241,7 +241,7 @@ fn types_declarations_are_order_sensitive() {
 
     assert!(matches!(
         &result.diagnostics[1],
-        &crate::TypeError::TypeMismatch { .. }
+        &crate::TypeError::ExpectedDueToAnnotation { .. }
     ));
 }
 

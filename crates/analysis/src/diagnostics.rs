@@ -84,7 +84,7 @@ pub fn type_error_message(module: &Module, types: &Interner<Type>, error: &TypeE
         } => {
             let expected = display_type(types, expected);
             let actual = display_type(types, actual);
-            format!("Type mismatch: this function expects a value of type {expected} but {actual}.")
+            format!("Type mismatch: this value has type {actual}, but is given to a function expecting type {expected}.")
         }
         TypeError::TypeMismatch {
             expected, actual, ..
@@ -97,11 +97,12 @@ pub fn type_error_message(module: &Module, types: &Interner<Type>, error: &TypeE
             let expected = display_type(types, expected);
             format!("This pattern constraints the value to type @unit, but it is expected to have type {expected}.")
         }
-        TypeError::AppliedToNonFunction { func_type, .. } => {
+        TypeError::AppliedToNonFunction {
+            lhs_type: func_type,
+            ..
+        } => {
             let func_type = display_type(types, func_type);
-            format!(
-                "This expression has a type {func_type}. It is not a function and cannot be applied.",
-            )
+            format!("This expression has a type {func_type}. It is not a function and cannot be applied.")
         }
         TypeError::WrongAnnotation {
             actual, expected, ..
@@ -110,16 +111,26 @@ pub fn type_error_message(module: &Module, types: &Interner<Type>, error: &TypeE
             let expected = display_type(types, expected);
             format!("This parameter was expected to have type {expected}, but was annotated as {actual}.")
         }
+        TypeError::ExpectedDueToAnnotation {
+            actual, expected, ..
+        } => {
+            let actual = display_type(types, actual);
+            let expected = display_type(types, expected);
+            format!(
+                "This expression was expected to have type {expected}, but it has type {actual}."
+            )
+        }
     }
 }
 
 #[must_use]
 pub fn type_error_range(doc: &Document, error: &TypeError) -> TextRange {
     match *error {
-        TypeError::AppliedToNonFunction { func: expr, .. }
+        TypeError::AppliedToNonFunction { lhs: expr, .. }
         | TypeError::WrongArgument { arg: expr, .. }
         | TypeError::UnboundVariable { expr, .. }
         | TypeError::CyclicType { expr, .. }
+        | TypeError::ExpectedDueToAnnotation { expr, .. }
         | TypeError::TypeMismatch { expr, .. } => range_of_expr(expr, doc),
         TypeError::UnexpectedUnitPattern { pattern, .. } => range_of_expr(pattern, doc),
         TypeError::UnboundTypeVariable { type_expr, .. }

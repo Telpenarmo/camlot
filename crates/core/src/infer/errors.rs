@@ -31,8 +31,8 @@ pub enum TypeError {
         expected: TypeIdx,
     },
     AppliedToNonFunction {
-        func: ExprIdx,
-        func_type: TypeIdx,
+        lhs: ExprIdx,
+        lhs_type: TypeIdx,
     },
     WrongArgument {
         arg: ExprIdx,
@@ -40,6 +40,12 @@ pub enum TypeError {
         actual: TypeIdx,
     },
     WrongAnnotation {
+        annotation: TypeExprIdx,
+        actual: TypeIdx,
+        expected: TypeIdx,
+    },
+    ExpectedDueToAnnotation {
+        expr: ExprIdx,
         annotation: TypeExprIdx,
         actual: TypeIdx,
         expected: TypeIdx,
@@ -56,12 +62,13 @@ impl TypeInference {
         match *error {
             UnifcationError::Occurs(typ, var) => {
                 let src = match reason {
-                    ConstraintReason::Checking(idx) => idx,
-                    ConstraintReason::Application(_lhs, rhs) => rhs,
-                    ConstraintReason::AnnotatedUnit(_) => {
+                    ConstraintReason::Application { rhs, .. } => rhs,
+                    ConstraintReason::AnnotatedUnit { .. } => {
                         unreachable!("No unification variable occurs in unit type.")
                     }
-                    ConstraintReason::WrongAnnotation(_idx) => panic!(),
+                    ConstraintReason::WrongParamAnnotation { .. } => panic!(),
+                    ConstraintReason::AnnotatedReturnType { expr, .. }
+                    | ConstraintReason::Checking { expr, .. } => expr,
                 };
                 TypeError::CyclicType {
                     expr: src,
@@ -69,40 +76,62 @@ impl TypeInference {
                     var,
                 }
             }
-            UnifcationError::NotUnifiable { expected, actual } => match reason {
-                ConstraintReason::Application(lhs, rhs) => {
-                    let expected = self.normalize(types, expected);
-                    let actual = self.normalize(types, actual);
-                    let expected_typ = types.lookup(expected);
-                    if self.expr_types[lhs] == expected
-                        && !matches!(expected_typ, Type::Arrow(_, _))
-                    {
-                        TypeError::AppliedToNonFunction {
-                            func: lhs,
-                            func_type: actual,
-                        }
-                    } else {
-                        TypeError::WrongArgument {
+            UnifcationError::NotUnifiable { left: _, right: _ } => match reason {
+                ConstraintReason::Application {
+                    lhs,
+                    rhs,
+                    lhs_type,
+                    arg_type,
+                    ..
+                } => {
+                    let lhs_type = self.normalize(types, lhs_type);
+                    let arg_type = self.normalize(types, arg_type);
+                    match types.lookup(lhs_type) {
+                        &Type::Arrow(from, _to) => TypeError::WrongArgument {
                             arg: rhs,
-                            expected,
-                            actual,
-                        }
+                            expected: from,
+                            actual: arg_type,
+                        },
+                        _ => TypeError::AppliedToNonFunction { lhs, lhs_type },
                     }
                 }
 
-                ConstraintReason::AnnotatedUnit(idx) => TypeError::UnexpectedUnitPattern {
-                    pattern: idx,
-                    expected: self.normalize(types, expected),
-                },
+                ConstraintReason::AnnotatedUnit(pattern, expected) => {
+                    TypeError::UnexpectedUnitPattern {
+                        pattern,
+                        expected: self.normalize(types, expected),
+                    }
+                }
 
-                ConstraintReason::Checking(src) => TypeError::TypeMismatch {
-                    expr: src,
+                ConstraintReason::Checking {
+                    expr,
+                    actual,
+                    expected,
+                } => TypeError::TypeMismatch {
+                    expr,
                     expected: self.normalize(types, expected),
                     actual: self.normalize(types, actual),
                 },
 
-                ConstraintReason::WrongAnnotation(idx) => TypeError::WrongAnnotation {
-                    annotation: idx,
+                ConstraintReason::WrongParamAnnotation {
+                    annotation,
+                    actual,
+                    expected,
+                    ..
+                } => TypeError::WrongAnnotation {
+                    annotation,
+                    actual: self.normalize(types, actual),
+                    expected: self.normalize(types, expected),
+                },
+
+                ConstraintReason::AnnotatedReturnType {
+                    annotation,
+                    expected,
+                    actual,
+                    expr,
+                } => TypeError::ExpectedDueToAnnotation {
+                    expr,
+                    annotation,
                     actual: self.normalize(types, actual),
                     expected: self.normalize(types, expected),
                 },

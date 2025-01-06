@@ -5,7 +5,10 @@ mod unify;
 use std::collections::HashMap;
 
 use la_arena::ArenaMap;
-use unify::MaybeType;
+use unify::{
+    annotated_return_constraint, check_constraint, ConstraintReason, ConstraintReasonFactory,
+    MaybeType,
+};
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
 use crate::intern::Interner;
@@ -22,36 +25,7 @@ pub(crate) struct TypeInference {
     substitution_cache: HashMap<TypeIdx, TypeIdx>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub(super) enum ConstraintReason {
-    Application(ExprIdx, ExprIdx),
-    Checking(ExprIdx),
-    AnnotatedUnit(PatternIdx),
-    WrongAnnotation(TypeExprIdx),
-}
-
-impl ConstraintReason {
-    fn app_target(module: &Module, func: ExprIdx, arg: ExprIdx) -> Self {
-        let func = collapse_lets(module, func);
-        let arg = collapse_lets(module, arg);
-        Self::Application(func, arg)
-    }
-
-    fn check(module: &Module, expr: ExprIdx) -> Self {
-        let expr = collapse_lets(module, expr);
-        Self::Checking(expr)
-    }
-}
-
 type Environment = imbl::HashMap<Name, TypeIdx>;
-
-fn collapse_lets(module: &Module, expr: ExprIdx) -> ExprIdx {
-    let mut expr = expr;
-    while let Expr::LetExpr(let_expr) = &module[expr] {
-        expr = let_expr.body;
-    }
-    expr
-}
 
 pub struct InferenceResult {
     pub expr_types: ArenaMap<ExprIdx, TypeIdx>,
@@ -143,17 +117,17 @@ impl TypeInference {
 
         let typ = curry(types, &params, ret_type);
 
-        let reason = ConstraintReason::check(module, defn.defn);
-        self.eq(types, registered_unification_var, typ, reason);
+        let reason = ConstraintReason::check(module, defn.defn, typ, registered_unification_var);
+        self.eq(types, reason);
 
         self.expr_types.insert(defn.defn, ret_type);
         self.defn_types.insert(idx, typ);
     }
 
-    fn eq(&mut self, types: &mut Interner<Type>, a: TypeIdx, b: TypeIdx, src: ConstraintReason) {
+    fn eq(&mut self, types: &mut Interner<Type>, src: ConstraintReason) {
         let mut errors = std::mem::take(&mut self.errors);
         errors.extend(
-            self.unify_eq(types, a, b)
+            self.solve(types, src)
                 .into_iter()
                 .map(|error| self.map_unification_error(types, src, &error)),
         );
@@ -189,7 +163,10 @@ impl TypeInference {
             Expr::LetExpr(let_expr) => {
                 let def_typ = self.resolve_type_expr(module, types, let_expr.return_type);
                 let (env, typ) = self.resolve_pattern(module, let_expr.lhs, def_typ, types, env);
-                self.check_expr(module, types, let_expr.defn, &env, typ);
+
+                let constraint =
+                    annotated_return_constraint(module, let_expr.defn, let_expr.return_type, typ);
+                self.check_expr(module, types, let_expr.defn, &env, typ, constraint);
 
                 self.infer_expr(module, types, &env, let_expr.body)
             }
@@ -214,10 +191,9 @@ impl TypeInference {
                 let arg_typ = self.infer_expr(module, types, env, arg);
                 let ret_typ = self.next_unification_var(types);
 
-                let func_typ = arrow(types, arg_typ, ret_typ);
-
-                let reason = ConstraintReason::app_target(module, func, arg);
-                self.eq(types, lhs_typ, func_typ, reason);
+                let reason =
+                    ConstraintReason::app_target(module, func, arg, lhs_typ, arg_typ, ret_typ);
+                self.eq(types, reason);
 
                 ret_typ
             }
@@ -235,21 +211,27 @@ impl TypeInference {
         types: &mut Interner<Type>,
         env: &Environment,
         expr: ExprIdx,
-        typ: TypeExprIdx,
+        annotation: TypeExprIdx,
     ) -> TypeIdx {
-        self.resolve_type_expr(module, types, typ)
-            .inspect(|&typ| self.check_expr(module, types, expr, env, typ))
+        self.resolve_type_expr(module, types, annotation)
+            .inspect(|&typ| {
+                let constraint = annotated_return_constraint(module, expr, annotation, typ);
+                self.check_expr(module, types, expr, env, typ, constraint);
+            })
             .unwrap_or_else(|| self.infer_expr(module, types, env, expr))
     }
 
-    fn check_expr(
+    fn check_expr<F>(
         &mut self,
         module: &Module,
         types: &mut Interner<Type>,
         expr: ExprIdx,
         env: &Environment,
         typ: TypeIdx,
-    ) {
+        constraint_factory: F,
+    ) where
+        F: ConstraintReasonFactory,
+    {
         let expected = types.lookup(typ);
         match (&module[expr], expected.clone()) {
             (Expr::LiteralExpr(Literal::BoolLiteral(_)), Type::Bool)
@@ -262,20 +244,25 @@ impl TypeInference {
                 let from = self
                     .resolve_type_expr(module, types, param.typ)
                     .inspect(|annotation| {
-                        let reason = ConstraintReason::WrongAnnotation(param.typ);
-                        self.eq(types, from, *annotation, reason);
+                        let reason = ConstraintReason::WrongParamAnnotation {
+                            annotation: param.typ,
+                            expected: from,
+                            actual: *annotation,
+                        };
+                        self.eq(types, reason);
                     })
                     .unwrap_or(from);
 
                 let (env, _) = self.resolve_pattern(module, param.pattern, Some(from), types, env);
 
-                self.check_expr(module, types, lambda.body, &env, to);
+                let constraint = check_constraint(module, expr, to);
+                self.check_expr(module, types, lambda.body, &env, to, constraint);
             }
 
             _ => {
                 let actual = self.infer_expr(module, types, env, expr);
-                let reason = ConstraintReason::check(module, expr);
-                self.eq(types, typ, actual, reason);
+                let reason = constraint_factory.make(actual);
+                self.eq(types, reason);
             }
         }
     }
@@ -290,20 +277,21 @@ impl TypeInference {
     ) -> (Environment, TypeIdx) {
         match module[pat_idx] {
             Pattern::Ident(name) => {
-                let ann = ann.or_unification_var(self, types);
-                (env.update(name, ann), ann)
+                let typ = ann.or_unification_var(self, types);
+                (env.update(name, typ), typ)
             }
             Pattern::Wildcard => {
-                let ann = ann.or_unification_var(self, types);
-                (env.clone(), ann)
+                let typ = ann.or_unification_var(self, types);
+                (env.clone(), typ)
             }
             Pattern::Unit => {
-                let unit_type = unit(types);
                 if let Some(ann) = ann {
-                    let reason = ConstraintReason::AnnotatedUnit(pat_idx);
-                    self.eq(types, ann, unit_type, reason);
+                    let reason = ConstraintReason::AnnotatedUnit(pat_idx, ann);
+                    self.eq(types, reason);
+                    (env.clone(), ann)
+                } else {
+                    (env.clone(), unit(types))
                 }
-                (env.clone(), unit_type)
             }
         }
     }
