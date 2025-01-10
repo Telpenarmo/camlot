@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use ena::unify::{EqUnifyValue, InPlaceUnificationTable, UnifyKey};
 
-use crate::{intern, Interner};
+use crate::{intern, Interner, Name};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UnificationVar(pub u32);
@@ -38,6 +38,7 @@ pub enum Type {
     Bool,
     Unit,
     Error,
+    Var(Name),
     Unifier(UnificationVar),
     Arrow(TypeIdx, TypeIdx),
 }
@@ -58,6 +59,22 @@ pub fn display_type(types: &Interner<Type>, idx: TypeIdx) -> String {
                 display_type(types, *from),
                 display_type(types, *to)
             )
+        }
+        Type::Var(_name) => todo!(),
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeScheme {
+    pub params: Box<[Name]>,
+    pub body: TypeIdx,
+}
+
+impl TypeScheme {
+    pub fn empty(typ: TypeIdx) -> Self {
+        Self {
+            params: Box::new([]),
+            body: typ,
         }
     }
 }

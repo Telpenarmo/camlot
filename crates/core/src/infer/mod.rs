@@ -12,7 +12,7 @@ use unify::{
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
 use crate::intern::Interner;
-use crate::types::{Type, TypeIdx, UnificationTable};
+use crate::types::{Type, TypeIdx, TypeScheme, UnificationTable, UnificationVar};
 use crate::{Definition, DefinitionIdx, Name, Pattern, PatternIdx};
 pub use errors::TypeError;
 
@@ -25,7 +25,50 @@ pub(crate) struct TypeInference {
     substitution_cache: HashMap<TypeIdx, TypeIdx>,
 }
 
-type Environment = imbl::HashMap<Name, TypeIdx>;
+impl TypeScheme {
+    pub(crate) fn instantiate(
+        &self,
+        types: &mut Interner<Type>,
+        unification_table: &mut UnificationTable,
+    ) -> TypeIdx {
+        fn substitute(
+            t: TypeIdx,
+            fresh_vars: &HashMap<Name, UnificationVar>,
+            types: &mut Interner<Type>,
+        ) -> TypeIdx {
+            match types.lookup(t) {
+                Type::Var(v) => fresh_vars
+                    .get(v)
+                    .map_or(t, |v| types.intern(Type::Unifier(*v))),
+                &Type::Arrow(lhs, rhs) => {
+                    let lhs = substitute(lhs, fresh_vars, types);
+                    let rhs = substitute(rhs, fresh_vars, types);
+                    types.intern(Type::Arrow(lhs, rhs))
+                }
+                _ => t,
+            }
+        }
+        let fresh_vars: HashMap<_, _> = self
+            .params
+            .iter()
+            .map(|p| (*p, unification_table.new_key(None)))
+            .collect();
+
+        substitute(self.body, &fresh_vars, types)
+    }
+}
+
+type Environment = imbl::HashMap<Name, TypeScheme>;
+
+fn get_from_env(
+    env: &Environment,
+    types: &mut Interner<Type>,
+    unification_table: &mut UnificationTable,
+    name: Name,
+) -> Option<TypeIdx> {
+    env.get(&name)
+        .map(|scheme| scheme.instantiate(types, unification_table))
+}
 
 pub struct InferenceResult {
     pub expr_types: ArenaMap<ExprIdx, TypeIdx>,
@@ -60,14 +103,17 @@ impl TypeInference {
     ) {
         // Walk through the definitions and register them in the environment as fresh unification variables
         for (_, defn) in module.iter_definitions() {
-            env.insert(defn.name, self.next_unification_var(types));
+            env.insert(
+                defn.name,
+                TypeScheme::empty(self.next_unification_var(types)), // "scheme built with resolved parameters",
+            );
         }
     }
 
     fn load_type_aliases(&mut self, module: &Module, types: &mut Interner<Type>) {
         for (_, defn) in module.type_definitions() {
             let typ = self.resolve_type_expr_or_var(module, types, defn.defn);
-            self.types_env.insert(defn.name, typ);
+            self.types_env.insert(defn.name, TypeScheme::empty(typ));
         }
     }
 
@@ -98,7 +144,8 @@ impl TypeInference {
         idx: DefinitionIdx,
         defn: &Definition,
     ) {
-        let registered_unification_var = initial_env[&defn.name];
+        let registered_unification_var =
+            get_from_env(initial_env, types, &mut self.unification_table, defn.name).unwrap();
 
         let mut def_env = initial_env.clone();
         let params: Vec<_> = defn
@@ -170,11 +217,14 @@ impl TypeInference {
 
                 self.infer_expr(module, types, &env, let_expr.body)
             }
-            &Expr::IdentExpr { name } => env.get(&name).copied().unwrap_or_else(|| {
-                let err = TypeError::UnboundVariable { expr, name };
-                self.errors.push(err);
-                error(types)
-            }),
+            &Expr::IdentExpr { name } => {
+                get_from_env(env, types, &mut self.unification_table, name).unwrap_or_else(|| {
+                    let err = TypeError::UnboundVariable { expr, name };
+                    self.errors.push(err);
+                    error(types)
+                })
+            }
+
             Expr::LambdaExpr(lambda) => {
                 let param = &module[lambda.param];
                 let from = self.resolve_type_expr(module, types, param.typ);
@@ -278,7 +328,7 @@ impl TypeInference {
         match module[pat_idx] {
             Pattern::Ident(name) => {
                 let typ = ann.or_unification_var(self, types);
-                (env.update(name, typ), typ)
+                (env.update(name, TypeScheme::empty(typ)), typ)
             }
             Pattern::Wildcard => {
                 let typ = ann.or_unification_var(self, types);
@@ -304,13 +354,14 @@ impl TypeInference {
     ) -> Option<TypeIdx> {
         match &module[type_expr] {
             TypeExpr::Missing => None,
-            &TypeExpr::IdentTypeExpr { name } => {
-                Some(self.types_env.get(&name).copied().unwrap_or_else(|| {
-                    let err = TypeError::UnboundTypeVariable { type_expr, name };
-                    self.errors.push(err);
-                    error(types)
-                }))
-            }
+            &TypeExpr::IdentTypeExpr { name } => Some(
+                get_from_env(&self.types_env, types, &mut self.unification_table, name)
+                    .unwrap_or_else(|| {
+                        let err = TypeError::UnboundTypeVariable { type_expr, name };
+                        self.errors.push(err);
+                        error(types)
+                    }),
+            ),
             &TypeExpr::TypeArrow { from, to } => {
                 let from = self.resolve_type_expr_or_var(module, types, from);
                 let to = self.resolve_type_expr_or_var(module, types, to);
