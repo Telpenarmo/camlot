@@ -28,37 +28,38 @@ pub(super) enum UnifcationError {
     NotUnifiable { left: TypeIdx, right: TypeIdx },
 }
 
-impl TypeInference {
-    pub(super) fn solve(
-        &mut self,
-        types: &mut Interner<Type>,
-        src: ConstraintReason,
-    ) -> Vec<UnifcationError> {
-        match src.constraint(types) {
-            Constraint::EqualTypes(a, b) => self.unify_eq(types, a, b),
+impl TypeInference<'_> {
+    pub(super) fn solve(&mut self, src: ConstraintReason) -> Vec<UnifcationError> {
+        match src.constraint(self.types) {
+            Constraint::EqualTypes(a, b) => self.unify_eq(a, b),
         }
     }
 
-    fn unify_eq(
-        &mut self,
-        types: &mut Interner<Type>,
-        expected_idx: TypeIdx,
-        actual_idx: TypeIdx,
-    ) -> Vec<UnifcationError> {
+    fn unify_eq(&mut self, expected_idx: TypeIdx, actual_idx: TypeIdx) -> Vec<UnifcationError> {
         let mut cache = HashMap::new();
-        let expected_idx = normalize(types, &mut cache, &mut self.unification_table, expected_idx);
-        let actual_idx = normalize(types, &mut cache, &mut self.unification_table, actual_idx);
+        let expected_idx = normalize(
+            self.types,
+            &mut cache,
+            &mut self.unification_table,
+            expected_idx,
+        );
+        let actual_idx = normalize(
+            self.types,
+            &mut cache,
+            &mut self.unification_table,
+            actual_idx,
+        );
 
-        let expected = types.lookup(expected_idx);
-        let actual = types.lookup(actual_idx);
+        let expected = self.types.lookup(expected_idx);
+        let actual = self.types.lookup(actual_idx);
         match ((expected, expected_idx), (actual, actual_idx)) {
             ((Type::Bool, _), (Type::Bool, _))
             | ((Type::Int, _), (Type::Int, _))
             | ((Type::Unit, _), (Type::Unit, _)) => vec![],
 
             ((&Type::Arrow(from, to), _), (&Type::Arrow(from2, to2), _)) => {
-                let mut from = self.unify_eq(types, from, from2);
-                let mut to = self.unify_eq(types, to, to2);
+                let mut from = self.unify_eq(from, from2);
+                let mut to = self.unify_eq(to, to2);
                 from.append(&mut to);
                 from
             }
@@ -67,17 +68,17 @@ impl TypeInference {
                 .unification_table
                 .unify_var_var(*a, *b)
                 .err()
-                .map(|(a, b)| self.unify_eq(types, a, b))
+                .map(|(a, b)| self.unify_eq(a, b))
                 .unwrap_or_default(),
 
             ((Type::Unifier(u), _), (ty, ty_idx)) | ((ty, ty_idx), (Type::Unifier(u), _)) => {
-                if ty.occurs(types, *u) {
+                if ty.occurs(self.types, *u) {
                     return vec![UnifcationError::Occurs(ty_idx, *u)];
                 }
                 self.unification_table
                     .unify_var_value(*u, Some(ty_idx))
                     .err()
-                    .map(|(a, b)| self.unify_eq(types, a, b))
+                    .map(|(a, b)| self.unify_eq(a, b))
                     .unwrap_or_default()
             }
 
@@ -261,19 +262,11 @@ fn collapse_lets(module: &Module, expr: ExprIdx) -> ExprIdx {
 }
 
 pub(super) trait MaybeType {
-    fn or_unification_var(
-        self,
-        inference: &mut TypeInference,
-        types: &mut Interner<Type>,
-    ) -> TypeIdx;
+    fn or_unification_var(self, inference: &mut TypeInference) -> TypeIdx;
 }
 
 impl MaybeType for Option<TypeIdx> {
-    fn or_unification_var(
-        self,
-        inference: &mut TypeInference,
-        types: &mut Interner<Type>,
-    ) -> TypeIdx {
-        self.unwrap_or_else(|| inference.next_unification_var(types))
+    fn or_unification_var(self, inference: &mut TypeInference) -> TypeIdx {
+        self.unwrap_or_else(|| inference.next_unification_var())
     }
 }

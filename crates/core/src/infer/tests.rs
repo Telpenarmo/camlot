@@ -5,9 +5,9 @@ fn infer_from_str(code: &str) -> (hir::Module, Interner<Type>, InferenceResult) 
     let module_ast = parser::parse(code).module();
     let mut types = Interner::new();
     let mut module = hir::Module::new(&mut types);
-    let infer = TypeInference::new();
     module.lower_module(&module_ast);
-    let result = infer.infer(&module, &mut types);
+    let infer = TypeInference::new(&module, &mut types);
+    let result = infer.infer();
     (module, types, result)
 }
 

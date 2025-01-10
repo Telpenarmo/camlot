@@ -41,22 +41,22 @@ fn substitute_type(
     }
 }
 
-impl TypeInference {
-    pub(super) fn normalize(&mut self, types: &mut Interner<Type>, idx: TypeIdx) -> TypeIdx {
+impl TypeInference<'_> {
+    pub(super) fn normalize(&mut self, idx: TypeIdx) -> TypeIdx {
         normalize(
-            types,
+            self.types,
             &mut self.substitution_cache,
             &mut self.unification_table,
             idx,
         )
     }
-    pub(super) fn substitute(&mut self, types: &mut Interner<Type>) {
+    pub(super) fn substitute(&mut self) {
         self.expr_types
             .values_mut()
             .chain(self.defn_types.values_mut())
             .for_each(|idx| {
                 *idx = normalize(
-                    types,
+                    self.types,
                     &mut self.substitution_cache,
                     &mut self.unification_table,
                     *idx,

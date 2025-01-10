@@ -1,5 +1,4 @@
 use crate::hir::{ExprIdx, TypeExprIdx};
-use crate::intern::Interner;
 use crate::types::{Type, TypeIdx, UnificationVar};
 use crate::{Name, PatternIdx};
 
@@ -52,10 +51,9 @@ pub enum TypeError {
     },
 }
 
-impl TypeInference {
+impl TypeInference<'_> {
     pub(super) fn map_unification_error(
         &mut self,
-        types: &mut Interner<Type>,
         reason: ConstraintReason,
         error: &UnifcationError,
     ) -> TypeError {
@@ -84,9 +82,9 @@ impl TypeInference {
                     arg_type,
                     ..
                 } => {
-                    let lhs_type = self.normalize(types, lhs_type);
-                    let arg_type = self.normalize(types, arg_type);
-                    match types.lookup(lhs_type) {
+                    let lhs_type = self.normalize(lhs_type);
+                    let arg_type = self.normalize(arg_type);
+                    match self.types.lookup(lhs_type) {
                         &Type::Arrow(from, _to) => TypeError::WrongArgument {
                             arg: rhs,
                             expected: from,
@@ -99,7 +97,7 @@ impl TypeInference {
                 ConstraintReason::AnnotatedUnit(pattern, expected) => {
                     TypeError::UnexpectedUnitPattern {
                         pattern,
-                        expected: self.normalize(types, expected),
+                        expected: self.normalize(expected),
                     }
                 }
 
@@ -109,8 +107,8 @@ impl TypeInference {
                     expected,
                 } => TypeError::TypeMismatch {
                     expr,
-                    expected: self.normalize(types, expected),
-                    actual: self.normalize(types, actual),
+                    expected: self.normalize(expected),
+                    actual: self.normalize(actual),
                 },
 
                 ConstraintReason::WrongParamAnnotation {
@@ -120,8 +118,8 @@ impl TypeInference {
                     ..
                 } => TypeError::WrongAnnotation {
                     annotation,
-                    actual: self.normalize(types, actual),
-                    expected: self.normalize(types, expected),
+                    actual: self.normalize(actual),
+                    expected: self.normalize(expected),
                 },
 
                 ConstraintReason::AnnotatedReturnType {
@@ -132,8 +130,8 @@ impl TypeInference {
                 } => TypeError::ExpectedDueToAnnotation {
                     expr,
                     annotation,
-                    actual: self.normalize(types, actual),
-                    expected: self.normalize(types, expected),
+                    actual: self.normalize(actual),
+                    expected: self.normalize(expected),
                 },
             },
         }
