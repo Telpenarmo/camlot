@@ -63,3 +63,14 @@ pub(crate) fn pattern(parser: &mut Parser) {
         parser.error("Expected pattern".into());
     }
 }
+
+pub(crate) fn type_params(parser: &mut Parser) -> CompletedMarker {
+    let mark = parser.open();
+    while parser.at(SyntaxKind::APOSTROPHE) {
+        let mark = parser.open();
+        parser.advance();
+        parser.expect(SyntaxKind::IDENT);
+        parser.close(mark, SyntaxKind::TYPE_PARAM);
+    }
+    parser.close(mark, SyntaxKind::TYPE_PARAMS)
+}

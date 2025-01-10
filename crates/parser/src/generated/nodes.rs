@@ -50,6 +50,10 @@ impl Definition {
     pub fn type_annotation(&self) -> Option<TypeAnnotation> {
         support::child(&self.syntax)
     }
+    #[must_use]
+    pub fn type_params(&self) -> Option<TypeParams> {
+        support::child(&self.syntax)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -95,6 +99,17 @@ impl TypeDefinition {
     #[must_use]
     pub fn type_expr(&self) -> Option<TypeExpr> {
         support::child(&self.syntax)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeParams {
+    pub(crate) syntax: SyntaxNode,
+}
+impl TypeParams {
+    #[must_use]
+    pub fn type_params(&self) -> AstChildren<TypeParam> {
+        support::children(&self.syntax)
     }
 }
 
@@ -444,6 +459,21 @@ impl UnitPattern {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeParam {
+    pub(crate) syntax: SyntaxNode,
+}
+impl TypeParam {
+    #[must_use]
+    pub fn apostrophe_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, APOSTROPHE)
+    }
+    #[must_use]
+    pub fn ident_lit(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, IDENT)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ModuleItem {
     Definition(Definition),
     Open(Open),
@@ -557,6 +587,22 @@ impl AstNode for TypeDefinition {
     type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == TYPE_DEFINITION
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for TypeParams {
+    type Language = CamlotLanguage;
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == TYPE_PARAMS
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -861,6 +907,22 @@ impl AstNode for UnitPattern {
     type Language = CamlotLanguage;
     fn can_cast(kind: SyntaxKind) -> bool {
         kind == UNIT_PATTERN
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl AstNode for TypeParam {
+    type Language = CamlotLanguage;
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == TYPE_PARAM
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -1214,6 +1276,11 @@ impl std::fmt::Display for TypeDefinition {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
+impl std::fmt::Display for TypeParams {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for Params {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -1305,6 +1372,11 @@ impl std::fmt::Display for UnderscorePattern {
     }
 }
 impl std::fmt::Display for UnitPattern {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for TypeParam {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

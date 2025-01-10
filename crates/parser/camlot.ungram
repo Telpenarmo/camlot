@@ -5,7 +5,7 @@ ModuleItem =
 | Open
 | TypeDefinition
 
-Definition = 'def' 'Ident' Params TypeAnnotation? DefBody
+Definition = 'def' 'Ident' TypeParams Params TypeAnnotation? DefBody
 Open = 'open' 'Ident' ';'
 TypeDefinition = 'type' 'Ident' '=' TypeExpr ';'
 
@@ -52,6 +52,9 @@ LambdaExpr = ('λ' | '\\') Params TypeAnnotation? '->' body:Expr
 ParenExpr = '(' Expr? | AppExpr ')'
 
 Literal =  'Int' | 'dummy'
+
+TypeParams = TypeParam*
+TypeParam = '\'' 'Ident'
 
 Params = Param*
 Param = Pattern | '(' Pattern TypeAnnotation? ')'

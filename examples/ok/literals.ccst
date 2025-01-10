@@ -4,6 +4,7 @@ MODULE@0..113
     WHITESPACE@3..4 " "
     IDENT@4..8 "zero"
     WHITESPACE@8..9 " "
+    TYPE_PARAMS@9..9
     PARAMS@9..9
     DEF_BODY@9..13
       EQUAL@9..10 "="
@@ -17,6 +18,7 @@ MODULE@0..113
     WHITESPACE@17..18 " "
     IDENT@18..31 "one_annotated"
     WHITESPACE@31..32 " "
+    TYPE_PARAMS@32..32
     PARAMS@32..32
     TYPE_ANNOTATION@32..37
       COLON@32..33 ":"
@@ -36,6 +38,7 @@ MODULE@0..113
     WHITESPACE@47..48 " "
     IDENT@48..52 "unit"
     WHITESPACE@52..53 " "
+    TYPE_PARAMS@53..53
     PARAMS@53..53
     DEF_BODY@53..58
       EQUAL@53..54 "="
@@ -50,6 +53,7 @@ MODULE@0..113
     WHITESPACE@62..63 " "
     IDENT@63..75 "unit_with_ws"
     WHITESPACE@75..76 " "
+    TYPE_PARAMS@76..76
     PARAMS@76..76
     DEF_BODY@76..82
       EQUAL@76..77 "="
@@ -65,6 +69,7 @@ MODULE@0..113
     WHITESPACE@86..87 " "
     IDENT@87..100 "two_line_unit"
     WHITESPACE@100..101 " "
+    TYPE_PARAMS@101..101
     PARAMS@101..101
     DEF_BODY@101..112
       EQUAL@101..102 "="

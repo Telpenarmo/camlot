@@ -4,6 +4,7 @@ MODULE@0..327
     WHITESPACE@3..4 " "
     IDENT@4..13 "lambda_id"
     WHITESPACE@13..14 " "
+    TYPE_PARAMS@14..14
     PARAMS@14..14
     DEF_BODY@14..25
       EQUAL@14..15 "="
@@ -27,6 +28,7 @@ MODULE@0..327
     WHITESPACE@29..30 " "
     IDENT@30..44 "lambda_unicode"
     WHITESPACE@44..45 " "
+    TYPE_PARAMS@45..45
     PARAMS@45..45
     DEF_BODY@45..56
       EQUAL@45..46 "="
@@ -49,6 +51,7 @@ MODULE@0..327
     WHITESPACE@61..62 " "
     IDENT@62..79 "lambda_unit_param"
     WHITESPACE@79..80 " "
+    TYPE_PARAMS@80..80
     PARAMS@80..80
     DEF_BODY@80..92
       EQUAL@80..81 "="
@@ -73,6 +76,7 @@ MODULE@0..327
     WHITESPACE@97..98 " "
     IDENT@98..116 "lambda_return_type"
     WHITESPACE@116..117 " "
+    TYPE_PARAMS@117..117
     PARAMS@117..117
     DEF_BODY@117..133
       EQUAL@117..118 "="
@@ -100,6 +104,7 @@ MODULE@0..327
     WHITESPACE@137..138 " "
     IDENT@138..162 "lambda_return_type_arrow"
     WHITESPACE@162..163 " "
+    TYPE_PARAMS@163..163
     PARAMS@163..163
     DEF_BODY@163..193
       EQUAL@163..164 "="
@@ -145,6 +150,7 @@ MODULE@0..327
     WHITESPACE@198..199 " "
     IDENT@199..224 "lambda_id_annotated_p ..."
     WHITESPACE@224..225 " "
+    TYPE_PARAMS@225..225
     PARAMS@225..225
     DEF_BODY@225..242
       EQUAL@225..226 "="
@@ -174,6 +180,7 @@ MODULE@0..327
     WHITESPACE@247..248 " "
     IDENT@248..265 "lambda_two_params"
     WHITESPACE@265..266 " "
+    TYPE_PARAMS@266..266
     PARAMS@266..266
     DEF_BODY@266..278
       EQUAL@266..267 "="
@@ -200,6 +207,7 @@ MODULE@0..327
     WHITESPACE@283..284 " "
     IDENT@284..300 "lambda_from_func"
     WHITESPACE@300..301 " "
+    TYPE_PARAMS@301..301
     PARAMS@301..302
       PARAM@301..302
         IDENT_PATTERN@301..302

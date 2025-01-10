@@ -22,6 +22,7 @@ impl Module {
     }
 
     fn lower_definition(&mut self, ast: &ast::Definition) -> DefinitionIdx {
+        let type_params = self.lower_type_params(ast.type_params());
         let params = self.lower_params(ast.params());
         let body = ast.def_body();
         let defn = {
@@ -40,6 +41,7 @@ impl Module {
             params,
             return_type,
             defn,
+            type_params,
         }
         .alloc(self, ast)
     }
@@ -51,6 +53,15 @@ impl Module {
             name: self.lower_ident(ast.ident_lit()),
             defn,
         }
+    }
+
+    fn lower_type_params(&mut self, ast: Option<ast::TypeParams>) -> Box<[Name]> {
+        ast.map(|ast| {
+            ast.type_params()
+                .map(|ast| self.lower_ident(ast.ident_lit()))
+                .collect()
+        })
+        .unwrap_or_default()
     }
 
     fn lower_params(&mut self, ast: Option<ast::Params>) -> Box<[ParamIdx]> {
@@ -179,15 +190,15 @@ impl Module {
                 let return_type = self.lower_type_annotation(ast.type_annotation());
 
                 let mut return_type = Some(return_type);
-                let e = self.curry(body, params_rev, &mut return_type, &ast);
+                let expr = self.curry(body, params_rev, &mut return_type, &ast);
                 debug_assert!(
                     return_type.is_none(),
                     "Return type definition should be used"
                 );
-                e
+                expr
             }
             ast::Expr::BlockExpr(ast) => self.lower_block(&ast),
-            ast::Expr::BinaryExpr(_) => todo!("Binary expressions are not yet supported"),
+            ast::Expr::BinaryExpr(_) => panic!("Binary expressions are not yet supported"),
         }
     }
 

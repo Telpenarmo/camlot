@@ -8,7 +8,7 @@ pub(crate) const MODULE_ITEM_END: TokenSet =
 
 pub(crate) fn module_item(parser: &mut Parser) {
     if parser.at(SyntaxKind::DEF_KW) {
-        def(parser);
+        definition(parser);
     } else if parser.at(SyntaxKind::TYPE_KW) {
         type_definition(parser);
     } else if parser.at(SyntaxKind::OPEN_KW) {
@@ -48,12 +48,13 @@ fn type_definition(parser: &mut Parser) {
     parser.close(mark, SyntaxKind::TYPE_DEFINITION);
 }
 
-fn def(parser: &mut Parser) {
+fn definition(parser: &mut Parser) {
     assert!(parser.at(SyntaxKind::DEF_KW));
 
     let mark = parser.open();
     parser.expect(SyntaxKind::DEF_KW);
     parser.expect(SyntaxKind::IDENT);
+    params::type_params(parser);
     params::params(parser);
     type_expr::type_annotation(parser);
 
@@ -87,6 +88,7 @@ mod tests {
                     WHITESPACE@3..4 " "
                     IDENT@4..5 "f"
                     WHITESPACE@5..6 " "
+                    TYPE_PARAMS@6..6
                     PARAMS@6..6
                     DEF_BODY@6..7
                       EQUAL@6..7 "="
@@ -107,6 +109,7 @@ mod tests {
                   DEFINITION@0..3
                     DEF_KW@0..3 "def"
                     ERROR@3..3
+                    TYPE_PARAMS@3..3
                     PARAMS@3..3
                     DEF_BODY@3..3
             "#]],

@@ -4,6 +4,7 @@ MODULE@0..599
     WHITESPACE@3..4 " "
     IDENT@4..38 "use_ident_then_return ..."
     WHITESPACE@38..39 " "
+    TYPE_PARAMS@39..39
     PARAMS@39..40
       PARAM@39..40
         IDENT_PATTERN@39..40
@@ -28,6 +29,7 @@ MODULE@0..599
     WHITESPACE@63..64 " "
     IDENT@64..88 "nested_block_with_number"
     WHITESPACE@88..89 " "
+    TYPE_PARAMS@89..89
     PARAMS@89..89
     DEF_BODY@89..102
       BLOCK_EXPR@89..102
@@ -48,6 +50,7 @@ MODULE@0..599
     WHITESPACE@107..108 " "
     IDENT@108..123 "let_x_be_number"
     WHITESPACE@123..124 " "
+    TYPE_PARAMS@124..124
     PARAMS@124..124
     DEF_BODY@124..143
       EQUAL@124..125 "="
@@ -76,6 +79,7 @@ MODULE@0..599
     WHITESPACE@148..149 " "
     IDENT@149..160 "empty_block"
     WHITESPACE@160..161 " "
+    TYPE_PARAMS@161..161
     PARAMS@161..161
     DEF_BODY@161..163
       BLOCK_EXPR@161..163
@@ -87,6 +91,7 @@ MODULE@0..599
     WHITESPACE@168..169 " "
     IDENT@169..185 "let_discard_unit"
     WHITESPACE@185..186 " "
+    TYPE_PARAMS@186..186
     PARAMS@186..186
     DEF_BODY@186..201
       BLOCK_EXPR@186..201
@@ -113,6 +118,7 @@ MODULE@0..599
     WHITESPACE@205..206 " "
     IDENT@206..232 "let_discard_annotated ..."
     WHITESPACE@232..233 " "
+    TYPE_PARAMS@233..233
     PARAMS@233..233
     DEF_BODY@233..255
       BLOCK_EXPR@233..255
@@ -145,6 +151,7 @@ MODULE@0..599
     WHITESPACE@260..261 " "
     IDENT@261..301 "let_func_discarding_p ..."
     WHITESPACE@301..302 " "
+    TYPE_PARAMS@302..302
     PARAMS@302..302
     DEF_BODY@302..325
       BLOCK_EXPR@302..325
@@ -185,6 +192,7 @@ MODULE@0..599
     WHITESPACE@330..331 " "
     IDENT@331..359 "let_deconstruct_unit_ ..."
     WHITESPACE@359..360 " "
+    TYPE_PARAMS@360..360
     PARAMS@360..360
     DEF_BODY@360..376
       BLOCK_EXPR@360..376
@@ -212,6 +220,7 @@ MODULE@0..599
     WHITESPACE@381..382 " "
     IDENT@382..425 "let_func_deconstructi ..."
     WHITESPACE@425..426 " "
+    TYPE_PARAMS@426..426
     PARAMS@426..426
     DEF_BODY@426..444
       BLOCK_EXPR@426..444
@@ -243,6 +252,7 @@ MODULE@0..599
     WHITESPACE@449..450 " "
     IDENT@450..475 "let_x_annotated_be_nu ..."
     WHITESPACE@475..476 " "
+    TYPE_PARAMS@476..476
     PARAMS@476..476
     DEF_BODY@476..506
       BLOCK_EXPR@476..506
@@ -276,6 +286,7 @@ MODULE@0..599
     WHITESPACE@511..512 " "
     IDENT@512..523 "nested_lets"
     WHITESPACE@523..524 " "
+    TYPE_PARAMS@524..524
     PARAMS@524..524
     TYPE_ANNOTATION@524..530
       COLON@524..525 ":"

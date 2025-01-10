@@ -4,6 +4,7 @@ MODULE@0..315
     WHITESPACE@3..4 " "
     IDENT@4..9 "apply"
     WHITESPACE@9..10 " "
+    TYPE_PARAMS@10..10
     PARAMS@10..34
       PARAM@10..25
         L_PAREN@10..11 "("
@@ -52,6 +53,7 @@ MODULE@0..315
     WHITESPACE@47..48 " "
     IDENT@48..62 "apply_3_idents"
     WHITESPACE@62..63 " "
+    TYPE_PARAMS@63..63
     PARAMS@63..89
       PARAM@63..85
         L_PAREN@63..64 "("
@@ -107,6 +109,7 @@ MODULE@0..315
     WHITESPACE@104..105 " "
     IDENT@105..122 "apply_application"
     WHITESPACE@122..123 " "
+    TYPE_PARAMS@123..123
     PARAMS@123..142
       PARAM@123..124
         IDENT_PATTERN@123..124
@@ -159,6 +162,7 @@ MODULE@0..315
     WHITESPACE@160..161 " "
     IDENT@161..175 "apply_to_block"
     WHITESPACE@175..176 " "
+    TYPE_PARAMS@176..176
     PARAMS@176..176
     DEF_BODY@176..211
       EQUAL@176..177 "="
@@ -203,6 +207,7 @@ MODULE@0..315
     WHITESPACE@216..217 " "
     IDENT@217..232 "apply_to_lambda"
     WHITESPACE@232..233 " "
+    TYPE_PARAMS@233..233
     PARAMS@233..233
     DEF_BODY@233..249
       EQUAL@233..234 "="
@@ -235,6 +240,7 @@ MODULE@0..315
     WHITESPACE@254..255 " "
     IDENT@255..267 "apply_lambda"
     WHITESPACE@267..268 " "
+    TYPE_PARAMS@268..268
     PARAMS@268..292
       PARAM@268..292
         L_PAREN@268..269 "("

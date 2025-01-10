@@ -74,7 +74,7 @@ impl Document {
     }
 
     pub(crate) fn display_type(&self, idx: core::TypeIdx) -> String {
-        core::display_type(&self.types, idx)
+        core::display_type(&self.types, self.hir(), idx)
     }
 
     pub(crate) fn get_type(&self, idx: core::TypeIdx) -> &Type {

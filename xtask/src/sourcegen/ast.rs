@@ -241,7 +241,7 @@ fn lower_rule(
                 acc.push(field);
                 return;
             }
-            todo!("unsupported repitition: {:?}", rule)
+            panic!("unsupported repetition: {rule:?}")
         }
         Rule::Labeled { label: l, rule } => {
             assert!(label.is_none());

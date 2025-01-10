@@ -4,6 +4,7 @@ MODULE@0..423
     WHITESPACE@3..4 " "
     IDENT@4..27 "unannotated_ident_param"
     WHITESPACE@27..28 " "
+    TYPE_PARAMS@28..28
     PARAMS@28..29
       PARAM@28..29
         IDENT_PATTERN@28..29
@@ -21,6 +22,7 @@ MODULE@0..423
     WHITESPACE@39..40 " "
     IDENT@40..76 "unannotated_unit_para ..."
     WHITESPACE@76..77 " "
+    TYPE_PARAMS@77..77
     PARAMS@77..80
       PARAM@77..80
         UNIT_PATTERN@77..79
@@ -45,6 +47,7 @@ MODULE@0..423
     WHITESPACE@94..95 " "
     IDENT@95..125 "unannotated_unit_with ..."
     WHITESPACE@125..126 " "
+    TYPE_PARAMS@126..126
     PARAMS@126..130
       PARAM@126..130
         UNIT_PATTERN@126..129
@@ -65,6 +68,7 @@ MODULE@0..423
     WHITESPACE@140..141 " "
     IDENT@141..169 "unannotated_wildcard_ ..."
     WHITESPACE@169..170 " "
+    TYPE_PARAMS@170..170
     PARAMS@170..171
       PARAM@170..171
         UNDERSCORE_PATTERN@170..171
@@ -83,6 +87,7 @@ MODULE@0..423
     WHITESPACE@182..183 " "
     IDENT@183..204 "annotated_ident_param"
     WHITESPACE@204..205 " "
+    TYPE_PARAMS@205..205
     PARAMS@205..213
       PARAM@205..213
         L_PAREN@205..206 "("
@@ -107,6 +112,7 @@ MODULE@0..423
     WHITESPACE@222..223 " "
     IDENT@223..243 "annotated_unit_param"
     WHITESPACE@243..244 " "
+    TYPE_PARAMS@244..244
     PARAMS@244..254
       PARAM@244..254
         L_PAREN@244..245 "("
@@ -133,6 +139,7 @@ MODULE@0..423
     WHITESPACE@264..265 " "
     IDENT@265..291 "annotated_wildcard_pa ..."
     WHITESPACE@291..292 " "
+    TYPE_PARAMS@292..292
     PARAMS@292..301
       PARAM@292..301
         L_PAREN@292..293 "("
@@ -158,6 +165,7 @@ MODULE@0..423
     WHITESPACE@312..313 " "
     IDENT@313..329 "two_ident_params"
     WHITESPACE@329..330 " "
+    TYPE_PARAMS@330..330
     PARAMS@330..333
       PARAM@330..331
         IDENT_PATTERN@330..331
@@ -179,6 +187,7 @@ MODULE@0..423
     WHITESPACE@343..344 " "
     IDENT@344..363 "two_wildcard_params"
     WHITESPACE@363..364 " "
+    TYPE_PARAMS@364..364
     PARAMS@364..367
       PARAM@364..365
         UNDERSCORE_PATTERN@364..365
@@ -202,6 +211,7 @@ MODULE@0..423
     WHITESPACE@379..380 " "
     IDENT@380..401 "arrow_annotated_param"
     WHITESPACE@401..402 " "
+    TYPE_PARAMS@402..402
     PARAMS@402..417
       PARAM@402..417
         L_PAREN@402..403 "("

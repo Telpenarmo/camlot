@@ -50,6 +50,8 @@ pub enum SyntaxKind {
     LAMBDA,
     #[token("_")]
     UNDERSCORE,
+    #[token("'")]
+    APOSTROPHE,
     #[regex("(?:0|[1-9][0-9]*)")]
     INT,
     #[regex("\"(?s:[^\"\\\\]|\\\\.)*\"")]
@@ -78,6 +80,7 @@ pub enum SyntaxKind {
     DEFINITION,
     OPEN,
     TYPE_DEFINITION,
+    TYPE_PARAMS,
     PARAMS,
     TYPE_ANNOTATION,
     DEF_BODY,
@@ -97,6 +100,7 @@ pub enum SyntaxKind {
     IDENT_PATTERN,
     UNDERSCORE_PATTERN,
     UNIT_PATTERN,
+    TYPE_PARAM,
     MODULE_ITEM,
     TYPE_EXPR,
     EXPR,
@@ -120,7 +124,7 @@ impl SyntaxKind {
     pub fn is_operator(self) -> bool {
         match self {
             L_PAREN | R_PAREN | L_BRACE | R_BRACE | COLON | SEMICOLON | COMMA | EQUAL | ARROW
-            | PLUS | MINUS | STAR | SLASH | BACKSLASH | LAMBDA | UNDERSCORE => true,
+            | PLUS | MINUS | STAR | SLASH | BACKSLASH | LAMBDA | UNDERSCORE | APOSTROPHE => true,
             _ => false,
         }
     }
