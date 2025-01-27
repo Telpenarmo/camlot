@@ -1,4 +1,4 @@
-use core::{display_type, Interner, Module, Type, TypeError};
+use core::{display_type, Interner, Type, TypeError};
 
 use line_index::TextRange;
 use parser::{SyntaxKind, SyntaxNodePtr};
@@ -67,55 +67,59 @@ fn type_errors(doc: &Document) -> Vec<lsp_types::Diagnostic> {
 }
 
 #[must_use]
-pub fn type_error_message(module: &Module, types: &Interner<Type>, error: &TypeError) -> String {
+pub fn type_error_message(
+    names: &Interner<String>,
+    types: &Interner<Type>,
+    error: &TypeError,
+) -> String {
     match *error {
         TypeError::UnboundVariable { name, .. } => {
-            format!("Unbound variable {}", module.get_name(name))
+            format!("Unbound variable {}", names.get_name(name))
         }
         TypeError::UnboundTypeVariable { name, .. } => {
-            format!("Unbound type {}", module.get_name(name))
+            format!("Unbound type {}", names.get_name(name))
         }
         TypeError::CyclicType { typ, var, .. } => {
-            let typ = display_type(types, module, typ);
+            let typ = display_type(types, typ);
             format!("Cyclic type: {var} appears in {typ}")
         }
         TypeError::WrongArgument {
             expected, actual, ..
         } => {
-            let expected = display_type(types, module, expected);
-            let actual = display_type(types, module, actual);
+            let expected = display_type(types, expected);
+            let actual = display_type(types, actual);
             format!("Type mismatch: this value has type {actual}, but is given to a function expecting type {expected}.")
         }
         TypeError::TypeMismatch {
             expected, actual, ..
         } => {
-            let expected = display_type(types, module, expected);
-            let actual = display_type(types, module, actual);
+            let expected = display_type(types, expected);
+            let actual = display_type(types, actual);
             format!("Type mismatch: expected {expected} but got {actual}.")
         }
         TypeError::UnexpectedUnitPattern { expected, .. } => {
-            let expected = display_type(types, module, expected);
+            let expected = display_type(types, expected);
             format!("This pattern constraints the value to type @unit, but it is expected to have type {expected}.")
         }
         TypeError::AppliedToNonFunction {
             lhs_type: func_type,
             ..
         } => {
-            let func_type = display_type(types, module, func_type);
+            let func_type = display_type(types, func_type);
             format!("This expression has a type {func_type}. It is not a function and cannot be applied.")
         }
         TypeError::WrongAnnotation {
             actual, expected, ..
         } => {
-            let actual = display_type(types, module, actual);
-            let expected = display_type(types, module, expected);
+            let actual = display_type(types, actual);
+            let expected = display_type(types, expected);
             format!("This parameter was expected to have type {expected}, but was annotated as {actual}.")
         }
         TypeError::ExpectedDueToAnnotation {
             actual, expected, ..
         } => {
-            let actual = display_type(types, module, actual);
-            let expected = display_type(types, module, expected);
+            let actual = display_type(types, actual);
+            let expected = display_type(types, expected);
             format!(
                 "This expression was expected to have type {expected}, but it has type {actual}."
             )
@@ -142,7 +146,7 @@ pub fn type_error_range(doc: &Document, error: &TypeError) -> TextRange {
 }
 
 fn type_error_to_diagnostic(error: &TypeError, doc: &Document) -> lsp_types::Diagnostic {
-    let msg = type_error_message(doc.hir(), doc.types(), error);
+    let msg = type_error_message(doc.names(), doc.types(), error);
     let range = type_error_range(doc, error);
     diagnostic(&msg, range, doc)
 }

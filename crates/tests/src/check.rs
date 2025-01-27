@@ -1,4 +1,4 @@
-use core::{Interner, Module, Type};
+use core::{Interner, Module, ModuleAndNames, Type};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -16,11 +16,12 @@ fn check_program(text: &str, path: &Path) {
     let ast = test_parsing(text, path);
 
     let mut types = Interner::new();
-    let mut module = Module::new(&mut types);
-    module.lower_module(&ast.module());
+    let mut names = Interner::new();
+    let mut module = Module::new(&mut names, &mut types);
+    module.lower_module(&mut names, &ast.module());
 
-    test_lowering(&module, path);
-    test_pretty_printing(&module, &mut types);
+    test_lowering(&module, &mut names, path);
+    test_pretty_printing(&module, &mut names, &mut types);
 }
 
 fn test_parsing(text: &str, path: &Path) -> parser::Parse {
@@ -30,16 +31,16 @@ fn test_parsing(text: &str, path: &Path) -> parser::Parse {
     ast
 }
 
-fn test_lowering(module: &Module, path: &Path) {
-    let module_str = format!("{module}");
+fn test_lowering(module: &Module, names: &mut Interner<String>, path: &Path) {
+    let module_str = format!("{}", ModuleAndNames { module, names });
     expect_file![&hir_path(path)].assert_eq(&module_str);
 }
 
-fn test_pretty_printing(module: &Module, types: &mut Interner<Type>) {
-    let module_str = format!("{module}");
+fn test_pretty_printing(module: &Module, names: &mut Interner<String>, types: &mut Interner<Type>) {
+    let module_str = format!("{}", ModuleAndNames { module, names });
     let reparsed = parser::parse(&module_str);
-    let mut module_from_hir = Module::new(types);
-    module_from_hir.lower_module(&reparsed.module());
+    let mut module_from_hir = Module::new(names, types);
+    module_from_hir.lower_module(names, &reparsed.module());
 
     assert_eq!(
         &module_from_hir, module,

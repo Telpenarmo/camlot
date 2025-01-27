@@ -124,8 +124,7 @@ pub(crate) fn handle_hir_tree_request(
 ) -> Result<String, ResponseError> {
     let path = req.text_document.uri.path().to_string();
     let doc = ctx.get_document(&path).unwrap();
-    let hir = doc.hir();
-    Ok(format!("{hir}"))
+    Ok(doc.pretty_module())
 }
 
 pub(crate) fn handle_semantic_tokens_full_request(

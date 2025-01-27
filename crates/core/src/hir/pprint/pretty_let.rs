@@ -1,36 +1,29 @@
 use crate::TypeExpr;
 
-use super::{new_line, LetExpr, Module};
+use super::{new_line, LetExpr, ModulePrinter};
 
-impl Module {
-    pub(super) fn fmt_let(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        e: &LetExpr,
-        indent: usize,
-        already_in_block: bool,
-    ) -> std::fmt::Result {
-        let mut indent = indent;
+impl ModulePrinter<'_, '_> {
+    pub(super) fn fmt_let(&mut self, e: &LetExpr, already_in_block: bool) -> std::fmt::Result {
         if !already_in_block {
-            indent += 1;
-            f.write_str("{")?;
-            new_line(f, indent)?;
+            *self.indent += 1;
+            self.f.write_str("{")?;
+            new_line(self.f, *self.indent)?;
         }
-        f.write_str("let ")?;
-        self.fmt_pattern(f, e.lhs)?;
-        if self[e.return_type] != TypeExpr::Missing {
-            f.write_str(" : ")?;
-            self.fmt_type_expr(f, e.return_type)?;
+        self.f.write_str("let ")?;
+        self.fmt_pattern(e.lhs)?;
+        if self.module[e.return_type] != TypeExpr::Missing {
+            self.f.write_str(" : ")?;
+            self.fmt_type_expr(e.return_type)?;
         }
-        f.write_str(" = ")?;
-        self.fmt_expr(f, e.defn, false, indent)?;
-        f.write_str(";")?;
-        new_line(f, indent)?;
-        self.fmt_expr(f, e.body, true, indent)?;
+        self.f.write_str(" = ")?;
+        self.fmt_expr(e.defn, false)?;
+        self.f.write_str(";")?;
+        new_line(self.f, *self.indent)?;
+        self.fmt_expr(e.body, true)?;
         if !already_in_block {
-            indent -= 1;
-            new_line(f, indent)?;
-            f.write_str("}")?;
+            *self.indent -= 1;
+            new_line(self.f, *self.indent)?;
+            self.f.write_str("}")?;
         }
         Ok(())
     }

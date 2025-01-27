@@ -6,6 +6,8 @@ pub use module::Module;
 pub use module::StoredInArena;
 pub type ArenaIdx<T> = la_arena::Idx<T>;
 
+pub use pprint::ModuleAndNames;
+
 use la_arena::Idx;
 
 use crate::intern::Interned;

@@ -37,19 +37,13 @@ pub struct Module {
     patterns: Arena<Pattern>,
     patterns_syntax: ArenaMap<PatternIdx, SyntaxNodePtr>,
 
-    names: Interner<String>,
-
     known_definitions: HashMap<Name, TypeScheme>,
     known_types: HashMap<Name, TypeScheme>,
 }
 
-fn name_deep_eq(a_module: &Module, b_module: &Module, a: Name, b: Name) -> bool {
-    a_module.names.lookup(a) == b_module.names.lookup(b)
-}
-
 fn pattern_deep_eq(a_module: &Module, b_module: &Module, a: PatternIdx, b: PatternIdx) -> bool {
     match (a_module[a], b_module[b]) {
-        (Pattern::Ident(a), Pattern::Ident(b)) => name_deep_eq(a_module, b_module, a, b),
+        (Pattern::Ident(a), Pattern::Ident(b)) => a == b,
         (Pattern::Wildcard, Pattern::Wildcard) | (Pattern::Unit, Pattern::Unit) => true,
         _ => false,
     }
@@ -70,9 +64,7 @@ pub(super) fn type_expr_deep_eq(
 ) -> bool {
     match (&a_module[a], &b_module[b]) {
         (TypeExpr::Missing, TypeExpr::Missing) => true,
-        (TypeExpr::IdentTypeExpr { name: a }, TypeExpr::IdentTypeExpr { name: b }) => {
-            name_deep_eq(a_module, b_module, *a, *b)
-        }
+        (TypeExpr::IdentTypeExpr { name: a }, TypeExpr::IdentTypeExpr { name: b }) => a == b,
         (
             TypeExpr::TypeArrow { from, to },
             TypeExpr::TypeArrow {
@@ -91,9 +83,7 @@ pub(super) fn expr_deep_eq(a_module: &Module, b_module: &Module, a: ExprIdx, b: 
     match (&a_module[a], &b_module[b]) {
         (Expr::Missing, Expr::Missing) => true,
         (Expr::LiteralExpr(a), Expr::LiteralExpr(b)) => a == b,
-        (Expr::IdentExpr { name: a }, Expr::IdentExpr { name: b }) => {
-            name_deep_eq(a_module, b_module, *a, *b)
-        }
+        (Expr::IdentExpr { name: a }, Expr::IdentExpr { name: b }) => a == b,
         (
             Expr::AppExpr { func, arg },
             Expr::AppExpr {
@@ -129,30 +119,24 @@ impl PartialEq for Module {
         self.definitions
             .values()
             .zip(other.definitions.values())
-            .all(|(a, b)| {
-                expr_deep_eq(self, other, a.defn, b.defn)
-                    && name_deep_eq(self, other, a.name, b.name)
-            })
+            .all(|(a, b)| expr_deep_eq(self, other, a.defn, b.defn) && a.name == b.name)
             && self
                 .opens
                 .values()
                 .zip(other.opens.values())
-                .all(|(a, b)| name_deep_eq(self, other, a.path, b.path))
+                .all(|(a, b)| a.path == b.path)
             && self
                 .type_definitions
                 .values()
                 .zip(other.type_definitions.values())
-                .all(|(a, b)| {
-                    name_deep_eq(self, other, a.name, b.name)
-                        && type_expr_deep_eq(self, other, a.defn, b.defn)
-                })
+                .all(|(a, b)| a.name == b.name && type_expr_deep_eq(self, other, a.defn, b.defn))
     }
 }
 
 #[allow(unused)]
 impl Module {
     #[must_use]
-    pub fn new(types: &mut Interner<Type>) -> Self {
+    pub fn new(names: &mut Interner<String>, types: &mut Interner<Type>) -> Self {
         let mut module = Self {
             expressions: Arena::new(),
             type_expressions: Arena::new(),
@@ -163,7 +147,6 @@ impl Module {
             parameters_syntax: ArenaMap::new(),
             patterns: Arena::new(),
             patterns_syntax: ArenaMap::new(),
-            names: Interner::new(),
             exprs_syntax: ArenaMap::new(),
             type_exprs_syntax: ArenaMap::new(),
             definitions_syntax: ArenaMap::new(),
@@ -172,30 +155,17 @@ impl Module {
             known_types: HashMap::new(),
         };
 
-        module.load_builtin(types);
+        module.load_builtin(names, types);
         module
     }
 
-    fn load_builtin(&mut self, types: &mut Interner<Type>) {
-        self.known_definitions = builtin::builtin_defs(self, types);
-        self.known_types = builtin::builtin_types(self, types);
+    fn load_builtin(&mut self, names: &mut Interner<String>, types: &mut Interner<Type>) {
+        self.known_definitions = builtin::builtin_defs(names, types);
+        self.known_types = builtin::builtin_types(names, types);
     }
 
     pub(super) fn alloc_missing<T: Missable>(&mut self) -> la_arena::Idx<T> {
         T::missing().alloc_no_syntax(self)
-    }
-
-    pub(super) fn empty_name(&mut self) -> Name {
-        self.names.intern("_".into())
-    }
-
-    pub(crate) fn name<S: Into<String>>(&mut self, name: S) -> Name {
-        self.names.intern(name.into())
-    }
-
-    #[must_use]
-    pub fn get_name(&self, name: Name) -> &str {
-        self.names.lookup(name)
     }
 
     pub(crate) fn iter_definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> {

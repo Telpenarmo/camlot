@@ -67,6 +67,21 @@ where
     }
 }
 
+impl Interner<String> {
+    pub(super) fn empty_name(&mut self) -> Interned<String> {
+        self.intern("_".into())
+    }
+
+    pub(crate) fn name<S: Into<String>>(&mut self, name: S) -> Interned<String> {
+        self.intern(name.into())
+    }
+
+    #[must_use]
+    pub fn get_name(&self, name: Interned<String>) -> &str {
+        self.lookup(name)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

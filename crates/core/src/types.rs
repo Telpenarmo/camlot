@@ -46,7 +46,7 @@ pub enum Type {
 impl EqUnifyValue for TypeIdx {}
 
 #[must_use]
-pub fn display_type(types: &Interner<Type>, module: &Module, idx: TypeIdx) -> String {
+pub fn display_type(types: &Interner<Type>, idx: TypeIdx) -> String {
     match types.lookup(idx) {
         Type::Int => "@int".to_string(),
         Type::Bool => "@bool".to_string(),
@@ -56,8 +56,8 @@ pub fn display_type(types: &Interner<Type>, module: &Module, idx: TypeIdx) -> St
         Type::Arrow(from, to) => {
             format!(
                 "({} -> {})",
-                display_type(types, module, *from),
-                display_type(types, module, *to)
+                display_type(types, *from),
+                display_type(types, *to)
             )
         }
         Type::Var(name) => module.get_name(*name).to_string(),
