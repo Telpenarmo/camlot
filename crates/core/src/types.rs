@@ -34,7 +34,6 @@ pub enum Type {
     Int,
     Bool,
     Unit,
-    Error,
     Bound(Unique),
     Skolem(Skolem),
     Unifier(Unifier),
@@ -118,7 +117,6 @@ pub fn display_type(
                 Type::Int => "@int".to_string(),
                 Type::Bool => "@bool".to_string(),
                 Type::Unit => "@unit".to_string(),
-                Type::Error => "@Error".to_string(),
                 Type::Unifier(unifier) => self.get_label(unifier.tag),
                 Type::Skolem(Skolem { level: _, tag }) | Type::Bound(tag) => self.get_label(tag),
                 Type::Arrow(from, to) => {

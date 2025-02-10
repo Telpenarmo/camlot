@@ -35,7 +35,7 @@ impl TypeInference<'_> {
                 self.assign_labels_in_type(reserved, r);
             }
             Type::Link(t, _) => self.assign_labels_in_type(reserved, t),
-            Type::Int | Type::Bool | Type::Unit | Type::Error => (),
+            Type::Int | Type::Bool | Type::Unit => (),
         }
     }
 

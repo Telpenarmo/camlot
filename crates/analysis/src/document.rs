@@ -81,8 +81,12 @@ impl Document {
         &self.inference_result.diagnostics
     }
 
+    pub(crate) fn generalized_labels(&self) -> &core::GeneralizedLabels {
+        &self.inference_result.generalized_labels
+    }
+
     pub(crate) fn display_type(&self, idx: core::TypeIdx) -> String {
-        core::display_type(&self.types, self.names(), idx)
+        core::display_type(&self.types, self.names(), self.generalized_labels(), idx)
     }
 
     pub(crate) fn get_type(&self, idx: core::TypeIdx) -> &Type {

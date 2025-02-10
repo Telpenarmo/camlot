@@ -214,7 +214,7 @@ impl<'a> TypeInference<'a> {
             &Expr::IdentExpr { name } => self.get_from_env(env, name).unwrap_or_else(|| {
                 let err = TypeError::UnboundVariable { expr, name };
                 self.errors.push(err);
-                error(self.types)
+                self.fresh()
             }),
 
             Expr::LambdaExpr(lambda) => {
@@ -346,7 +346,9 @@ impl<'a> TypeInference<'a> {
                 Some(self.get_from_env(types_env, name).unwrap_or_else(|| {
                     let err = TypeError::UnboundTypeVariable { type_expr, name };
                     self.errors.push(err);
-                    error(self.types)
+                    let tag = self.next_tag();
+                    self.generalized_labels.add_label(tag, name);
+                    self.types.intern(Type::Bound(tag))
                 }))
             }
             &TypeExpr::TypeArrow { from, to } => {
@@ -433,10 +435,6 @@ fn curry(types: &mut Interner<Type>, params: &[TypeIdx], return_type: TypeIdx) -
     params.iter().rev().fold(return_type, |acc, param| {
         types.intern(Type::Arrow(*param, acc))
     })
-}
-
-fn error(types: &mut Interner<Type>) -> TypeIdx {
-    types.intern(Type::Error)
 }
 
 fn arrow(types: &mut Interner<Type>, from: TypeIdx, to: TypeIdx) -> TypeIdx {
