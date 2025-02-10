@@ -6,7 +6,7 @@ mod types;
 
 pub use crate::hir::*;
 
-pub use types::{bound_variables, display_type, Type, TypeIdx};
+pub use types::{bound_variables, display_type, GeneralizedLabels, Type, TypeIdx};
 
 pub(crate) use hir::Name;
 

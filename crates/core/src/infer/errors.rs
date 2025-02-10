@@ -3,7 +3,7 @@ use crate::types::{Type, TypeIdx};
 use crate::{Name, PatternIdx};
 
 use super::unify::UnifcationError;
-use super::{ConstraintReason, TypeInference, Unifier};
+use super::{ConstraintReason, TypeInference};
 
 #[derive(PartialEq, Debug)]
 pub enum TypeError {
@@ -23,7 +23,7 @@ pub enum TypeError {
     CyclicType {
         expr: ExprIdx,
         typ: TypeIdx,
-        var: Unifier,
+        var: TypeIdx,
     },
     UnexpectedUnitPattern {
         pattern: PatternIdx,

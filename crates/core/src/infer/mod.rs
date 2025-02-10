@@ -1,12 +1,13 @@
 mod errors;
 // mod normalize;
+mod label;
 mod nth_ident;
 mod unify;
 
 use std::collections::HashMap;
 
+pub use errors::TypeError;
 use la_arena::ArenaMap;
-use nth_ident::nth_ident;
 use unify::{
     annotated_return_constraint, check_constraint, ConstraintReason, ConstraintReasonFactory,
     MaybeType,
@@ -14,9 +15,8 @@ use unify::{
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
 use crate::intern::Interner;
-use crate::types::{Level, Skolem, Type, TypeIdx, Unifier, Unique};
-use crate::{display_type, Definition, DefinitionIdx, Name, Pattern, PatternIdx};
-pub use errors::TypeError;
+use crate::types::{GeneralizedLabels, Level, Skolem, Type, TypeIdx, Unifier, Unique};
+use crate::{Definition, DefinitionIdx, Name, Pattern, PatternIdx};
 
 pub(crate) struct TypeInference<'a> {
     defn_types: ArenaMap<DefinitionIdx, TypeIdx>,
@@ -27,6 +27,7 @@ pub(crate) struct TypeInference<'a> {
     names: &'a mut Interner<String>,
     current_level: Level,
     next_unification_var: Unique,
+    generalized_labels: GeneralizedLabels,
 }
 
 type Environment = imbl::HashMap<Name, TypeIdx>;
@@ -35,6 +36,7 @@ pub struct InferenceResult {
     pub expr_types: ArenaMap<ExprIdx, TypeIdx>,
     pub defn_types: ArenaMap<DefinitionIdx, TypeIdx>,
     pub diagnostics: Vec<TypeError>,
+    pub generalized_labels: GeneralizedLabels,
 }
 
 #[must_use]
@@ -62,6 +64,7 @@ impl<'a> TypeInference<'a> {
             types,
             current_level: Level(0),
             next_unification_var: Unique::init(),
+            generalized_labels: GeneralizedLabels::new(),
         }
     }
 
@@ -81,6 +84,7 @@ impl<'a> TypeInference<'a> {
             .iter()
             .map(|&name| {
                 let tag = self.next_tag();
+                self.generalized_labels.add_label(tag, name);
                 let skolem = Type::skolem(self.current_level, tag);
                 let skolem = self.types.intern(skolem);
                 (name, skolem)
@@ -104,6 +108,7 @@ impl<'a> TypeInference<'a> {
             expr_types: self.expr_types,
             defn_types: self.defn_types,
             diagnostics: self.errors,
+            generalized_labels: self.generalized_labels,
         }
     }
 
@@ -151,6 +156,7 @@ impl<'a> TypeInference<'a> {
         // self.eq(reason);
 
         self.defn_types.insert(idx, typ);
+        self.assign_labels(idx);
     }
 
     fn eq(&mut self, src: ConstraintReason) {
@@ -359,18 +365,18 @@ impl<'a> TypeInference<'a> {
         self.resolve_type_expr(types_env, type_expr)
             .or_unification_var(self)
     }
-    fn instantiate_impl(&mut self, fresh_vars: &mut HashMap<u16, Unique>, t: TypeIdx) -> TypeIdx {
-        match *self.types.lookup(t) {
-            Type::Bound(idx, _name) => {
-                let tag = fresh_vars.entry(idx).or_insert_with(|| self.next_tag());
+
+    fn instantiate_impl(&mut self, vars: &mut HashMap<Unique, Unique>, t: TypeIdx) -> TypeIdx {
+        match *self.types.get_type(t) {
+            Type::Bound(idx) => {
+                let tag = vars.entry(idx).or_insert_with(|| self.next_tag());
                 self.types.intern(Type::unifier(self.current_level, *tag))
             }
             Type::Arrow(lhs, rhs) => {
-                let lhs = self.instantiate_impl(fresh_vars, lhs);
-                let rhs = self.instantiate_impl(fresh_vars, rhs);
+                let lhs = self.instantiate_impl(vars, lhs);
+                let rhs = self.instantiate_impl(vars, rhs);
                 self.types.intern(Type::Arrow(lhs, rhs))
             }
-            Type::Link(t, _) => self.instantiate_impl(fresh_vars, t),
             _ => t,
         }
     }
@@ -380,33 +386,27 @@ impl<'a> TypeInference<'a> {
     }
 
     fn generalize(&mut self, idx: TypeIdx) -> TypeIdx {
-        self.generalize_impl(&mut HashMap::new(), idx)
+        self.generalize_impl(idx)
     }
 
-    fn generalize_impl(&mut self, bounds: &mut HashMap<Unique, u16>, idx: TypeIdx) -> TypeIdx {
+    fn generalize_impl(&mut self, idx: TypeIdx) -> TypeIdx {
         let typ = self.types.lookup(idx).clone();
         match typ {
+            Type::Link(idx, _) => self.generalize_impl(idx),
             Type::Unifier(Unifier { level, tag }) if level > self.current_level => {
-                let len = bounds
-                    .len()
-                    .try_into()
-                    .expect("Over u16::max type variables");
-                let idx = *bounds.entry(tag).or_insert(len);
-                let name = self.names.name(format!("#{}", nth_ident(idx)));
-                self.types.intern(Type::Bound(idx, name))
+                let new = self.types.intern(Type::skolem(level, tag));
+                self.replace(idx, new);
+                self.types.intern(Type::Bound(tag))
             }
-            Type::Link(idx, _) => self.generalize_impl(bounds, idx),
-            Type::Skolem(Skolem { name, level, tag }) if level > self.current_level => {
-                let len = bounds
-                    .len()
-                    .try_into()
-                    .expect("Over u16::max type variables");
-                let idx = *bounds.entry(tag).or_insert(len);
-                self.types.intern(Type::Bound(idx, name))
+            Type::Skolem(Skolem { level, tag: order }) if level.0 == self.current_level.0 + 1 => {
+                self.types.intern(Type::Bound(order))
+            }
+            Type::Skolem(Skolem { level, .. }) if level > self.current_level => {
+                panic!("Skolem from a higher level");
             }
             Type::Arrow(from, to) => {
-                let from = self.generalize_impl(bounds, from);
-                let to = self.generalize_impl(bounds, to);
+                let from = self.generalize_impl(from);
+                let to = self.generalize_impl(to);
                 arrow(self.types, from, to)
             }
             _ => idx,

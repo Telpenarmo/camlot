@@ -22,7 +22,7 @@ impl Document {
 
         hir.lower_module(&mut names, &parsed.module());
 
-        let inference_result = core::infer(&hir, &mut types);
+        let inference_result = core::infer(&hir, &mut names, &mut types);
 
         Document {
             line_index,
@@ -40,7 +40,7 @@ impl Document {
         let parse = parser::parse(&text);
         self.hir = core::Module::new(&mut self.names, &mut self.types);
         self.hir.lower_module(&mut self.names, &parse.module());
-        self.inference_result = infer(&self.hir, &mut self.types);
+        self.inference_result = infer(&self.hir, &mut self.names, &mut self.types);
         self.parsed = parse;
         self.text = text;
     }
@@ -82,7 +82,7 @@ impl Document {
     }
 
     pub(crate) fn display_type(&self, idx: core::TypeIdx) -> String {
-        core::display_type(&self.types, idx)
+        core::display_type(&self.types, self.names(), idx)
     }
 
     pub(crate) fn get_type(&self, idx: core::TypeIdx) -> &Type {

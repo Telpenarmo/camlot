@@ -7,7 +7,7 @@ use super::{arrow, unit, TypeInference};
 
 #[derive(PartialEq, Debug)]
 pub(super) enum UnifcationError {
-    Occurs(TypeIdx, Unifier),
+    Occurs(TypeIdx, TypeIdx),
     NotUnifiable { left: TypeIdx, right: TypeIdx },
 }
 
@@ -40,7 +40,7 @@ impl TypeInference<'_> {
         let expected = self.types.lookup(expected_idx).clone();
         let actual = self.types.lookup(actual_idx).clone();
         match ((expected, expected_idx), (actual, actual_idx)) {
-            ((Type::Bound(_, _), _), _) | (_, (Type::Bound(_, _), _)) => {
+            ((Type::Bound(_), _), _) | (_, (Type::Bound(_), _)) => {
                 unreachable!("Bound type should have been instantiated")
             }
 
@@ -70,7 +70,7 @@ impl TypeInference<'_> {
 
             ((Type::Unifier(u), u_idx), (_, ty_idx)) | ((_, ty_idx), (Type::Unifier(u), u_idx)) => {
                 if self.occurs(ty_idx, u) {
-                    return vec![UnifcationError::Occurs(ty_idx, u)];
+                    return vec![UnifcationError::Occurs(ty_idx, u_idx)];
                 }
                 self.replace(u_idx, ty_idx);
                 vec![]

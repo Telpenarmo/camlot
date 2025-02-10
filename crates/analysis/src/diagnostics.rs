@@ -1,4 +1,4 @@
-use core::{display_type, Interner, Type, TypeError};
+use core::{display_type, GeneralizedLabels, Interner, Type, TypeError};
 
 use line_index::TextRange;
 use parser::{SyntaxKind, SyntaxNodePtr};
@@ -69,6 +69,7 @@ fn type_errors(doc: &Document) -> Vec<lsp_types::Diagnostic> {
 #[must_use]
 pub fn type_error_message(
     names: &Interner<String>,
+    generalized_labels: &GeneralizedLabels,
     types: &Interner<Type>,
     error: &TypeError,
 ) -> String {
@@ -80,46 +81,47 @@ pub fn type_error_message(
             format!("Unbound type {}", names.get_name(name))
         }
         TypeError::CyclicType { typ, var, .. } => {
-            let typ = display_type(types, names, typ);
-            format!("Cyclic type: {var} appears in {typ}")
+            let typ = display_type(types, names, generalized_labels, typ);
+            let var = display_type(types, names, generalized_labels, var);
+            format!("Cyclic type: {var} appears in {typ}",)
         }
         TypeError::WrongArgument {
             expected, actual, ..
         } => {
-            let expected = display_type(types, names, expected);
-            let actual = display_type(types, names, actual);
+            let expected = display_type(types, names, generalized_labels, expected);
+            let actual = display_type(types, names, generalized_labels, actual);
             format!("Type mismatch: this value has type {actual}, but is given to a function expecting type {expected}.")
         }
         TypeError::TypeMismatch {
             expected, actual, ..
         } => {
-            let expected = display_type(types, names, expected);
-            let actual = display_type(types, names, actual);
+            let expected = display_type(types, names, generalized_labels, expected);
+            let actual = display_type(types, names, generalized_labels, actual);
             format!("Type mismatch: expected {expected} but got {actual}.")
         }
         TypeError::UnexpectedUnitPattern { expected, .. } => {
-            let expected = display_type(types, names, expected);
+            let expected = display_type(types, names, generalized_labels, expected);
             format!("This pattern constraints the value to type @unit, but it is expected to have type {expected}.")
         }
         TypeError::AppliedToNonFunction {
             lhs_type: func_type,
             ..
         } => {
-            let func_type = display_type(types, names, func_type);
+            let func_type = display_type(types, names, generalized_labels, func_type);
             format!("This expression has a type {func_type}. It is not a function and cannot be applied.")
         }
         TypeError::WrongAnnotation {
             actual, expected, ..
         } => {
-            let actual = display_type(types, names, actual);
-            let expected = display_type(types, names, expected);
+            let actual = display_type(types, names, generalized_labels, actual);
+            let expected = display_type(types, names, generalized_labels, expected);
             format!("This parameter was expected to have type {expected}, but was annotated as {actual}.")
         }
         TypeError::ExpectedDueToAnnotation {
             actual, expected, ..
         } => {
-            let actual = display_type(types, names, actual);
-            let expected = display_type(types, names, expected);
+            let actual = display_type(types, names, generalized_labels, actual);
+            let expected = display_type(types, names, generalized_labels, expected);
             format!(
                 "This expression was expected to have type {expected}, but it has type {actual}."
             )
@@ -146,7 +148,7 @@ pub fn type_error_range(doc: &Document, error: &TypeError) -> TextRange {
 }
 
 fn type_error_to_diagnostic(error: &TypeError, doc: &Document) -> lsp_types::Diagnostic {
-    let msg = type_error_message(doc.names(), doc.types(), error);
+    let msg = type_error_message(doc.names(), doc.generalized_labels(), doc.types(), error);
     let range = type_error_range(doc, error);
     diagnostic(&msg, range, doc)
 }

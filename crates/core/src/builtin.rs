@@ -1,6 +1,10 @@
 use imbl::{hashmap, HashMap};
 
-use crate::{intern::Interner, types::Type, Name, TypeIdx};
+use crate::{
+    intern::Interner,
+    types::{Type, Unique},
+    Name, TypeIdx,
+};
 
 #[must_use]
 pub(crate) fn builtin_types(
@@ -27,8 +31,7 @@ pub(crate) fn builtin_defs(
     let int_to_int = types.intern(Type::Arrow(int, int));
     let int_to_int_to_int = types.intern(Type::Arrow(int, int_to_int));
 
-    let t = names.name("t");
-    let t = types.intern(Type::Bound(0, t));
+    let t = types.intern(Type::Bound(Unique::builtin(0)));
     let t_to_t = types.intern(Type::Arrow(t, t));
     let t_to_tt = types.intern(Type::Arrow(t, t_to_t));
     let bool_to_ttt = types.intern(Type::Arrow(bool, t_to_tt));
