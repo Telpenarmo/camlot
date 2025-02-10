@@ -7,7 +7,6 @@ use std::collections::HashMap;
 
 use la_arena::ArenaMap;
 use nth_ident::nth_ident;
-use rand::random;
 use unify::{
     annotated_return_constraint, check_constraint, ConstraintReason, ConstraintReasonFactory,
     MaybeType,
@@ -62,7 +61,7 @@ impl<'a> TypeInference<'a> {
             names,
             types,
             current_level: Level(0),
-            next_unification_var: Unique(random()),
+            next_unification_var: Unique::init(),
         }
     }
 
@@ -82,14 +81,9 @@ impl<'a> TypeInference<'a> {
             .iter()
             .map(|&name| {
                 let tag = self.next_tag();
-                (
-                    name,
-                    self.types.intern(Type::Skolem(Skolem {
-                        name,
-                        level: self.current_level,
-                        tag,
-                    })),
-                )
+                let skolem = Type::skolem(self.current_level, tag);
+                let skolem = self.types.intern(skolem);
+                (name, skolem)
             })
             .collect::<Environment>()
             .union(env.clone())
@@ -170,17 +164,12 @@ impl<'a> TypeInference<'a> {
     }
 
     fn next_tag(&mut self) -> Unique {
-        self.next_unification_var.0 += 1;
-        Unique(self.next_unification_var.0 - 1)
+        self.next_unification_var.next()
     }
 
     fn fresh(&mut self) -> TypeIdx {
-        let var = self.next_tag();
-        let unifier = Unifier {
-            tag: var,
-            level: self.current_level,
-        };
-        self.types.intern(Type::Unifier(unifier))
+        let tag = self.next_tag();
+        self.types.intern(Type::unifier(self.current_level, tag))
     }
 
     fn infer_expr(&mut self, env: &Environment, types_env: &Environment, expr: ExprIdx) -> TypeIdx {
@@ -374,11 +363,7 @@ impl<'a> TypeInference<'a> {
         match *self.types.lookup(t) {
             Type::Bound(idx, _name) => {
                 let tag = fresh_vars.entry(idx).or_insert_with(|| self.next_tag());
-                let u = Unifier {
-                    tag: *tag,
-                    level: self.current_level,
-                };
-                self.types.intern(Type::Unifier(u))
+                self.types.intern(Type::unifier(self.current_level, *tag))
             }
             Type::Arrow(lhs, rhs) => {
                 let lhs = self.instantiate_impl(fresh_vars, lhs);

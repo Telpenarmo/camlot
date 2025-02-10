@@ -22,11 +22,9 @@ impl TypeInference<'_> {
             Type::Unifier(u) if u.tag == v.tag => true,
             Type::Unifier(u) => {
                 let min = if u.level < v.level { *u } else { v };
-                let new = Unifier {
-                    level: min.level,
-                    tag: self.next_tag(),
-                };
-                self.types.replace_with_fresh(typ, Type::Unifier(new));
+                let tag = self.next_tag();
+                self.types
+                    .replace_with_fresh(typ, Type::unifier(min.level, tag));
                 false
             }
             &Type::Arrow(from, to) => self.occurs(from, v) || self.occurs(to, v),
@@ -52,12 +50,9 @@ impl TypeInference<'_> {
                 } else {
                     ((b, b_idx), (a, a_idx))
                 };
-                let new = Unifier {
-                    level: min.level,
-                    tag: self.next_tag(),
-                };
-                let new = Type::Unifier(new);
-                self.types.replace_with_fresh(min_idx, new);
+                let tag = self.next_tag();
+                self.types
+                    .replace_with_fresh(min_idx, Type::unifier(min.level, tag));
                 self.replace(max_idx, min_idx);
                 vec![]
             }

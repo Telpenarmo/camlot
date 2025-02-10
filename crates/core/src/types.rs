@@ -1,13 +1,25 @@
 use std::fmt::Display;
+use rand::random;
 
 use crate::{intern, Interner, Name};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Unique(pub u16);
+pub struct Unique(u32);
 
 impl Display for Unique {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}", self.0))
+    }
+    
+impl Unique {
+    pub fn init() -> Self {
+        let seed = u32::from(u16::MAX) + u32::from(random::<u16>()) * 0xFF;
+        Self(seed)
+    }
+
+    pub fn next(&mut self) -> Unique {
+        self.0 += 1;
+        Self(self.0 - 1)
     }
 }
 
@@ -51,6 +63,16 @@ pub(crate) struct Skolem {
     pub(crate) name: Name,
     pub(crate) level: Level,
     pub(crate) tag: Unique,
+}
+
+impl Type {
+    pub(crate) fn skolem(level: Level, tag: Unique) -> Type {
+        Type::Skolem(Skolem { level, tag })
+    }
+
+    pub(crate) fn unifier(level: Level, tag: Unique) -> Type {
+        Type::Unifier(Unifier { level, tag })
+    }
 }
 
 #[must_use]
