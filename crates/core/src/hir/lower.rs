@@ -1,3 +1,5 @@
+use std::{iter, slice};
+
 use parser::{nodes as ast, AstToken};
 
 use crate::Name;
@@ -120,17 +122,35 @@ impl Module {
         }
     }
 
-    fn curry<'a, T: Iterator<Item = &'a ParamIdx>, N: parser::AstNode>(
+    fn curry_impl(
         &mut self,
         body: ExprIdx,
-        params: T,
+        innermost_param: ParamIdx,
+        other_params: iter::Rev<slice::Iter<ParamIdx>>,
+        return_type: TypeExprIdx,
+    ) -> Expr {
+        let inner = Expr::lambda_expr(innermost_param, return_type, body);
+        other_params.fold(inner, |body, &param| {
+            let body = body.alloc_no_syntax(self);
+            Expr::lambda_expr(param, self.alloc_missing(), body)
+        })
+    }
+
+    fn curry<N: parser::AstNode>(
+        &mut self,
+        body: ExprIdx,
+        params: &[ParamIdx],
         return_type: &mut Option<TypeExprIdx>,
         whole_expr_ast: &N,
     ) -> ExprIdx {
-        params.fold(body, |body, param| {
+        let mut params = params.iter().rev();
+        if let Some(innermost_param) = params.next().copied() {
             let return_type = return_type.take().unwrap_or_else(|| self.alloc_missing());
-            Expr::lambda_expr(*param, return_type, body).alloc(self, whole_expr_ast)
-        })
+            self.curry_impl(body, innermost_param, params, return_type)
+                .alloc(self, whole_expr_ast)
+        } else {
+            body
+        }
     }
 
     fn lower_expr_defaulting_to_unit<N: parser::AstNode>(
@@ -183,14 +203,13 @@ impl Module {
                         params
                     }
                 };
-                let params_rev = params.iter().rev();
 
                 let body = self.lower_expr(ast.body());
 
                 let return_type = self.lower_type_annotation(ast.type_annotation());
 
                 let mut return_type = Some(return_type);
-                let expr = self.curry(body, params_rev, &mut return_type, &ast);
+                let expr = self.curry(body, &params, &mut return_type, &ast);
                 debug_assert!(
                     return_type.is_none(),
                     "Return type definition should be used"
@@ -234,13 +253,12 @@ impl Module {
                 };
 
                 let params = self.lower_params(ast.params());
-                let params_rev = params.iter().rev();
 
                 let return_type = self.lower_type_annotation(ast.type_annotation());
                 let mut return_type = Some(return_type);
 
                 let defn = self.lower_expr(ast.def());
-                let defn = self.curry(defn, params_rev, &mut return_type, &ast);
+                let defn = self.curry(defn, &params, &mut return_type, &ast);
 
                 let return_type = return_type.unwrap_or_else(|| self.alloc_missing());
 
