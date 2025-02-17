@@ -1,5 +1,7 @@
+use core::Interned;
+
 use line_index::TextSize;
-use parser::AstNode;
+use parser::{nodes, AstNode};
 
 use crate::Document;
 
@@ -23,7 +25,7 @@ fn defn_inlay_hints(
     defn_idx: core::DefinitionIdx,
     typ: core::TypeIdx,
 ) -> Vec<lsp_types::InlayHint> {
-    let return_type = &doc.hir()[defn_idx].return_type;
+    let defn = &doc.hir()[defn_idx];
 
     let defn_syntax = doc
         .syntax::<_, parser::nodes::Definition>(defn_idx)
@@ -31,7 +33,7 @@ fn defn_inlay_hints(
 
     let params = defn_syntax.params().unwrap();
 
-    hints_for_function(doc, &params, *return_type, typ)
+    hints_for_function(doc, &params, &defn.type_params, defn.return_type, typ)
 }
 
 fn expr_inlay_hints(
@@ -54,7 +56,13 @@ fn expr_inlay_hints(
             let syntax = &doc.syntax::<_, parser::nodes::LetStmt>(expr)?;
             let params = syntax.params().unwrap();
             let typ = doc.expr_types().get(let_expr.defn).unwrap();
-            Some(hints_for_function(doc, &params, let_expr.return_type, *typ))
+            Some(hints_for_function(
+                doc,
+                &params,
+                &[],
+                let_expr.return_type,
+                *typ,
+            ))
         }
         _ => Some(vec![]),
     }
@@ -63,6 +71,7 @@ fn expr_inlay_hints(
 fn hints_for_function(
     doc: &Document,
     params: &parser::nodes::Params,
+    type_params: &[Interned<String>],
     return_type: core::TypeExprIdx,
     typ: core::TypeIdx,
 ) -> Vec<lsp_types::InlayHint> {
@@ -72,14 +81,23 @@ fn hints_for_function(
 
     let mut hints = Vec::new();
 
+    for var in core::bound_variables(typ, doc.types()) {
+        if type_params.contains(&var) {
+            continue;
+        }
+        let label = format!("'{} ", doc.names().get_name(var));
+        let offset = params.syntax().text_range().start();
+        hints.push(make_hint(doc.get_line_index(), offset, label));
+        break;
+    }
+
     params.params().for_each(|param| {
         let ty = doc.get_type(typ);
         if let core::Type::Arrow(lhs, rhs) = ty {
-            eprintln!("lhs: {lhs:?}, rhs: {rhs:?}");
             if param.type_annotation().is_none()
                 && param
                     .pattern()
-                    .is_some_and(|p| !matches!(p, parser::nodes::Pattern::UnitPattern(_)))
+                    .is_some_and(|p| !matches!(p, nodes::Pattern::UnitPattern(_)))
             {
                 let param_typ = doc.display_type(*lhs);
                 let offset = param.syntax().text_range().start();

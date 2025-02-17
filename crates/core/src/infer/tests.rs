@@ -4,9 +4,10 @@ use crate::{hir, infer::arrow, intern::Interner, types::Type, TypeIdx};
 fn infer_from_str(code: &str) -> (hir::Module, Interner<Type>, InferenceResult) {
     let module_ast = parser::parse(code).module();
     let mut types = Interner::new();
-    let mut module = hir::Module::new(&mut types);
-    module.lower_module(&module_ast);
-    let infer = TypeInference::new(&module, &mut types);
+    let mut names = Interner::new();
+    let mut module = hir::Module::new(&mut names, &mut types);
+    module.lower_module(&mut names, &module_ast);
+    let infer = TypeInference::new(&module, &mut names, &mut types);
     let result = infer.infer();
     (module, types, result)
 }
@@ -27,7 +28,20 @@ fn get_first_defn_types(module: &hir::Module, result: &InferenceResult) -> (Type
 #[track_caller]
 #[inline]
 fn assert_types_eq(actual: TypeIdx, expected: TypeIdx, types: &Interner<Type>) {
-    assert_eq!(types.lookup(actual), types.lookup(expected), "{types:?}");
+    #[must_use]
+    pub(crate) fn type_eq(types: &Interner<Type>, a: TypeIdx, b: TypeIdx) -> bool {
+        match (types.lookup(a), types.lookup(b)) {
+            (&Type::Link(a, _), &Type::Link(b, _)) => type_eq(types, a, b),
+            (&Type::Link(a, _), _) => type_eq(types, a, b),
+            (_, &Type::Link(b, _)) => type_eq(types, a, b),
+            (&Type::Arrow(a1, a2), &Type::Arrow(b1, b2)) => {
+                type_eq(types, a1, b1) && type_eq(types, a2, b2)
+            }
+            _ => a == b,
+        }
+    }
+
+    assert!(type_eq(types, actual, expected), "{types:?}");
 }
 
 #[test]
@@ -99,11 +113,23 @@ fn test_infer_unannotated_id() {
     let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
 
     assert!(
-        matches!(types.lookup(actual_defn), Type::Arrow(from, to) if matches!(types.lookup(*from), Type::Unifier(_)) && matches!(types.lookup(*to), Type::Unifier(_))),
+        matches!(
+            types.get_type(actual_defn),
+            Type::Arrow(from, to)
+            if matches!(
+                types.get_type(*from),
+                Type::Bound(id_from)
+                if matches!(
+                    types.get_type(*to),
+                    Type::Bound(id_to)
+                    if id_from == id_to
+                )
+            )
+        ),
         "actual: {actual_defn:?}\n{types:?}"
     );
     assert!(
-        matches!(types.lookup(actual_body), Type::Unifier(_)),
+        matches!(types.get_type(actual_body), Type::Skolem(..)),
         "actual: {actual_body:?}\n{types:?}"
     );
 }
@@ -149,26 +175,6 @@ fn test_infer_block_returning_let() {
 
     assert_types_eq(actual_defn, arrow(&mut types, int, int), &types);
     assert_types_eq(actual_body, int, &types);
-}
-
-#[test]
-fn infer_endless_recursion() {
-    let (module, types, result) = infer_from_str("def f = f;");
-
-    assert_empty(&result.diagnostics);
-
-    let (actual_defn, actual_body) = get_first_defn_types(&module, &result);
-
-    assert!(
-        matches!(types.lookup(actual_body), Type::Unifier(_)),
-        "actual: {:?}\n{types:?}",
-        types.lookup(actual_body)
-    );
-    assert!(
-        matches!(types.lookup(actual_defn), Type::Unifier(_)),
-        "actual: {:?}\n{types:?}",
-        types.lookup(actual_defn)
-    );
 }
 
 #[test]

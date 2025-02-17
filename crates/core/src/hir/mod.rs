@@ -63,6 +63,7 @@ impl Expr {
             return_type,
             defn,
             body,
+            type_params: [].into(),
         })
     }
 
@@ -91,6 +92,7 @@ impl Expr {
 #[allow(unused)]
 #[derive(PartialEq, Debug)]
 pub struct LetExpr {
+    pub type_params: Box<[Name]>,
     pub lhs: PatternIdx,
     pub return_type: TypeExprIdx,
     pub defn: ExprIdx,

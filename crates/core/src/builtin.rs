@@ -1,20 +1,16 @@
 use imbl::{hashmap, HashMap};
 
-use crate::{
-    intern::Interner,
-    types::{Type, TypeScheme},
-    Name,
-};
+use crate::{intern::Interner, types::Type, Name, TypeIdx};
 
 #[must_use]
 pub(crate) fn builtin_types(
     names: &mut Interner<String>,
     types: &mut Interner<Type>,
-) -> HashMap<Name, TypeScheme> {
+) -> HashMap<Name, TypeIdx> {
     hashmap! {
-        names.name("unit") => TypeScheme::empty(types.intern(Type::Unit)),
-        names.name("bool") => TypeScheme::empty(types.intern(Type::Bool)),
-        names.name("int") => TypeScheme::empty(types.intern(Type::Int)),
+        names.name("unit") => types.intern(Type::Unit),
+        names.name("bool") => types.intern(Type::Bool),
+        names.name("int") => types.intern(Type::Int),
     }
 }
 
@@ -22,7 +18,7 @@ pub(crate) fn builtin_types(
 pub(crate) fn builtin_defs(
     names: &mut Interner<String>,
     types: &mut Interner<Type>,
-) -> HashMap<Name, TypeScheme> {
+) -> HashMap<Name, TypeIdx> {
     let bool = types.intern(Type::Bool);
     let int = types.intern(Type::Int);
     let bool_to_bool = types.intern(Type::Arrow(bool, bool));
@@ -31,19 +27,19 @@ pub(crate) fn builtin_defs(
     let int_to_int = types.intern(Type::Arrow(int, int));
     let int_to_int_to_int = types.intern(Type::Arrow(int, int_to_int));
 
-    let t_n = names.name("t");
-    let t = types.intern(Type::Var(t_n));
+    let t = names.name("t");
+    let t = types.intern(Type::Bound(0, t));
     let t_to_t = types.intern(Type::Arrow(t, t));
     let t_to_tt = types.intern(Type::Arrow(t, t_to_t));
     let bool_to_ttt = types.intern(Type::Arrow(bool, t_to_tt));
 
     hashmap! {
-        names.name("not") => TypeScheme::empty(bool_to_bool),
-        names.name("or") => TypeScheme::empty(bool_to_bool_to_bool),
-        names.name("and") => TypeScheme::empty(bool_to_bool_to_bool),
-        names.name("add") => TypeScheme::empty(int_to_int_to_int),
-        names.name("sub") => TypeScheme::empty(int_to_int_to_int),
-        names.name("mul") => TypeScheme::empty(int_to_int_to_int),
-        names.name("if") => TypeScheme { params: Box::new([t_n]), body: bool_to_ttt },
+        names.name("not") => bool_to_bool,
+        names.name("or") => bool_to_bool_to_bool,
+        names.name("and") => bool_to_bool_to_bool,
+        names.name("add") => int_to_int_to_int,
+        names.name("sub") => int_to_int_to_int,
+        names.name("mul") => int_to_int_to_int,
+        names.name("if") => bool_to_ttt,
     }
 }

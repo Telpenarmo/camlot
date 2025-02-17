@@ -1,9 +1,9 @@
 use crate::hir::{ExprIdx, TypeExprIdx};
-use crate::types::{Type, TypeIdx, UnificationVar};
+use crate::types::{Type, TypeIdx};
 use crate::{Name, PatternIdx};
 
 use super::unify::UnifcationError;
-use super::{ConstraintReason, TypeInference};
+use super::{ConstraintReason, TypeInference, Unifier};
 
 #[derive(PartialEq, Debug)]
 pub enum TypeError {
@@ -23,7 +23,7 @@ pub enum TypeError {
     CyclicType {
         expr: ExprIdx,
         typ: TypeIdx,
-        var: UnificationVar,
+        var: Unifier,
     },
     UnexpectedUnitPattern {
         pattern: PatternIdx,
@@ -81,24 +81,17 @@ impl TypeInference<'_> {
                     lhs_type,
                     arg_type,
                     ..
-                } => {
-                    let lhs_type = self.normalize(lhs_type);
-                    let arg_type = self.normalize(arg_type);
-                    match self.types.lookup(lhs_type) {
-                        &Type::Arrow(from, _to) => TypeError::WrongArgument {
-                            arg: rhs,
-                            expected: from,
-                            actual: arg_type,
-                        },
-                        _ => TypeError::AppliedToNonFunction { lhs, lhs_type },
-                    }
-                }
+                } => match self.types.get_type(lhs_type) {
+                    &Type::Arrow(from, _to) => TypeError::WrongArgument {
+                        arg: rhs,
+                        expected: from,
+                        actual: arg_type,
+                    },
+                    _ => TypeError::AppliedToNonFunction { lhs, lhs_type },
+                },
 
                 ConstraintReason::AnnotatedUnit(pattern, expected) => {
-                    TypeError::UnexpectedUnitPattern {
-                        pattern,
-                        expected: self.normalize(expected),
-                    }
+                    TypeError::UnexpectedUnitPattern { pattern, expected }
                 }
 
                 ConstraintReason::Checking {
@@ -107,8 +100,8 @@ impl TypeInference<'_> {
                     expected,
                 } => TypeError::TypeMismatch {
                     expr,
-                    expected: self.normalize(expected),
-                    actual: self.normalize(actual),
+                    expected,
+                    actual,
                 },
 
                 ConstraintReason::WrongParamAnnotation {
@@ -118,8 +111,8 @@ impl TypeInference<'_> {
                     ..
                 } => TypeError::WrongAnnotation {
                     annotation,
-                    actual: self.normalize(actual),
-                    expected: self.normalize(expected),
+                    actual,
+                    expected,
                 },
 
                 ConstraintReason::AnnotatedReturnType {
@@ -130,8 +123,8 @@ impl TypeInference<'_> {
                 } => TypeError::ExpectedDueToAnnotation {
                     expr,
                     annotation,
-                    actual: self.normalize(actual),
-                    expected: self.normalize(expected),
+                    actual,
+                    expected,
                 },
             },
         }

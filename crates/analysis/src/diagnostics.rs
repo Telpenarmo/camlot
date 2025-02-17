@@ -80,46 +80,46 @@ pub fn type_error_message(
             format!("Unbound type {}", names.get_name(name))
         }
         TypeError::CyclicType { typ, var, .. } => {
-            let typ = display_type(types, typ);
+            let typ = display_type(types, names, typ);
             format!("Cyclic type: {var} appears in {typ}")
         }
         TypeError::WrongArgument {
             expected, actual, ..
         } => {
-            let expected = display_type(types, expected);
-            let actual = display_type(types, actual);
+            let expected = display_type(types, names, expected);
+            let actual = display_type(types, names, actual);
             format!("Type mismatch: this value has type {actual}, but is given to a function expecting type {expected}.")
         }
         TypeError::TypeMismatch {
             expected, actual, ..
         } => {
-            let expected = display_type(types, expected);
-            let actual = display_type(types, actual);
+            let expected = display_type(types, names, expected);
+            let actual = display_type(types, names, actual);
             format!("Type mismatch: expected {expected} but got {actual}.")
         }
         TypeError::UnexpectedUnitPattern { expected, .. } => {
-            let expected = display_type(types, expected);
+            let expected = display_type(types, names, expected);
             format!("This pattern constraints the value to type @unit, but it is expected to have type {expected}.")
         }
         TypeError::AppliedToNonFunction {
             lhs_type: func_type,
             ..
         } => {
-            let func_type = display_type(types, func_type);
+            let func_type = display_type(types, names, func_type);
             format!("This expression has a type {func_type}. It is not a function and cannot be applied.")
         }
         TypeError::WrongAnnotation {
             actual, expected, ..
         } => {
-            let actual = display_type(types, actual);
-            let expected = display_type(types, expected);
+            let actual = display_type(types, names, actual);
+            let expected = display_type(types, names, expected);
             format!("This parameter was expected to have type {expected}, but was annotated as {actual}.")
         }
         TypeError::ExpectedDueToAnnotation {
             actual, expected, ..
         } => {
-            let actual = display_type(types, actual);
-            let expected = display_type(types, expected);
+            let actual = display_type(types, names, actual);
+            let expected = display_type(types, names, expected);
             format!(
                 "This expression was expected to have type {expected}, but it has type {actual}."
             )

@@ -5,8 +5,8 @@ use la_arena::{Arena, ArenaMap};
 
 use parser::{SyntaxNode, SyntaxNodePtr};
 
-use crate::builtin;
-use crate::types::{Type, TypeScheme};
+use crate::types::Type;
+use crate::{builtin, TypeIdx};
 use crate::{intern::Interner, Name};
 
 use super::{
@@ -37,8 +37,8 @@ pub struct Module {
     patterns: Arena<Pattern>,
     patterns_syntax: ArenaMap<PatternIdx, SyntaxNodePtr>,
 
-    known_definitions: HashMap<Name, TypeScheme>,
-    known_types: HashMap<Name, TypeScheme>,
+    known_definitions: HashMap<Name, TypeIdx>,
+    known_types: HashMap<Name, TypeIdx>,
 }
 
 fn pattern_deep_eq(a_module: &Module, b_module: &Module, a: PatternIdx, b: PatternIdx) -> bool {
@@ -179,12 +179,12 @@ impl Module {
     }
 
     #[must_use]
-    pub fn get_known_types(&self) -> HashMap<Name, TypeScheme> {
+    pub fn get_known_types(&self) -> HashMap<Name, TypeIdx> {
         self.known_types.clone()
     }
 
     #[must_use]
-    pub fn get_known_definitions(&self) -> HashMap<Name, TypeScheme> {
+    pub fn get_known_definitions(&self) -> HashMap<Name, TypeIdx> {
         self.known_definitions.clone()
     }
 

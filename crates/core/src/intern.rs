@@ -60,6 +60,17 @@ where
         &self.set[id.id as usize]
     }
 
+    /// Swaps the value pointed to by `old` with `v`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `v` is already interned.
+    pub fn replace_with_fresh(&mut self, old: Interned<T>, v: T) {
+        let is_new = self.set.insert(v);
+        assert!(is_new, "New element was already interned.");
+        self.set.swap_remove_index(old.id as usize);
+    }
+
     #[must_use]
     pub(crate) fn get_idx(&self, v: &T) -> Interned<T> {
         let id = self.set.get_index_of(v).unwrap();
@@ -79,6 +90,17 @@ impl Interner<String> {
     #[must_use]
     pub fn get_name(&self, name: Interned<String>) -> &str {
         self.lookup(name)
+    }
+}
+
+impl Interner<crate::Type> {
+    #[must_use]
+    pub fn get_type(&self, idx: crate::TypeIdx) -> &crate::Type {
+        let mut typ = self.lookup(idx);
+        while let crate::Type::Link(t, _) = typ {
+            typ = self.lookup(*t);
+        }
+        typ
     }
 }
 

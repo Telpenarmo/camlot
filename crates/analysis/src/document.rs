@@ -86,7 +86,7 @@ impl Document {
     }
 
     pub(crate) fn get_type(&self, idx: core::TypeIdx) -> &Type {
-        self.types.lookup(idx)
+        self.types.get_type(idx)
     }
 
     pub(crate) fn syntax<T: core::StoredInArena, N: parser::AstNode>(

@@ -3,9 +3,10 @@ mod hir;
 mod infer;
 mod intern;
 mod types;
+
 pub use crate::hir::*;
 
-pub use types::{display_type, Type, TypeIdx};
+pub use types::{bound_variables, display_type, Type, TypeIdx};
 
 pub(crate) use hir::Name;
 
