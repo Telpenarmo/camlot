@@ -19,6 +19,10 @@ impl<T> Interned<T> {
             phantom: std::marker::PhantomData,
         }
     }
+
+    fn from_usize(id: usize) -> Self {
+        Self::new(id.try_into().unwrap())
+    }
 }
 
 impl<T> std::fmt::Debug for Interned<T> {
@@ -48,12 +52,18 @@ where
     pub fn intern(&mut self, value: T) -> Interned<T> {
         let (id, _) = self.set.insert_full(value);
 
-        Interned::new(id.try_into().unwrap())
+        Interned::from_usize(id)
     }
 
     #[must_use]
     pub fn lookup(&self, id: Interned<T>) -> &T {
         &self.set[id.id as usize]
+    }
+
+    #[must_use]
+    pub(crate) fn get_idx(&self, v: &T) -> Interned<T> {
+        let id = self.set.get_index_of(v).unwrap();
+        Interned::from_usize(id)
     }
 }
 
