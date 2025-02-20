@@ -348,7 +348,7 @@ impl<'a> TypeInference<'a> {
                     self.errors.push(err);
                     let tag = self.next_tag();
                     self.generalized_labels.add_label(tag, name);
-                    self.types.intern(Type::Bound(tag))
+                    self.types.intern(Type::unifier(self.current_level, tag))
                 }))
             }
             &TypeExpr::TypeArrow { from, to } => {
@@ -393,10 +393,12 @@ impl<'a> TypeInference<'a> {
 
     fn generalize_impl(&mut self, idx: TypeIdx) -> TypeIdx {
         let typ = self.types.lookup(idx).clone();
+        eprintln!("Generalizing {idx:?}@{typ:?}");
         match typ {
             Type::Link(idx, _) => self.generalize_impl(idx),
             Type::Unifier(Unifier { level, tag }) if level > self.current_level => {
                 let new = self.types.intern(Type::skolem(level, tag));
+                eprintln!("Generalizing {tag:?}");
                 self.replace(idx, new);
                 self.types.intern(Type::Bound(tag))
             }

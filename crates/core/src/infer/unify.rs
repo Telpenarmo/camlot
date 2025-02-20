@@ -18,16 +18,16 @@ impl TypeInference<'_> {
         }
     }
     fn occurs(&mut self, typ: TypeIdx, v: Unifier) -> bool {
-        match self.types.get_type(typ) {
+        match *self.types.get_type(typ) {
             Type::Unifier(u) if u.tag == v.tag => true,
             Type::Unifier(u) => {
-                let min = if u.level < v.level { *u } else { v };
-                let tag = self.next_tag();
-                self.types
-                    .replace_with_fresh(typ, Type::unifier(min.level, tag));
+                if u.level > v.level {
+                    self.types
+                        .replace_with_fresh(typ, Type::unifier(v.level, u.tag));
+                }
                 false
             }
-            &Type::Arrow(from, to) => self.occurs(from, v) || self.occurs(to, v),
+            Type::Arrow(from, to) => self.occurs(from, v) || self.occurs(to, v),
             _ => false,
         }
     }
@@ -45,14 +45,11 @@ impl TypeInference<'_> {
             }
 
             ((Type::Unifier(a), a_idx), (Type::Unifier(b), b_idx)) => {
-                let ((min, min_idx), (_max, max_idx)) = if a.level < b.level {
-                    ((a, a_idx), (b, b_idx))
+                let (min_idx, max_idx) = if a.level < b.level {
+                    (a_idx, b_idx)
                 } else {
-                    ((b, b_idx), (a, a_idx))
+                    (b_idx, a_idx)
                 };
-                let tag = self.next_tag();
-                self.types
-                    .replace_with_fresh(min_idx, Type::unifier(min.level, tag));
                 self.replace(max_idx, min_idx);
                 vec![]
             }
