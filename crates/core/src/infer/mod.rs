@@ -148,7 +148,7 @@ impl<'a> TypeInference<'a> {
         self.exit();
 
         let typ = curry(self.types, &params, ret_type);
-        let typ = self.generalize(typ);
+        self.generalize(typ);
 
         env.insert(defn.name, typ);
 
@@ -206,8 +206,7 @@ impl<'a> TypeInference<'a> {
                 self.check_expr(env, types_env, let_expr.defn, typ, constraint);
                 self.exit();
 
-                let gen = self.generalize(typ);
-                self.replace(typ, gen);
+                self.generalize(typ);
                 self.infer_expr(&new_env, types_env, let_expr.body)
             }
 
@@ -387,33 +386,30 @@ impl<'a> TypeInference<'a> {
         self.instantiate_impl(&mut HashMap::new(), typ)
     }
 
-    fn generalize(&mut self, idx: TypeIdx) -> TypeIdx {
-        self.generalize_impl(idx)
+    fn generalize(&mut self, idx: TypeIdx) {
+        self.generalize_impl(idx);
     }
 
-    fn generalize_impl(&mut self, idx: TypeIdx) -> TypeIdx {
+    fn generalize_impl(&mut self, idx: TypeIdx) {
         let typ = self.types.lookup(idx).clone();
-        eprintln!("Generalizing {idx:?}@{typ:?}");
         match typ {
             Type::Link(idx, _) => self.generalize_impl(idx),
             Type::Unifier(Unifier { level, tag }) if level > self.current_level => {
-                let new = self.types.intern(Type::skolem(level, tag));
-                eprintln!("Generalizing {tag:?}");
+                let new = self.types.intern(Type::Bound(tag));
                 self.replace(idx, new);
-                self.types.intern(Type::Bound(tag))
             }
-            Type::Skolem(Skolem { level, tag: order }) if level.0 == self.current_level.0 + 1 => {
-                self.types.intern(Type::Bound(order))
+            Type::Skolem(Skolem { level, tag }) if level.0 == self.current_level.0 + 1 => {
+                let new = self.types.intern(Type::Bound(tag));
+                self.replace(idx, new);
             }
             Type::Skolem(Skolem { level, .. }) if level > self.current_level => {
                 panic!("Skolem from a higher level");
             }
             Type::Arrow(from, to) => {
-                let from = self.generalize_impl(from);
-                let to = self.generalize_impl(to);
-                arrow(self.types, from, to)
+                self.generalize_impl(from);
+                self.generalize_impl(to);
             }
-            _ => idx,
+            _ => {}
         }
     }
 
