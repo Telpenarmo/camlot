@@ -1,0 +1,157 @@
+MODULE@0..203
+  DEFINITION@0..202
+    DEF_KW@0..3 "def"
+    WHITESPACE@3..4 " "
+    IDENT@4..7 "fib"
+    WHITESPACE@7..8 " "
+    TYPE_PARAMS@8..8
+    PARAMS@8..16
+      PARAM@8..14
+        IDENT_PATTERN@8..14
+          IDENT@8..14 "int_eq"
+      WHITESPACE@14..15 " "
+      PARAM@15..16
+        IDENT_PATTERN@15..16
+          IDENT@15..16 "n"
+    WHITESPACE@16..17 " "
+    DEF_BODY@17..202
+      BLOCK_EXPR@17..202
+        L_BRACE@17..18 "{"
+        WHITESPACE@18..24 "\n\n    "
+        LET_STMT@24..182
+          LET_KW@24..27 "let"
+          WHITESPACE@27..28 " "
+          REC_KW@28..31 "rec"
+          WHITESPACE@31..32 " "
+          IDENT_PATTERN@32..36
+            IDENT@32..36 "impl"
+          WHITESPACE@36..37 " "
+          PARAMS@37..48
+            PARAM@37..38
+              IDENT_PATTERN@37..38
+                IDENT@37..38 "n"
+            WHITESPACE@38..39 " "
+            PARAM@39..43
+              IDENT_PATTERN@39..43
+                IDENT@39..43 "prev"
+            WHITESPACE@43..44 " "
+            PARAM@44..48
+              IDENT_PATTERN@44..48
+                IDENT@44..48 "this"
+          WHITESPACE@48..49 " "
+          EQUAL@49..50 "="
+          WHITESPACE@50..59 "\n        "
+          PAREN_EXPR@59..181
+            L_PAREN@59..60 "("
+            APP_EXPR@60..180
+              APP_EXPR@60..89
+                APP_EXPR@60..75
+                  IDENT_EXPR@60..62
+                    IDENT@60..62 "if"
+                  WHITESPACE@62..63 " "
+                  PAREN_EXPR@63..75
+                    L_PAREN@63..64 "("
+                    APP_EXPR@64..74
+                      APP_EXPR@64..72
+                        IDENT_EXPR@64..70
+                          IDENT@64..70 "int_eq"
+                        WHITESPACE@70..71 " "
+                        IDENT_EXPR@71..72
+                          IDENT@71..72 "n"
+                      WHITESPACE@72..73 " "
+                      LITERAL_EXPR@73..74
+                        INT@73..74 "0"
+                    R_PAREN@74..75 ")"
+                WHITESPACE@75..88 "\n            "
+                LITERAL_EXPR@88..89
+                  INT@88..89 "0"
+              WHITESPACE@89..98 "\n        "
+              PAREN_EXPR@98..180
+                L_PAREN@98..99 "("
+                APP_EXPR@99..174
+                  APP_EXPR@99..128
+                    APP_EXPR@99..114
+                      IDENT_EXPR@99..101
+                        IDENT@99..101 "if"
+                      WHITESPACE@101..102 " "
+                      PAREN_EXPR@102..114
+                        L_PAREN@102..103 "("
+                        APP_EXPR@103..113
+                          APP_EXPR@103..111
+                            IDENT_EXPR@103..109
+                              IDENT@103..109 "int_eq"
+                            WHITESPACE@109..110 " "
+                            IDENT_EXPR@110..111
+                              IDENT@110..111 "n"
+                          WHITESPACE@111..112 " "
+                          LITERAL_EXPR@112..113
+                            INT@112..113 "1"
+                        R_PAREN@113..114 ")"
+                    WHITESPACE@114..127 "\n            "
+                    LITERAL_EXPR@127..128
+                      INT@127..128 "1"
+                  WHITESPACE@128..137 "\n        "
+                  PAREN_EXPR@137..174
+                    L_PAREN@137..138 "("
+                    APP_EXPR@138..173
+                      APP_EXPR@138..163
+                        APP_EXPR@138..147
+                          IDENT_EXPR@138..142
+                            IDENT@138..142 "impl"
+                          WHITESPACE@142..143 " "
+                          IDENT_EXPR@143..147
+                            IDENT@143..147 "this"
+                        WHITESPACE@147..148 " "
+                        PAREN_EXPR@148..163
+                          L_PAREN@148..149 "("
+                          APP_EXPR@149..162
+                            APP_EXPR@149..157
+                              IDENT_EXPR@149..152
+                                IDENT@149..152 "add"
+                              WHITESPACE@152..153 " "
+                              IDENT_EXPR@153..157
+                                IDENT@153..157 "prev"
+                            WHITESPACE@157..158 " "
+                            IDENT_EXPR@158..162
+                              IDENT@158..162 "this"
+                          R_PAREN@162..163 ")"
+                      WHITESPACE@163..164 " "
+                      PAREN_EXPR@164..173
+                        L_PAREN@164..165 "("
+                        APP_EXPR@165..172
+                          APP_EXPR@165..170
+                            IDENT_EXPR@165..168
+                              IDENT@165..168 "sub"
+                            WHITESPACE@168..169 " "
+                            IDENT_EXPR@169..170
+                              IDENT@169..170 "n"
+                          WHITESPACE@170..171 " "
+                          LITERAL_EXPR@171..172
+                            INT@171..172 "1"
+                        R_PAREN@172..173 ")"
+                    R_PAREN@173..174 ")"
+                WHITESPACE@174..179 "\n    "
+                R_PAREN@179..180 ")"
+            R_PAREN@180..181 ")"
+          SEMICOLON@181..182 ";"
+        WHITESPACE@182..188 "\n\n    "
+        PAREN_EXPR@188..200
+          L_PAREN@188..189 "("
+          APP_EXPR@189..199
+            APP_EXPR@189..197
+              APP_EXPR@189..195
+                IDENT_EXPR@189..193
+                  IDENT@189..193 "impl"
+                WHITESPACE@193..194 " "
+                IDENT_EXPR@194..195
+                  IDENT@194..195 "n"
+              WHITESPACE@195..196 " "
+              LITERAL_EXPR@196..197
+                INT@196..197 "0"
+            WHITESPACE@197..198 " "
+            LITERAL_EXPR@198..199
+              INT@198..199 "1"
+          R_PAREN@199..200 ")"
+        WHITESPACE@200..201 "\n"
+        R_BRACE@201..202 "}"
+  WHITESPACE@202..203 "\n"

@@ -128,9 +128,10 @@ fn test_infer_unannotated_id() {
         ),
         "actual: {actual_defn:?}\n{types:?}"
     );
+    let actual_body = types.get_type(actual_body);
     assert!(
-        matches!(types.get_type(actual_body), Type::Skolem(..)),
-        "actual: {actual_body:?}\n{types:?}"
+        matches!(actual_body, Type::Bound(..)),
+        "actual: {actual_body:?}\nTypes: {types:?}"
     );
 }
 
@@ -238,16 +239,11 @@ fn type_aliases_are_associative() {
 fn types_declarations_are_order_sensitive() {
     let (_module, _types, result) = infer_from_str("type A = B; type B = int; def i: A = 1;");
 
-    assert_eq!(result.diagnostics.len(), 2);
+    assert_eq!(result.diagnostics.len(), 1, "{:#?}", result.diagnostics);
 
     assert!(matches!(
         &result.diagnostics[0],
         &crate::TypeError::UnboundTypeVariable { .. }
-    ));
-
-    assert!(matches!(
-        &result.diagnostics[1],
-        &crate::TypeError::ExpectedDueToAnnotation { .. }
     ));
 }
 

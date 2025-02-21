@@ -10,6 +10,9 @@ impl ModulePrinter<'_, '_> {
             new_line(self.f, *self.indent)?;
         }
         self.f.write_str("let ")?;
+        if e.rec {
+            self.f.write_str("rec ")?;
+        }
         self.fmt_pattern(e.lhs)?;
         if self.module[e.return_type] != TypeExpr::Missing {
             self.f.write_str(" : ")?;

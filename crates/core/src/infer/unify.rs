@@ -211,7 +211,7 @@ pub(super) fn check_constraint(
     MakeCheckConstraint { module, expr, to }
 }
 
-pub(super) fn annotated_return_constraint(
+pub(super) fn annotated_return(
     module: &Module,
     expr: ExprIdx,
     annotation: TypeExprIdx,

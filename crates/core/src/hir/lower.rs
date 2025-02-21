@@ -257,7 +257,7 @@ impl LoweringContext<'_> {
             ast::Stmt::ExprStmt(ast) => {
                 let expr = self.lower_expr_defaulting_to_unit(ast.expr(), &ast);
                 let pat = Pattern::Unit.alloc(self.module, &ast);
-                Expr::let_expr(pat, self.module.alloc_missing(), expr, cont)
+                Expr::let_expr(pat, false, self.module.alloc_missing(), expr, cont)
                     .alloc(self.module, &ast)
             }
             ast::Stmt::LetStmt(ast) => {
@@ -265,6 +265,8 @@ impl LoweringContext<'_> {
                     Some(pat) => self.lower_pattern(&pat),
                     None => Pattern::Wildcard.alloc_no_syntax(self.module),
                 };
+
+                let rec = ast.rec_kw_token().is_some();
 
                 let params = self.lower_params(ast.params());
 
@@ -276,7 +278,7 @@ impl LoweringContext<'_> {
 
                 let return_type = return_type.unwrap_or_else(|| self.module.alloc_missing());
 
-                Expr::let_expr(pattern, return_type, defn, cont).alloc(self.module, &ast)
+                Expr::let_expr(pattern, rec, return_type, defn, cont).alloc(self.module, &ast)
             }
         }
     }
@@ -407,7 +409,7 @@ mod tests {
 
         let pat = Pattern::Ident(name).alloc_no_syntax(&mut module);
 
-        Expr::let_expr(pat, typ, defn, body).alloc_no_syntax(&mut module);
+        Expr::let_expr(pat, false, typ, defn, body).alloc_no_syntax(&mut module);
 
         check_expr("{ let a b; d }", &mut names, &module);
     }

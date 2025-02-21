@@ -9,8 +9,7 @@ use std::collections::HashMap;
 pub use errors::TypeError;
 use la_arena::ArenaMap;
 use unify::{
-    annotated_return_constraint, check_constraint, ConstraintReason, ConstraintReasonFactory,
-    MaybeType,
+    annotated_return, check_constraint, ConstraintReason, ConstraintReasonFactory, MaybeType,
 };
 
 use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
@@ -122,7 +121,7 @@ impl<'a> TypeInference<'a> {
 
     fn infer_definition(
         &mut self,
-        env: &mut Environment,
+        global_env: &mut Environment,
         types_env: &Environment,
         idx: DefinitionIdx,
         defn: &Definition,
@@ -131,31 +130,33 @@ impl<'a> TypeInference<'a> {
 
         let types_env = self.load_type_params(types_env, &defn.type_params);
 
-        let mut def_env = env.clone();
+        let mut env = global_env.clone();
         let params: Vec<_> = defn
             .params
             .iter()
             .map(|param| {
                 let param = &self.module[*param];
                 let typ = self.resolve_type_expr(&types_env, param.typ);
-                let (env, typ) = self.resolve_pattern(&def_env, param.pattern, typ);
-                def_env = env;
+                let (env_with_param, typ) = self.resolve_pattern(&env, param.pattern, typ);
+                env = env_with_param;
                 typ
             })
             .collect();
 
-        let ret_type = self.check_or_infer(&def_env, &types_env, defn.defn, defn.return_type);
+        let body_type = self.resolve_type_expr_or_var(&types_env, defn.return_type);
+        let defn_type = curry(self.types, &params, body_type);
+        env.insert(defn.name, defn_type);
+
+        let constraint = annotated_return(self.module, defn.defn, defn.return_type, body_type);
+        self.check_expr(&env, &types_env, defn.defn, body_type, constraint);
+
         self.exit();
 
-        let typ = curry(self.types, &params, ret_type);
-        self.generalize(typ);
+        self.generalize(defn_type);
 
-        env.insert(defn.name, typ);
+        global_env.insert(defn.name, defn_type);
+        self.defn_types.insert(idx, defn_type);
 
-        // let reason = ConstraintReason::check(self.module, defn.defn, typ,registered_var);
-        // self.eq(reason);
-
-        self.defn_types.insert(idx, typ);
         self.assign_labels(idx);
     }
 
@@ -197,12 +198,9 @@ impl<'a> TypeInference<'a> {
                 let def_typ = self.resolve_type_expr(types_env, let_expr.return_type);
                 let (new_env, typ) = self.resolve_pattern(env, let_expr.lhs, def_typ);
 
-                let constraint = annotated_return_constraint(
-                    self.module,
-                    let_expr.defn,
-                    let_expr.return_type,
-                    typ,
-                );
+                let constraint =
+                    annotated_return(self.module, let_expr.defn, let_expr.return_type, typ);
+                let env = if let_expr.rec { &new_env } else { env };
                 self.check_expr(env, types_env, let_expr.defn, typ, constraint);
                 self.exit();
 
@@ -255,7 +253,7 @@ impl<'a> TypeInference<'a> {
     ) -> TypeIdx {
         self.resolve_type_expr(types_env, annotation)
             .inspect(|&typ| {
-                let constraint = annotated_return_constraint(self.module, expr, annotation, typ);
+                let constraint = annotated_return(self.module, expr, annotation, typ);
                 self.check_expr(env, types_env, expr, typ, constraint);
                 self.expr_types.insert(expr, typ);
             })

@@ -70,6 +70,8 @@ pub enum SyntaxKind {
     TYPE_KW,
     #[token("let")]
     LET_KW,
+    #[token("rec")]
+    REC_KW,
     #[token("dummy")]
     DUMMY_KW,
     #[doc = r" Also acts as __LAST_TOKEN"]
@@ -96,11 +98,11 @@ pub enum SyntaxKind {
     PAREN_EXPR,
     BINARY_EXPR,
     APP_EXPR,
+    TYPE_PARAM,
     PARAM,
     IDENT_PATTERN,
     UNDERSCORE_PATTERN,
     UNIT_PATTERN,
-    TYPE_PARAM,
     MODULE_ITEM,
     TYPE_EXPR,
     EXPR,
@@ -116,7 +118,7 @@ impl SyntaxKind {
     #[must_use]
     pub fn is_keyword(self) -> bool {
         match self {
-            DEF_KW | OPEN_KW | TYPE_KW | LET_KW | DUMMY_KW => true,
+            DEF_KW | OPEN_KW | TYPE_KW | LET_KW | REC_KW | DUMMY_KW => true,
             _ => false,
         }
     }

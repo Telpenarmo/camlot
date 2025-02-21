@@ -29,7 +29,7 @@ Stmt =
 | LetStmt
 
 ExprStmt = Expr ';'
-LetStmt = 'let' Pattern Params TypeAnnotation? '=' def:Expr ';'
+LetStmt = 'let' 'rec'? Pattern Params TypeAnnotation? '=' def:Expr ';'
 
 Expr =
   IdentExpr

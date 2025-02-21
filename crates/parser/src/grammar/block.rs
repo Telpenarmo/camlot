@@ -44,6 +44,8 @@ fn let_stmt(parser: &mut Parser) -> CompletedMarker {
 
     let mark = parser.open();
     parser.expect(SyntaxKind::LET_KW);
+    parser.eat(SyntaxKind::REC_KW);
+
     pattern(parser);
     params(parser);
     type_expr::type_annotation(parser);

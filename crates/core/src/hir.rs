@@ -54,12 +54,14 @@ pub enum Expr {
 impl Expr {
     pub(crate) fn let_expr(
         lhs: PatternIdx,
+        rec: bool,
         return_type: TypeExprIdx,
         defn: ExprIdx,
         body: ExprIdx,
     ) -> Self {
         Self::LetExpr(LetExpr {
             lhs,
+            rec,
             return_type,
             defn,
             body,
@@ -94,6 +96,7 @@ impl Expr {
 pub struct LetExpr {
     pub type_params: Box<[Name]>,
     pub lhs: PatternIdx,
+    pub rec: bool,
     pub return_type: TypeExprIdx,
     pub defn: ExprIdx,
     pub body: ExprIdx,

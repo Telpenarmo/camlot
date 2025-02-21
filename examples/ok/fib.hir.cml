@@ -1,0 +1,4 @@
+def fib int_eq n = {
+    let rec impl = \n -> \prev -> \this -> (((if ((int_eq n) 0)) 0) (((if ((int_eq n) 1)) 1) (((impl this) ((add prev) this)) ((sub n) 1))));
+    (((impl n) 0) 1)
+};
