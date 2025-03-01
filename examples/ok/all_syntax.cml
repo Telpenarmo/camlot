@@ -32,6 +32,7 @@ def g {
         let a = 5;
         (const a)
     };
+    let const_unit 't : (t -> unit) = (const ());
     let five =({ const_5 } 0);
-    ()
+    (const_unit five)
 }

@@ -4,7 +4,10 @@ use super::{
     params::params,
 };
 use crate::{
-    grammar::{params::pattern, type_expr},
+    grammar::{
+        params::{pattern, type_params},
+        type_expr,
+    },
     parser::{CompletedMarker, Parser},
     token_set::TokenSet,
     SyntaxKind,
@@ -47,6 +50,7 @@ fn let_stmt(parser: &mut Parser) -> CompletedMarker {
     parser.eat(SyntaxKind::REC_KW);
 
     pattern(parser);
+    type_params(parser);
     params(parser);
     type_expr::type_annotation(parser);
     parser.expect(SyntaxKind::EQUAL);
@@ -88,6 +92,7 @@ mod tests {
                     LET_KW@2..5 "let"
                     ERROR@5..5
                     WHITESPACE@5..6 " "
+                    TYPE_PARAMS@6..6
                     PARAMS@6..6
                     EQUAL@6..7 "="
                     WHITESPACE@7..8 " "

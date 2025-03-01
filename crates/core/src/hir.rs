@@ -55,17 +55,18 @@ impl Expr {
     pub(crate) fn let_expr(
         lhs: PatternIdx,
         rec: bool,
+        type_params: Box<[Name]>,
         return_type: TypeExprIdx,
         defn: ExprIdx,
         body: ExprIdx,
     ) -> Self {
         Self::LetExpr(LetExpr {
+            type_params,
             lhs,
             rec,
             return_type,
             defn,
             body,
-            type_params: [].into(),
         })
     }
 

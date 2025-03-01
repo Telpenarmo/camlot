@@ -64,6 +64,7 @@ MODULE@0..599
           IDENT_PATTERN@133..134
             IDENT@133..134 "x"
           WHITESPACE@134..135 " "
+          TYPE_PARAMS@135..135
           PARAMS@135..135
           EQUAL@135..136 "="
           WHITESPACE@136..137 " "
@@ -103,6 +104,7 @@ MODULE@0..599
           UNDERSCORE_PATTERN@192..193
             UNDERSCORE@192..193 "_"
           WHITESPACE@193..194 " "
+          TYPE_PARAMS@194..194
           PARAMS@194..194
           EQUAL@194..195 "="
           WHITESPACE@195..196 " "
@@ -130,6 +132,7 @@ MODULE@0..599
           UNDERSCORE_PATTERN@239..240
             UNDERSCORE@239..240 "_"
           WHITESPACE@240..241 " "
+          TYPE_PARAMS@241..241
           PARAMS@241..241
           TYPE_ANNOTATION@241..247
             COLON@241..242 ":"
@@ -163,6 +166,7 @@ MODULE@0..599
           IDENT_PATTERN@308..309
             IDENT@308..309 "f"
           WHITESPACE@309..310 " "
+          TYPE_PARAMS@310..310
           PARAMS@310..311
             PARAM@310..311
               UNDERSCORE_PATTERN@310..311
@@ -205,6 +209,7 @@ MODULE@0..599
             L_PAREN@366..367 "("
             R_PAREN@367..368 ")"
           WHITESPACE@368..369 " "
+          TYPE_PARAMS@369..369
           PARAMS@369..369
           EQUAL@369..370 "="
           WHITESPACE@370..371 " "
@@ -232,6 +237,7 @@ MODULE@0..599
           IDENT_PATTERN@432..433
             IDENT@432..433 "f"
           WHITESPACE@433..434 " "
+          TYPE_PARAMS@434..434
           PARAMS@434..437
             PARAM@434..437
               UNIT_PATTERN@434..436
@@ -263,6 +269,7 @@ MODULE@0..599
           WHITESPACE@485..486 " "
           IDENT_PATTERN@486..487
             IDENT@486..487 "x"
+          TYPE_PARAMS@487..487
           PARAMS@487..487
           TYPE_ANNOTATION@487..492
             COLON@487..488 ":"
@@ -304,6 +311,7 @@ MODULE@0..599
           IDENT_PATTERN@541..546
             IDENT@541..546 "outer"
           WHITESPACE@546..547 " "
+          TYPE_PARAMS@547..547
           PARAMS@547..547
           EQUAL@547..548 "="
           WHITESPACE@548..549 " "
@@ -316,6 +324,7 @@ MODULE@0..599
               IDENT_PATTERN@563..568
                 IDENT@563..568 "inner"
               WHITESPACE@568..569 " "
+              TYPE_PARAMS@569..569
               PARAMS@569..569
               TYPE_ANNOTATION@569..574
                 COLON@569..570 ":"

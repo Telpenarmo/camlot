@@ -26,6 +26,7 @@ MODULE@0..203
           IDENT_PATTERN@32..36
             IDENT@32..36 "impl"
           WHITESPACE@36..37 " "
+          TYPE_PARAMS@37..37
           PARAMS@37..48
             PARAM@37..38
               IDENT_PATTERN@37..38

@@ -286,6 +286,10 @@ impl LetStmt {
     pub fn type_annotation(&self) -> Option<TypeAnnotation> {
         support::child(&self.syntax)
     }
+    #[must_use]
+    pub fn type_params(&self) -> Option<TypeParams> {
+        support::child(&self.syntax)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

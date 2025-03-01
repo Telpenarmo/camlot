@@ -180,6 +180,7 @@ MODULE@0..315
               IDENT_PATTERN@190..191
                 IDENT@190..191 "f"
               WHITESPACE@191..192 " "
+              TYPE_PARAMS@192..192
               PARAMS@192..193
                 PARAM@192..193
                   IDENT_PATTERN@192..193

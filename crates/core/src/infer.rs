@@ -195,17 +195,18 @@ impl<'a> TypeInference<'a> {
             Expr::Missing => self.fresh(),
             Expr::LetExpr(let_expr) => {
                 self.enter();
-                let def_typ = self.resolve_type_expr(types_env, let_expr.return_type);
+                let types_env = self.load_type_params(types_env, &let_expr.type_params);
+                let def_typ = self.resolve_type_expr(&types_env, let_expr.return_type);
                 let (new_env, typ) = self.resolve_pattern(env, let_expr.lhs, def_typ);
 
                 let constraint =
                     annotated_return(self.module, let_expr.defn, let_expr.return_type, typ);
                 let env = if let_expr.rec { &new_env } else { env };
-                self.check_expr(env, types_env, let_expr.defn, typ, constraint);
+                self.check_expr(env, &types_env, let_expr.defn, typ, constraint);
                 self.exit();
 
                 self.generalize(typ);
-                self.infer_expr(&new_env, types_env, let_expr.body)
+                self.infer_expr(&new_env, &types_env, let_expr.body)
             }
 
             &Expr::IdentExpr { name } => self.get_from_env(env, name).unwrap_or_else(|| {
