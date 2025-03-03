@@ -1,5 +1,10 @@
 use core::{infer, InferenceResult, Interner, Module, ModuleAndNames, Type, TypeIdx};
 
+use line_index::TextRange;
+use lsp_types::Position;
+
+use crate::position_to_offset;
+
 pub struct Document {
     line_index: line_index::LineIndex,
     text: String,
@@ -111,5 +116,11 @@ impl Document {
                 names: self.names()
             }
         )
+    }
+
+    pub(crate) fn syntax_at(&self, pos: Position) -> parser::SyntaxElement {
+        let pos = position_to_offset(&self.line_index, pos);
+        let range = TextRange::new(pos, pos);
+        self.parsed().syntax().covering_element(range)
     }
 }

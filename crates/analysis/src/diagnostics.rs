@@ -3,7 +3,7 @@ use core::{display_type, GeneralizedLabels, Interner, Type, TypeError};
 use line_index::TextRange;
 use parser::{SyntaxKind, SyntaxNodePtr};
 
-use crate::{offset_to_position, Document};
+use crate::{text_range_to_lsp_range, Document};
 
 /// # Panics
 ///
@@ -35,17 +35,10 @@ fn parsing_errors(doc: &Document) -> Vec<lsp_types::Diagnostic> {
 }
 
 fn diagnostic(message: &str, range: TextRange, doc: &Document) -> lsp_types::Diagnostic {
-    let range = convert_range(doc, range);
+    let range = text_range_to_lsp_range(doc, range);
     let mut diagnostic = lsp_types::Diagnostic::new_simple(range, message.to_string());
     diagnostic.source = Some("Camlot".into());
     diagnostic
-}
-
-fn convert_range(doc: &Document, range: TextRange) -> lsp_types::Range {
-    let line_index = &doc.get_line_index();
-    let start = offset_to_position(line_index, range.start().into());
-    let end = offset_to_position(line_index, range.end().into());
-    lsp_types::Range::new(start, end)
 }
 
 fn range_of_expr<T: core::StoredInArena + std::fmt::Debug>(

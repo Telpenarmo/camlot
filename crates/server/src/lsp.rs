@@ -44,6 +44,10 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
         handlers::handle_inlay_hints_request,
     );
 
+    server_builder.register_request::<lsp_types::request::SelectionRangeRequest, _>(
+        handlers::handle_selection_range_request,
+    );
+
     let server_capabilities = ServerCapabilities {
         text_document_sync: Some(lsp_types::TextDocumentSyncCapability::Kind(
             lsp_types::TextDocumentSyncKind::FULL,
@@ -61,6 +65,7 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
             .into(),
         ),
         inlay_hint_provider: Some(lsp_types::OneOf::Left(true)),
+        selection_range_provider: Some(lsp_types::SelectionRangeProviderCapability::Simple(true)),
         ..Default::default()
     };
 

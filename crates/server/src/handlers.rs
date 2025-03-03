@@ -7,7 +7,7 @@ use lsp_types::{
     DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
 };
 
-use analysis::{get_diagnostics, get_inlay_hints, get_semantic_tokens};
+use analysis::{get_diagnostics, get_inlay_hints, get_selection_ranges, get_semantic_tokens};
 
 use crate::server::{Context, Server};
 
@@ -156,6 +156,23 @@ pub(crate) fn handle_inlay_hints_request(
     let hints = get_inlay_hints(doc);
 
     Ok(Some(hints))
+}
+
+pub(crate) fn handle_selection_range_request(
+    req: &lsp_types::SelectionRangeParams,
+    _lsp: &Server,
+    ctx: &Context,
+) -> Result<Option<Vec<lsp_types::SelectionRange>>, ResponseError> {
+    let path = req.text_document.uri.path().to_string();
+    let doc = ctx.get_document(&path).unwrap();
+
+    let ranges = req
+        .positions
+        .iter()
+        .map(|&pos| get_selection_ranges(doc, pos))
+        .collect();
+
+    Ok(Some(ranges))
 }
 
 fn doc_not_found_error(path: &str) -> ResponseError {
