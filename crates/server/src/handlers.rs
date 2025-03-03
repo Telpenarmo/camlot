@@ -4,7 +4,7 @@
 use lsp_server::ResponseError;
 use lsp_types::notification::PublishDiagnostics;
 use lsp_types::{
-    DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
+    DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams, ServerCapabilities, WorkDoneProgressOptions,
 };
 
 use analysis::{get_diagnostics, get_inlay_hints, get_selection_ranges, get_semantic_tokens};
@@ -125,6 +125,21 @@ pub(crate) fn handle_hir_tree_request(
     let path = req.text_document.uri.path().to_string();
     let doc = ctx.get_document(&path).unwrap();
     Ok(doc.pretty_module())
+}
+
+pub(crate) fn setup_semantic_tokens_capability(server_capabilities: &mut ServerCapabilities) {
+    server_capabilities.semantic_tokens_provider = Some(
+        lsp_types::SemanticTokensOptions {
+            legend: lsp_types::SemanticTokensLegend {
+                token_types: analysis::SUPPORTED_TOKENS.to_vec(),
+                token_modifiers: vec![],
+            },
+            full: Some(lsp_types::SemanticTokensFullOptions::Bool(true)),
+            range: Some(false),
+            work_done_progress_options: WorkDoneProgressOptions::default(),
+        }
+        .into(),
+    );
 }
 
 pub(crate) fn handle_semantic_tokens_full_request(

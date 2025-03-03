@@ -122,32 +122,38 @@ impl Server {
 pub(crate) struct ServerBuilder {
     request_handlers: HashMap<String, RequestHandler>,
     notification_handlers: HashMap<String, NotificationHandler>,
+    capabilities: ServerCapabilities,
 }
 
 impl ServerBuilder {
-    pub(crate) fn new() -> ServerBuilder {
+    pub(crate) fn new(capabilities: ServerCapabilities) -> ServerBuilder {
         ServerBuilder {
             request_handlers: HashMap::new(),
             notification_handlers: HashMap::new(),
+            capabilities,
         }
     }
 
-    pub(crate) fn build(self, connection: Connection) -> Server {
-        Server {
+    pub(crate) fn build(self, connection: Connection) -> (Server, ServerCapabilities) {
+        let server = Server {
             connection,
             request_handlers: self.request_handlers,
             notification_handlers: self.notification_handlers,
-        }
+        };
+        (server, self.capabilities)
     }
 }
 
 impl ServerBuilder {
-    pub(crate) fn register_request<R, F>(&mut self, handler: F)
+    pub(crate) fn register_request<C, R, F>(&mut self, set_capability: C, handler: F)
     where
+        C: Fn(&mut ServerCapabilities),
         R: lsp_types::request::Request,
         R::Params: serde::de::DeserializeOwned,
         F: Fn(&R::Params, &Server, &Context) -> Result<R::Result, ResponseError> + 'static,
     {
+        set_capability(&mut self.capabilities);
+
         self.request_handlers.insert(
             R::METHOD.into(),
             Box::new(move |req, lsp, ctx| match lsp_utils::cast_req::<R>(req) {
