@@ -1,4 +1,4 @@
-use core::{Interner, Module, ModuleAndNames, Type};
+use core::{infer, Interner, Module, ModuleAndNames, Type};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -21,6 +21,9 @@ fn check_program(text: &str, path: &Path) {
     module.lower_module(&mut names, &ast.module());
 
     test_lowering(&module, &mut names, path);
+
+    ensure_no_type_errors(&module, &mut names, &mut types);
+
     test_pretty_printing(&module, &mut names, &mut types);
 }
 
@@ -42,9 +45,22 @@ fn test_pretty_printing(module: &Module, names: &mut Interner<String>, types: &m
     let mut module_from_hir = Module::new(names, types);
     module_from_hir.lower_module(names, &reparsed.module());
 
-    assert_eq!(
-        &module_from_hir, module,
+    assert!(
+        &module_from_hir == module,
         "Pretty-printed HIR does not match original HIR"
+    );
+}
+
+fn ensure_no_type_errors(
+    module: &Module,
+    names: &mut Interner<String>,
+    types: &mut Interner<Type>,
+) {
+    let result = infer(module, names, types);
+    assert!(
+        result.diagnostics.is_empty(),
+        "Type errors: {:?}",
+        result.diagnostics
     );
 }
 

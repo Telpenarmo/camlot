@@ -1,6 +1,8 @@
+use std::fmt::Debug;
+
 use indexmap::IndexSet;
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, PartialEq)]
 pub struct Interner<T: std::cmp::Eq + std::hash::Hash> {
     set: IndexSet<T>,
 }
@@ -75,6 +77,12 @@ where
     pub(crate) fn get_idx(&self, v: &T) -> Interned<T> {
         let id = self.set.get_index_of(v).unwrap();
         Interned::from_usize(id)
+    }
+}
+
+impl<T: std::fmt::Debug + std::cmp::Eq + std::hash::Hash> Debug for Interner<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_map().entries(self.set.iter().enumerate()).finish()
     }
 }
 
