@@ -6,7 +6,7 @@ impl ModulePrinter<'_, '_> {
     pub(super) fn fmt_type_expr(&mut self, ty: TypeExprIdx) -> std::fmt::Result {
         match &self.module[ty] {
             TypeExpr::Missing => self.f.write_str("_"),
-            &TypeExpr::IdentTypeExpr { name } => self.f.write_str(self.names.get_name(name)),
+            &TypeExpr::IdentTypeExpr { name } => self.fmt_name(name),
             &TypeExpr::TypeArrow { from, to } => {
                 match self.module[from] {
                     TypeExpr::TypeArrow { .. } => {

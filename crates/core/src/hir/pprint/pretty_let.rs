@@ -14,6 +14,9 @@ impl ModulePrinter<'_, '_> {
             self.f.write_str("rec ")?;
         }
         self.fmt_pattern(e.lhs)?;
+        for param in &e.type_params {
+            self.fmt_type_param(*param)?;
+        }
         if self.module[e.return_type] != TypeExpr::Missing {
             self.f.write_str(" : ")?;
             self.fmt_type_expr(e.return_type)?;

@@ -109,17 +109,34 @@ pub(super) fn expr_deep_eq(a_module: &Module, b_module: &Module, a: ExprIdx, b: 
                 && type_expr_deep_eq(a_module, b_module, l_let.return_type, b_let.return_type)
                 && expr_deep_eq(a_module, b_module, l_let.body, b_let.body)
                 && expr_deep_eq(a_module, b_module, l_let.defn, b_let.defn)
+                && l_let.type_params == b_let.type_params
         }
         _ => false,
     }
 }
 
+fn slice_deep_eq<T, F: Fn(&T, &T) -> bool>(a: &[T], b: &[T], eq: F) -> bool {
+    a.len() == b.len() && a.iter().enumerate().all(|(i, v)| eq(v, &b[i]))
+}
+
+fn defn_deep_eq(a_module: &Module, b_module: &Module, a: DefinitionIdx, b: DefinitionIdx) -> bool {
+    let a = &a_module[a];
+    let b = &b_module[b];
+
+    a.name == b.name
+        && expr_deep_eq(a_module, b_module, a.defn, b.defn)
+        && slice_deep_eq(&a.params, &b.params, |&a, &b| {
+            param_deep_eq(a_module, b_module, a, b)
+        })
+        && a.type_params == b.type_params
+}
+
 impl PartialEq for Module {
     fn eq(&self, other: &Self) -> bool {
         self.definitions
-            .values()
-            .zip(other.definitions.values())
-            .all(|(a, b)| expr_deep_eq(self, other, a.defn, b.defn) && a.name == b.name)
+            .iter()
+            .zip(other.definitions.iter())
+            .all(|((a, _), (b, _))| defn_deep_eq(self, other, a, b))
             && self
                 .opens
                 .values()

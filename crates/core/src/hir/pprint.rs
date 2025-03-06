@@ -9,7 +9,7 @@ use crate::{
     Interner,
 };
 
-use super::{LetExpr, Module, ParamIdx, Pattern, PatternIdx, TypeExpr};
+use super::{LetExpr, Module, Name, ParamIdx, Pattern, PatternIdx, TypeExpr};
 
 struct ModulePrinter<'a, 'b> {
     module: &'a Module,
@@ -21,7 +21,7 @@ struct ModulePrinter<'a, 'b> {
 impl ModulePrinter<'_, '_> {
     fn fmt_pattern(&mut self, patt: PatternIdx) -> fmt::Result {
         match self.module[patt] {
-            Pattern::Ident(interned) => self.f.write_str(self.names.get_name(interned)),
+            Pattern::Ident(interned) => self.fmt_name(interned),
             Pattern::Wildcard => self.f.write_str("_"),
             Pattern::Unit => self.f.write_str("()"),
         }
@@ -55,7 +55,7 @@ impl ModulePrinter<'_, '_> {
         match &self.module[expr] {
             Expr::Missing => self.f.write_str("_"),
             Expr::LiteralExpr(lit) => self.f.write_fmt(format_args!("{lit}")),
-            &Expr::IdentExpr { name } => self.f.write_str(self.names.get_name(name)),
+            &Expr::IdentExpr { name } => self.fmt_name(name),
             &Expr::AppExpr { func, arg } => {
                 self.f.write_str("(")?;
                 self.fmt_expr_atomic(func)?;
@@ -73,7 +73,7 @@ impl ModulePrinter<'_, '_> {
         for (_, typ) in self.module.iter_type_definitions() {
             written_types = true;
             self.f.write_str("type ")?;
-            self.f.write_str(self.names.get_name(typ.name))?;
+            self.fmt_name(typ.name)?;
             self.f.write_str(" = ")?;
             self.fmt_type_expr(typ.defn)?;
             self.f.write_str(";\n")?;
@@ -83,7 +83,10 @@ impl ModulePrinter<'_, '_> {
         }
         for (_, defn) in self.module.iter_definitions() {
             self.f.write_str("def ")?;
-            self.f.write_str(self.names.get_name(defn.name))?;
+            self.fmt_name(defn.name)?;
+            for param in &defn.type_params {
+                self.fmt_type_param(*param)?;
+            }
             for param in &defn.params {
                 self.f.write_str(" ")?;
                 self.fmt_param(*param)?;
@@ -97,6 +100,15 @@ impl ModulePrinter<'_, '_> {
             self.f.write_str(";\n")?;
         }
         Ok(())
+    }
+
+    fn fmt_name(&mut self, name: Name) -> fmt::Result {
+        self.f.write_str(self.names.get_name(name))
+    }
+
+    fn fmt_type_param(&mut self, name: Name) -> fmt::Result {
+        self.f.write_str("'")?;
+        self.fmt_name(name)
     }
 }
 
