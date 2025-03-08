@@ -19,28 +19,36 @@ pub(crate) fn params(parser: &mut Parser) -> CompletedMarker {
 }
 
 fn param(parser: &mut Parser) -> CompletedMarker {
+    assert!(parser.at_any(PARAM_START));
+
     let mut mark = parser.open();
 
     if parser.at_any(ATOMIC_PATTERN) {
         pattern(parser);
-    } else if parser.eat(SyntaxKind::L_PAREN) {
+    } else {
+        assert!(parser.eat(SyntaxKind::L_PAREN));
         if parser.eat(SyntaxKind::R_PAREN) {
+            // unit pattern
             let pattern_marker = parser.close(mark, SyntaxKind::UNIT_PATTERN);
             mark = parser.open_before(pattern_marker);
         } else {
+            // type annotated param
             pattern(parser);
+            if !parser.at(SyntaxKind::COLON) {
+                parser.error("Expected ':'".into());
+                return parser.close(mark, SyntaxKind::PARAM);
+            }
             let mark = parser.open();
-            parser.expect(SyntaxKind::COLON);
+            assert!(parser.eat(SyntaxKind::COLON));
             type_expr::type_expr(parser);
             parser.close(mark, SyntaxKind::TYPE_ANNOTATION);
             if !parser.eat(SyntaxKind::R_PAREN) {
-                parser
-                    .eat_error_until(TokenSet::new(&[SyntaxKind::R_PAREN]), "Expected ')'".into());
+                let delimiters =
+                    TokenSet::new(&[SyntaxKind::R_PAREN, SyntaxKind::EQUAL, SyntaxKind::L_BRACE]);
+                parser.eat_error_until(delimiters, "Expected ')'".into());
                 parser.eat(SyntaxKind::R_PAREN);
             }
         }
-    } else {
-        unreachable!();
     }
     parser.close(mark, SyntaxKind::PARAM)
 }

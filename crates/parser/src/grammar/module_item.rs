@@ -18,9 +18,7 @@ pub(crate) fn module_item(parser: &mut Parser) {
             MODULE_ITEM_START.union(MODULE_ITEM_END),
             "Expected declaration".into(),
         );
-        if parser.at_any(MODULE_ITEM_END) {
-            assert!(parser.eat_any(MODULE_ITEM_END));
-        }
+        parser.eat_any(MODULE_ITEM_END);
     }
 }
 
