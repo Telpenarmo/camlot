@@ -107,7 +107,7 @@ impl ModulePrinter<'_, '_> {
     }
 
     fn fmt_type_param(&mut self, name: Name) -> fmt::Result {
-        self.f.write_str("'")?;
+        self.f.write_str(" '")?;
         self.fmt_name(name)
     }
 }
