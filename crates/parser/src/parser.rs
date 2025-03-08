@@ -116,9 +116,7 @@ impl<'t, 'input> Parser<'t, 'input> {
         }
 
         let msg = format!("Expected {:#?} but found {:?}", kind, self.current());
-        eprintln!("{msg}");
-        let marker = self.open_error(msg);
-        self.close_error(marker);
+        self.error(msg);
     }
 
     fn open_error(&mut self, message: String) -> Marker {
