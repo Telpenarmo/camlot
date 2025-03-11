@@ -4,7 +4,8 @@
 use lsp_server::ResponseError;
 use lsp_types::notification::PublishDiagnostics;
 use lsp_types::{
-    DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams, ServerCapabilities, WorkDoneProgressOptions,
+    DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
+    ServerCapabilities, WorkDoneProgressOptions,
 };
 
 use analysis::{get_diagnostics, get_inlay_hints, get_selection_ranges, get_semantic_tokens};
@@ -16,10 +17,9 @@ pub(crate) fn handle_document_diagnostic_request(
     _lsp: &Server,
     ctx: &Context,
 ) -> Result<DocumentDiagnosticReportResult, ResponseError> {
-    let path = req.text_document.uri.path().to_string();
     let doc = ctx
-        .get_document(&path)
-        .ok_or_else(|| doc_not_found_error(&path))?;
+        .get_document(&req.text_document.uri)
+        .ok_or_else(|| doc_not_found_error(&req.text_document.uri))?;
 
     let diagnostics = get_diagnostics(doc);
     Ok(DocumentDiagnosticReportResult::Report(
@@ -38,12 +38,9 @@ pub(crate) fn handle_did_open_text_document_params(
     lsp: &Server,
     ctx: &mut Context,
 ) {
-    ctx.add_document(
-        params.text_document.uri.path().to_string(),
-        params.text_document.text,
-    );
+    ctx.add_document(params.text_document.uri.clone(), params.text_document.text);
 
-    let doc = ctx.get_document(params.text_document.uri.path()).unwrap();
+    let doc = ctx.get_document(&params.text_document.uri).unwrap();
 
     let diagnostics = get_diagnostics(doc);
     let params = PublishDiagnosticsParams {
@@ -60,10 +57,10 @@ pub(crate) fn handle_did_change_text_document_params(
     ctx: &mut Context,
 ) {
     ctx.update_document(
-        params.text_document.uri.path(),
+        &params.text_document.uri,
         params.content_changes.last().unwrap().text.clone(),
     );
-    let doc = ctx.get_document(params.text_document.uri.path()).unwrap();
+    let doc = ctx.get_document(&params.text_document.uri).unwrap();
     let diagnostics = get_diagnostics(doc);
     let params = PublishDiagnosticsParams {
         uri: params.text_document.uri,
@@ -78,7 +75,7 @@ pub(crate) fn handle_did_close_text_document_params(
     _lsp: &Server,
     ctx: &mut Context,
 ) {
-    ctx.remove_document(params.text_document.uri.path());
+    ctx.remove_document(&params.text_document.uri);
 }
 
 pub(crate) enum SyntaxTree {}
@@ -99,8 +96,7 @@ pub(crate) fn handle_syntax_tree_request(
     _lsp: &Server,
     ctx: &Context,
 ) -> Result<String, ResponseError> {
-    let path = req.text_document.uri.path().to_string();
-    let doc = ctx.get_document(&path).unwrap();
+    let doc = ctx.get_document(&req.text_document.uri).unwrap();
     Ok(doc.parsed().debug_tree())
 }
 
@@ -122,8 +118,7 @@ pub(crate) fn handle_hir_tree_request(
     _lsp: &Server,
     ctx: &Context,
 ) -> Result<String, ResponseError> {
-    let path = req.text_document.uri.path().to_string();
-    let doc = ctx.get_document(&path).unwrap();
+    let doc = ctx.get_document(&req.text_document.uri).unwrap();
     Ok(doc.pretty_module())
 }
 
@@ -147,8 +142,7 @@ pub(crate) fn handle_semantic_tokens_full_request(
     _lsp: &Server,
     ctx: &Context,
 ) -> Result<Option<lsp_types::SemanticTokensResult>, ResponseError> {
-    let path = req.text_document.uri.path().to_string();
-    let doc = ctx.get_document(&path).unwrap();
+    let doc = ctx.get_document(&req.text_document.uri).unwrap();
 
     let tokens = get_semantic_tokens(doc);
 
@@ -165,8 +159,7 @@ pub(crate) fn handle_inlay_hints_request(
     _lsp: &Server,
     ctx: &Context,
 ) -> Result<Option<Vec<lsp_types::InlayHint>>, ResponseError> {
-    let path = req.text_document.uri.path().to_string();
-    let doc = ctx.get_document(&path).unwrap();
+    let doc = ctx.get_document(&req.text_document.uri).unwrap();
 
     let hints = get_inlay_hints(doc);
 
@@ -178,8 +171,7 @@ pub(crate) fn handle_selection_range_request(
     _lsp: &Server,
     ctx: &Context,
 ) -> Result<Option<Vec<lsp_types::SelectionRange>>, ResponseError> {
-    let path = req.text_document.uri.path().to_string();
-    let doc = ctx.get_document(&path).unwrap();
+    let doc = ctx.get_document(&req.text_document.uri).unwrap();
 
     let ranges = req
         .positions
@@ -190,10 +182,10 @@ pub(crate) fn handle_selection_range_request(
     Ok(Some(ranges))
 }
 
-fn doc_not_found_error(path: &str) -> ResponseError {
+fn doc_not_found_error(uri: &lsp_types::Uri) -> ResponseError {
     ResponseError {
         code: 0,
-        message: format!("Document not found: {path}"),
+        message: format!("Document not found: {}", uri.as_str()),
         data: None,
     }
 }

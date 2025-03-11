@@ -19,7 +19,7 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Token<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let kind = self.inner.next()?;
+        let kind = self.inner.next()?.unwrap_or(SyntaxKind::ERROR);
         let text = self.inner.slice();
 
         Some(Self::Item { kind, text })

@@ -223,7 +223,7 @@ impl Module {
     pub fn syntax<'a, T: StoredInArena + 'a>(
         &'a self,
         idx: la_arena::Idx<T>,
-    ) -> Option<&SyntaxNodePtr> {
+    ) -> Option<&'a SyntaxNodePtr> {
         T::syntax_map(self).get(idx)
     }
 }

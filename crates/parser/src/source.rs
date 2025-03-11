@@ -37,11 +37,6 @@ impl<'t, 'input> Source<'t, 'input> {
         self.peek_kind_raw().unwrap_or(SyntaxKind::EOF)
     }
 
-    // pub fn peek_token(&mut self) -> &Token {
-    //     self.eat_trivia();
-    //     self.peek_token_raw().unwrap_or_default()
-    // }
-
     fn eat_trivia(&mut self) {
         while self.at_trivia() {
             self.cursor += 1;
@@ -49,12 +44,8 @@ impl<'t, 'input> Source<'t, 'input> {
     }
 
     fn at_trivia(&self) -> bool {
-        self.peek_kind_raw().map_or(false, SyntaxKind::is_trivial)
+        self.peek_kind_raw().is_some_and(SyntaxKind::is_trivial)
     }
-
-    // pub fn last_token_range(&self) -> Option<&Range<usize>> {
-    //     self.tokens.last().map(|Token { range, .. }| range)
-    // }
 
     fn peek_kind_raw(&self) -> Option<SyntaxKind> {
         self.peek_token_raw().map(|Token { kind, .. }| *kind)

@@ -56,7 +56,7 @@ pub enum SyntaxKind {
     INT,
     #[regex("\"(?s:[^\"\\\\]|\\\\.)*\"")]
     STRING,
-    #[regex("[_a-zA-Z][_a-zA-Z0-9]*")]
+    #[regex("[a-zA-Z][_a-zA-Z0-9]*")]
     IDENT,
     #[regex("[ \\t\\n\\r]+")]
     WHITESPACE,
@@ -75,7 +75,7 @@ pub enum SyntaxKind {
     #[token("dummy")]
     DUMMY_KW,
     #[doc = r" Also acts as __LAST_TOKEN"]
-    #[error]
+    // #[error]
     LEXING_ERROR,
     ERROR,
     MODULE,

@@ -19,7 +19,7 @@ pub(crate) struct Server {
 }
 
 pub(crate) struct Context {
-    documents: HashMap<String, Document>,
+    documents: HashMap<lsp_types::Uri, Document>,
 }
 
 impl Server {
@@ -45,22 +45,22 @@ impl Server {
 }
 
 impl Context {
-    pub(crate) fn add_document(&mut self, uri: String, text: String) {
+    pub(crate) fn add_document(&mut self, uri: lsp_types::Uri, text: String) {
         self.documents.insert(uri, Document::new(text));
     }
 
-    pub(crate) fn update_document(&mut self, uri: &str, text: String) {
+    pub(crate) fn update_document(&mut self, uri: &lsp_types::Uri, text: String) {
         if let Some(doc) = self.documents.get_mut(uri) {
             doc.update(text);
         }
     }
 
-    pub(crate) fn get_document(&self, uri: &str) -> Option<&Document> {
+    pub(crate) fn get_document(&self, uri: &lsp_types::Uri) -> Option<&Document> {
         self.documents.get(uri)
     }
 
-    pub(crate) fn remove_document(&mut self, path: &str) {
-        self.documents.remove(path);
+    pub(crate) fn remove_document(&mut self, uri: &lsp_types::Uri) {
+        self.documents.remove(uri);
     }
 }
 

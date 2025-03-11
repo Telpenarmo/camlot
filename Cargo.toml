@@ -9,20 +9,20 @@ core = { path = "./crates/core", version = "0.1.0" }
 parser = { path = "./crates/parser", version = "0.1.0" }
 analysis = { path = "./crates/analysis", version = "0.1.0" }
 
-anyhow = "1.0.75"
-indexmap = "2.1.0"
-itertools = "0.12.0"
-proc-macro2 = "1.0.70"
-quote = "1.0.33"
+anyhow = "1.0.97"
+indexmap = "2.8.0"
+itertools = "0.14.0"
+proc-macro2 = "1.0.94"
+quote = "1.0.39"
 ungrammar = "1.16.1"
 xflags = "0.3.2"
-xshell = "0.2.5"
-rowan = "0.15.15"
-logos = "0.12.0"
-expect-test = "1.4.1"
+xshell = "0.2.7"
+rowan = "0.16.1"
+logos = "0.15.0"
+expect-test = "1.5.1"
 la-arena = "0.3.1"
-line-index = "0.1.1"
-lsp-types = "0.95.0"
+line-index = "0.1.2"
+lsp-types = "0.97.0"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

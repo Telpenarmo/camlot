@@ -72,12 +72,6 @@ where
         assert!(is_new, "New element was already interned.");
         self.set.swap_remove_index(old.id as usize);
     }
-
-    #[must_use]
-    pub(crate) fn get_idx(&self, v: &T) -> Interned<T> {
-        let id = self.set.get_index_of(v).unwrap();
-        Interned::from_usize(id)
-    }
 }
 
 impl<T: std::fmt::Debug + std::cmp::Eq + std::hash::Hash> Debug for Interner<T> {

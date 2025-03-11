@@ -11,8 +11,8 @@ parser.workspace = true
 la-arena.workspace = true
 indexmap.workspace = true
 expect-test.workspace = true
-imbl = "3.0.0"
-rand = "0.8.5"
+imbl = "5.0.0"
+rand = "0.9.0"
 
 [lints]
 workspace = true
