@@ -1,3 +1,4 @@
+use core::{ModuleAndNames, Type};
 use std::ops::Range;
 
 use line_index::{LineCol, TextRange};
@@ -9,10 +10,7 @@ mod inlay_hints;
 mod selection_range;
 mod semantic_tokens;
 
-pub use diagnostics::*;
 pub use document::*;
-pub use inlay_hints::*;
-pub use selection_range::*;
 pub use semantic_tokens::*;
 
 pub struct ErrorDiagnostic {
@@ -34,11 +32,47 @@ fn position_to_offset(line_index: &line_index::LineIndex, pos: Position) -> line
         .unwrap()
 }
 
-fn text_range_to_lsp_range(doc: &Document, range: TextRange) -> lsp_types::Range {
-    let line_index = &doc.get_line_index();
-    let start = offset_to_position(line_index, range.start().into());
-    let end = offset_to_position(line_index, range.end().into());
-    lsp_types::Range::new(start, end)
+impl Document {
+    pub(crate) fn display_type(&self, idx: core::TypeIdx) -> String {
+        core::display_type(self.types(), self.names(), self.generalized_labels(), idx)
+    }
+
+    pub(crate) fn get_type(&self, idx: core::TypeIdx) -> &Type {
+        self.types().get_type(idx)
+    }
+
+    pub(crate) fn syntax<T: core::StoredInArena, N: parser::AstNode>(
+        &self,
+        idx: core::ArenaIdx<T>,
+    ) -> Option<N> {
+        let ptr = self.hir().syntax(idx)?;
+        let ptr = ptr.cast::<N>()?;
+        Some(ptr.to_node(&self.parsed().syntax()))
+    }
+
+    #[must_use]
+    pub fn pretty_module(&self) -> String {
+        format!(
+            "{}",
+            ModuleAndNames {
+                module: self.hir(),
+                names: self.names()
+            }
+        )
+    }
+
+    pub(crate) fn syntax_at(&self, pos: Position) -> parser::SyntaxElement {
+        let pos = position_to_offset(self.line_index(), pos);
+        let range = TextRange::new(pos, pos);
+        self.parsed().syntax().covering_element(range)
+    }
+
+    fn text_range_to_lsp_range(&self, range: TextRange) -> lsp_types::Range {
+        let line_index = &self.line_index();
+        let start = offset_to_position(line_index, range.start().into());
+        let end = offset_to_position(line_index, range.end().into());
+        lsp_types::Range::new(start, end)
+    }
 }
 
 #[cfg(test)]

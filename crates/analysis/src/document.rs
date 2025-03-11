@@ -1,9 +1,4 @@
-use core::{infer, InferenceResult, Interner, Module, ModuleAndNames, Type, TypeIdx};
-
-use line_index::TextRange;
-use lsp_types::Position;
-
-use crate::position_to_offset;
+use core::{infer, InferenceResult, Interner, Module, Type, TypeIdx};
 
 pub struct Document {
     line_index: line_index::LineIndex,
@@ -50,27 +45,27 @@ impl Document {
         self.text = text;
     }
 
+    pub(crate) fn line_index(&self) -> &line_index::LineIndex {
+        &self.line_index
+    }
+
     #[must_use]
     pub fn parsed(&self) -> &parser::Parse {
         &self.parsed
     }
 
-    pub(crate) fn get_line_index(&self) -> &line_index::LineIndex {
-        &self.line_index
-    }
-
     #[must_use]
-    pub fn hir(&self) -> &core::Module {
+    pub(crate) fn hir(&self) -> &core::Module {
         &self.hir
     }
 
     #[must_use]
-    pub fn types(&self) -> &Interner<Type> {
+    pub(crate) fn types(&self) -> &Interner<Type> {
         &self.types
     }
 
     #[must_use]
-    pub fn names(&self) -> &Interner<String> {
+    pub(crate) fn names(&self) -> &Interner<String> {
         &self.names
     }
 
@@ -88,39 +83,5 @@ impl Document {
 
     pub(crate) fn generalized_labels(&self) -> &core::GeneralizedLabels {
         &self.inference_result.generalized_labels
-    }
-
-    pub(crate) fn display_type(&self, idx: core::TypeIdx) -> String {
-        core::display_type(&self.types, self.names(), self.generalized_labels(), idx)
-    }
-
-    pub(crate) fn get_type(&self, idx: core::TypeIdx) -> &Type {
-        self.types.get_type(idx)
-    }
-
-    pub(crate) fn syntax<T: core::StoredInArena, N: parser::AstNode>(
-        &self,
-        idx: core::ArenaIdx<T>,
-    ) -> Option<N> {
-        let ptr = self.hir.syntax(idx)?;
-        let ptr = ptr.cast::<N>()?;
-        Some(ptr.to_node(&self.parsed.syntax()))
-    }
-
-    #[must_use]
-    pub fn pretty_module(&self) -> String {
-        format!(
-            "{}",
-            ModuleAndNames {
-                module: &self.hir,
-                names: self.names()
-            }
-        )
-    }
-
-    pub(crate) fn syntax_at(&self, pos: Position) -> parser::SyntaxElement {
-        let pos = position_to_offset(&self.line_index, pos);
-        let range = TextRange::new(pos, pos);
-        self.parsed().syntax().covering_element(range)
     }
 }

@@ -1,7 +1,18 @@
 use line_index::{LineIndex, WideEncoding, WideLineCol as LineCol};
 use parser::{nodes, AstNode, SyntaxKind, SyntaxNode, SyntaxToken};
 
-use crate::Document;
+impl crate::Document {
+    #[must_use]
+    pub fn get_semantic_tokens(&self) -> Vec<lsp_types::SemanticToken> {
+        let mut builder = SemanticTokensBuilder::new(self.line_index());
+
+        self.parsed()
+            .syntax()
+            .descendants_with_tokens()
+            .filter_map(|node| node.as_token().and_then(|token| builder.next(token)))
+            .collect()
+    }
+}
 
 pub const SUPPORTED_TOKENS: &[lsp_types::SemanticTokenType] = &[
     lsp_types::SemanticTokenType::KEYWORD,
@@ -61,17 +72,6 @@ impl<'a> SemanticTokensBuilder<'a> {
             None
         }
     }
-}
-
-#[must_use]
-pub fn get_semantic_tokens(doc: &Document) -> Vec<lsp_types::SemanticToken> {
-    let mut builder = SemanticTokensBuilder::new(doc.get_line_index());
-
-    doc.parsed()
-        .syntax()
-        .descendants_with_tokens()
-        .filter_map(|node| node.as_token().and_then(|token| builder.next(token)))
-        .collect()
 }
 
 fn make_semantic_token(
@@ -192,7 +192,7 @@ mod tests {
     fn test_get_semantic_tokens_in_def_func() {
         let text = "def f g = g a 1;";
         let document = Document::new(text.to_string());
-        let tokens = get_semantic_tokens(&document);
+        let tokens = &document.get_semantic_tokens();
 
         let actual = debug_print_tokens(tokens.as_slice());
 
@@ -213,7 +213,7 @@ mod tests {
     fn test_get_semantic_tokens_in_type_arrow() {
         let text = "type Tp = (X -> Y) -> Z;";
         let document = Document::new(text.to_string());
-        let tokens = get_semantic_tokens(&document);
+        let tokens = &document.get_semantic_tokens();
 
         let actual = debug_print_tokens(tokens.as_slice());
 
@@ -237,7 +237,7 @@ mod tests {
     fn test_unicode_lambda() {
         let text = "def f = λ(x: int) -> x;";
         let document = Document::new(text.to_string());
-        let tokens = get_semantic_tokens(&document);
+        let tokens = document.get_semantic_tokens();
 
         let actual = debug_print_tokens(tokens.as_slice());
 

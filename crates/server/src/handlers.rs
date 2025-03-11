@@ -8,8 +8,6 @@ use lsp_types::{
     ServerCapabilities, WorkDoneProgressOptions,
 };
 
-use analysis::{get_diagnostics, get_inlay_hints, get_selection_ranges, get_semantic_tokens};
-
 use crate::server::{Context, Server};
 
 pub(crate) fn handle_document_diagnostic_request(
@@ -21,7 +19,7 @@ pub(crate) fn handle_document_diagnostic_request(
         .get_document(&req.text_document.uri)
         .ok_or_else(|| doc_not_found_error(&req.text_document.uri))?;
 
-    let diagnostics = get_diagnostics(doc);
+    let diagnostics = doc.get_diagnostics();
     Ok(DocumentDiagnosticReportResult::Report(
         DocumentDiagnosticReport::Full(lsp_types::RelatedFullDocumentDiagnosticReport {
             related_documents: None,
@@ -42,7 +40,7 @@ pub(crate) fn handle_did_open_text_document_params(
 
     let doc = ctx.get_document(&params.text_document.uri).unwrap();
 
-    let diagnostics = get_diagnostics(doc);
+    let diagnostics = doc.get_diagnostics();
     let params = PublishDiagnosticsParams {
         uri: params.text_document.uri,
         diagnostics,
@@ -61,7 +59,7 @@ pub(crate) fn handle_did_change_text_document_params(
         params.content_changes.last().unwrap().text.clone(),
     );
     let doc = ctx.get_document(&params.text_document.uri).unwrap();
-    let diagnostics = get_diagnostics(doc);
+    let diagnostics = doc.get_diagnostics();
     let params = PublishDiagnosticsParams {
         uri: params.text_document.uri,
         diagnostics,
@@ -144,7 +142,7 @@ pub(crate) fn handle_semantic_tokens_full_request(
 ) -> Result<Option<lsp_types::SemanticTokensResult>, ResponseError> {
     let doc = ctx.get_document(&req.text_document.uri).unwrap();
 
-    let tokens = get_semantic_tokens(doc);
+    let tokens = doc.get_semantic_tokens();
 
     Ok(Some(lsp_types::SemanticTokensResult::Tokens(
         lsp_types::SemanticTokens {
@@ -161,7 +159,7 @@ pub(crate) fn handle_inlay_hints_request(
 ) -> Result<Option<Vec<lsp_types::InlayHint>>, ResponseError> {
     let doc = ctx.get_document(&req.text_document.uri).unwrap();
 
-    let hints = get_inlay_hints(doc);
+    let hints = doc.get_inlay_hints();
 
     Ok(Some(hints))
 }
@@ -176,7 +174,7 @@ pub(crate) fn handle_selection_range_request(
     let ranges = req
         .positions
         .iter()
-        .map(|&pos| get_selection_ranges(doc, pos))
+        .map(|&pos| doc.get_selection_ranges(pos))
         .collect();
 
     Ok(Some(ranges))
