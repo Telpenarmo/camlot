@@ -5,7 +5,7 @@ use parser::{nodes as ast, AstToken};
 use crate::{Interner, Name};
 
 use super::{
-    module::{Module, StoredInArena},
+    module::{HirNode, Module},
     Definition, DefinitionIdx, Expr, ExprIdx, Literal, Param, ParamIdx, Pattern, PatternIdx,
     TypeDefinition, TypeExpr, TypeExprIdx,
 };
@@ -305,7 +305,7 @@ mod tests {
     use crate::hir::pprint::ModuleAndNames;
     use crate::{Interner, ParamIdx, Pattern};
 
-    use super::{Expr, Module, Param, StoredInArena};
+    use super::{Expr, HirNode, Module, Param};
 
     fn unannotated_param(
         module: &mut Module,

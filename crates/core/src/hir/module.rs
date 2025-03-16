@@ -1,6 +1,5 @@
 use std::ops::Index;
 
-use imbl::HashMap;
 use la_arena::{Arena, ArenaMap};
 
 use parser::{SyntaxNode, SyntaxNodePtr};
@@ -10,35 +9,36 @@ use crate::{builtin, TypeIdx};
 use crate::{intern::Interner, Name};
 
 use super::{
-    Definition, DefinitionIdx, Expr, ExprIdx, Open, Param, ParamIdx, Pattern, PatternIdx,
-    TypeDefinition, TypeDefinitionIdx, TypeExpr, TypeExprIdx,
+    Definition, DefinitionIdx, Expr, ExprIdx, Param, ParamIdx, Pattern, PatternIdx, TypeDefinition,
+    TypeDefinitionIdx, TypeExpr, TypeExprIdx,
 };
+
+#[derive(Debug)]
+struct HirNodeStorage<T> {
+    arena: Arena<T>,
+    syntax: ArenaMap<la_arena::Idx<T>, SyntaxNodePtr>,
+}
+
+impl<T> HirNodeStorage<T> {
+    fn new() -> Self {
+        Self {
+            arena: Arena::new(),
+            syntax: ArenaMap::new(),
+        }
+    }
+}
 
 #[derive(Debug)]
 #[allow(unused)]
 pub struct Module {
-    definitions: Arena<Definition>,
-    definitions_syntax: ArenaMap<DefinitionIdx, SyntaxNodePtr>,
-
-    opens: Arena<Open>,
-
-    type_definitions: Arena<TypeDefinition>,
-    type_definitions_syntax: ArenaMap<TypeDefinitionIdx, SyntaxNodePtr>,
-
-    expressions: Arena<Expr>,
-    exprs_syntax: ArenaMap<ExprIdx, SyntaxNodePtr>,
-
-    type_expressions: Arena<TypeExpr>,
-    type_exprs_syntax: ArenaMap<TypeExprIdx, SyntaxNodePtr>,
-
-    parameters: Arena<Param>,
-    parameters_syntax: ArenaMap<ParamIdx, SyntaxNodePtr>,
-
-    patterns: Arena<Pattern>,
-    patterns_syntax: ArenaMap<PatternIdx, SyntaxNodePtr>,
-
-    known_definitions: HashMap<Name, TypeIdx>,
-    known_types: HashMap<Name, TypeIdx>,
+    definitions: HirNodeStorage<Definition>,
+    type_definitions: HirNodeStorage<TypeDefinition>,
+    expressions: HirNodeStorage<Expr>,
+    type_expressions: HirNodeStorage<TypeExpr>,
+    parameters: HirNodeStorage<Param>,
+    patterns: HirNodeStorage<Pattern>,
+    known_definitions: imbl::HashMap<Name, TypeIdx>,
+    known_types: imbl::HashMap<Name, TypeIdx>,
 }
 
 fn pattern_deep_eq(a_module: &Module, b_module: &Module, a: PatternIdx, b: PatternIdx) -> bool {
@@ -134,18 +134,15 @@ fn defn_deep_eq(a_module: &Module, b_module: &Module, a: DefinitionIdx, b: Defin
 impl PartialEq for Module {
     fn eq(&self, other: &Self) -> bool {
         self.definitions
+            .arena
             .iter()
-            .zip(other.definitions.iter())
+            .zip(other.definitions.arena.iter())
             .all(|((a, _), (b, _))| defn_deep_eq(self, other, a, b))
             && self
-                .opens
-                .values()
-                .zip(other.opens.values())
-                .all(|(a, b)| a.path == b.path)
-            && self
                 .type_definitions
+                .arena
                 .values()
-                .zip(other.type_definitions.values())
+                .zip(other.type_definitions.arena.values())
                 .all(|(a, b)| a.name == b.name && type_expr_deep_eq(self, other, a.defn, b.defn))
     }
 }
@@ -155,21 +152,14 @@ impl Module {
     #[must_use]
     pub fn new(names: &mut Interner<String>, types: &mut Interner<Type>) -> Self {
         let mut module = Self {
-            expressions: Arena::new(),
-            type_expressions: Arena::new(),
-            definitions: Arena::new(),
-            opens: Arena::new(),
-            type_definitions: Arena::new(),
-            parameters: Arena::new(),
-            parameters_syntax: ArenaMap::new(),
-            patterns: Arena::new(),
-            patterns_syntax: ArenaMap::new(),
-            exprs_syntax: ArenaMap::new(),
-            type_exprs_syntax: ArenaMap::new(),
-            definitions_syntax: ArenaMap::new(),
-            type_definitions_syntax: ArenaMap::new(),
-            known_definitions: HashMap::new(),
-            known_types: HashMap::new(),
+            expressions: HirNodeStorage::new(),
+            type_expressions: HirNodeStorage::new(),
+            definitions: HirNodeStorage::new(),
+            type_definitions: HirNodeStorage::new(),
+            parameters: HirNodeStorage::new(),
+            patterns: HirNodeStorage::new(),
+            known_definitions: imbl::HashMap::new(),
+            known_types: imbl::HashMap::new(),
         };
 
         module.load_builtin(names, types);
@@ -186,102 +176,97 @@ impl Module {
     }
 
     pub(crate) fn iter_definitions(&self) -> impl Iterator<Item = (DefinitionIdx, &Definition)> {
-        self.definitions.iter()
+        self.definitions.arena.iter()
     }
 
     pub fn type_definitions(
         &self,
     ) -> impl Iterator<Item = (TypeDefinitionIdx, &TypeDefinition)> + '_ {
-        self.type_definitions.iter()
+        self.type_definitions.arena.iter()
     }
 
     #[must_use]
-    pub fn get_known_types(&self) -> HashMap<Name, TypeIdx> {
+    pub fn get_known_types(&self) -> imbl::HashMap<Name, TypeIdx> {
         self.known_types.clone()
     }
 
     #[must_use]
-    pub fn get_known_definitions(&self) -> HashMap<Name, TypeIdx> {
+    pub fn get_known_definitions(&self) -> imbl::HashMap<Name, TypeIdx> {
         self.known_definitions.clone()
     }
 
     pub(super) fn iter_type_definitions(
         &self,
     ) -> impl Iterator<Item = (TypeDefinitionIdx, &TypeDefinition)> {
-        self.type_definitions.iter()
+        self.type_definitions.arena.iter()
     }
 
     pub(super) fn iter_expressions(&self) -> impl Iterator<Item = (ExprIdx, &Expr)> {
-        self.expressions.iter()
+        self.expressions.arena.iter()
     }
 
     pub(super) fn iter_type_expressions(&self) -> impl Iterator<Item = (TypeExprIdx, &TypeExpr)> {
-        self.type_expressions.iter()
+        self.type_expressions.arena.iter()
     }
 
     #[must_use]
-    pub fn syntax<'a, T: StoredInArena + 'a>(
-        &'a self,
-        idx: la_arena::Idx<T>,
-    ) -> Option<&'a SyntaxNodePtr> {
-        T::syntax_map(self).get(idx)
+    pub fn syntax<'a, T: HirNode + 'a>(&'a self, idx: la_arena::Idx<T>) -> Option<SyntaxNodePtr> {
+        T::get_syntax(self, idx)
     }
 }
 
-impl<T: StoredInArena> Index<la_arena::Idx<T>> for Module {
+impl<T: HirNodeInternal> Index<la_arena::Idx<T>> for Module {
     type Output = T;
 
     fn index(&self, index: la_arena::Idx<T>) -> &T {
-        &T::arena(self)[index]
+        &T::storage(self).arena[index]
     }
 }
 
-pub trait StoredInArena: std::marker::Sized {
-    fn arena(module: &Module) -> &Arena<Self>;
-    fn arena_mut(module: &mut Module) -> &mut Arena<Self>;
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr>;
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr>;
+trait HirNodeInternal: std::marker::Sized {
+    fn storage(module: &Module) -> &HirNodeStorage<Self>;
+    fn storage_mut(module: &mut Module) -> &mut HirNodeStorage<Self>;
+}
 
-    fn alloc_opt_syntax(
-        self,
-        module: &mut Module,
-        syntax: Option<&SyntaxNode>,
-    ) -> la_arena::Idx<Self> {
-        let idx = Self::arena_mut(module).alloc(self);
+pub trait HirNode: std::marker::Sized {
+    fn alloc_opt(self, module: &mut Module, syntax: Option<&SyntaxNode>) -> la_arena::Idx<Self>;
+    fn get_syntax(module: &Module, idx: la_arena::Idx<Self>) -> Option<SyntaxNodePtr>;
+
+    fn alloc<N: parser::AstNode>(self, module: &mut Module, node: &N) -> la_arena::Idx<Self> {
+        self.alloc_opt(module, Some(parser::AstNode::syntax(node)))
+    }
+
+    fn alloc_no_syntax(self, module: &mut Module) -> la_arena::Idx<Self> {
+        self.alloc_opt(module, None)
+    }
+}
+impl<T: HirNodeInternal> HirNode for T {
+    fn alloc_opt(self, module: &mut Module, syntax: Option<&SyntaxNode>) -> la_arena::Idx<Self> {
+        let idx = Self::storage_mut(module).arena.alloc(self);
         if let Some(syntax) = syntax {
-            Self::syntax_map_mut(module).insert(idx, SyntaxNodePtr::new(syntax));
+            Self::storage_mut(module)
+                .syntax
+                .insert(idx, SyntaxNodePtr::new(syntax));
         }
         idx
     }
 
-    fn alloc<N: parser::AstNode>(self, module: &mut Module, node: &N) -> la_arena::Idx<Self> {
-        self.alloc_opt_syntax(module, Some(parser::AstNode::syntax(node)))
-    }
-
-    fn alloc_no_syntax(self, module: &mut Module) -> la_arena::Idx<Self> {
-        self.alloc_opt_syntax(module, None)
+    fn get_syntax(module: &Module, idx: la_arena::Idx<Self>) -> Option<SyntaxNodePtr> {
+        Self::storage(module).syntax.get(idx).copied()
     }
 }
 
-pub(super) trait Missable: StoredInArena {
+pub(super) trait Missable: HirNode {
     fn missing() -> Self;
 }
 
-impl StoredInArena for Expr {
-    fn arena(module: &Module) -> &Arena<Self> {
+impl HirNodeInternal for Expr {
+    fn storage(module: &Module) -> &HirNodeStorage<Self> {
         &module.expressions
     }
 
-    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+    fn storage_mut(module: &mut Module) -> &mut HirNodeStorage<Self> {
         &mut module.expressions
-    }
-
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &module.exprs_syntax
-    }
-
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &mut module.exprs_syntax
     }
 }
 
@@ -291,21 +276,13 @@ impl Missable for Expr {
     }
 }
 
-impl StoredInArena for TypeExpr {
-    fn arena(module: &Module) -> &Arena<Self> {
+impl HirNodeInternal for TypeExpr {
+    fn storage(module: &Module) -> &HirNodeStorage<Self> {
         &module.type_expressions
     }
 
-    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+    fn storage_mut(module: &mut Module) -> &mut HirNodeStorage<Self> {
         &mut module.type_expressions
-    }
-
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &module.type_exprs_syntax
-    }
-
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &mut module.type_exprs_syntax
     }
 }
 
@@ -315,74 +292,42 @@ impl Missable for TypeExpr {
     }
 }
 
-impl StoredInArena for Param {
-    fn arena(module: &Module) -> &Arena<Self> {
+impl HirNodeInternal for Param {
+    fn storage(module: &Module) -> &HirNodeStorage<Self> {
         &module.parameters
     }
 
-    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+    fn storage_mut(module: &mut Module) -> &mut HirNodeStorage<Self> {
         &mut module.parameters
-    }
-
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &module.parameters_syntax
-    }
-
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &mut module.parameters_syntax
     }
 }
 
-impl StoredInArena for Pattern {
-    fn arena(module: &Module) -> &Arena<Self> {
+impl HirNodeInternal for Pattern {
+    fn storage(module: &Module) -> &HirNodeStorage<Self> {
         &module.patterns
     }
 
-    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+    fn storage_mut(module: &mut Module) -> &mut HirNodeStorage<Self> {
         &mut module.patterns
-    }
-
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &module.patterns_syntax
-    }
-
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &mut module.patterns_syntax
     }
 }
 
-impl StoredInArena for Definition {
-    fn arena(module: &Module) -> &Arena<Self> {
+impl HirNodeInternal for Definition {
+    fn storage(module: &Module) -> &HirNodeStorage<Self> {
         &module.definitions
     }
 
-    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+    fn storage_mut(module: &mut Module) -> &mut HirNodeStorage<Self> {
         &mut module.definitions
-    }
-
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &module.definitions_syntax
-    }
-
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &mut module.definitions_syntax
     }
 }
 
-impl StoredInArena for TypeDefinition {
-    fn arena(module: &Module) -> &Arena<Self> {
+impl HirNodeInternal for TypeDefinition {
+    fn storage(module: &Module) -> &HirNodeStorage<Self> {
         &module.type_definitions
     }
 
-    fn arena_mut(module: &mut Module) -> &mut Arena<Self> {
+    fn storage_mut(module: &mut Module) -> &mut HirNodeStorage<Self> {
         &mut module.type_definitions
-    }
-
-    fn syntax_map(module: &Module) -> &ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &module.type_definitions_syntax
-    }
-
-    fn syntax_map_mut(module: &mut Module) -> &mut ArenaMap<la_arena::Idx<Self>, SyntaxNodePtr> {
-        &mut module.type_definitions_syntax
     }
 }

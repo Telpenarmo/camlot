@@ -41,7 +41,7 @@ impl Document {
         self.types().get_type(idx)
     }
 
-    pub(crate) fn syntax<T: core::StoredInArena, N: parser::AstNode>(
+    pub(crate) fn syntax<T: core::HirNode, N: parser::AstNode>(
         &self,
         idx: core::ArenaIdx<T>,
     ) -> Option<N> {

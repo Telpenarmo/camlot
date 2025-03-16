@@ -42,13 +42,13 @@ impl crate::Document {
         diagnostic
     }
 
-    fn range_of_expr<T: core::StoredInArena + std::fmt::Debug>(
+    fn range_of_expr<T: core::HirNode + std::fmt::Debug>(
         &self,
         hir: core::ArenaIdx<T>,
     ) -> TextRange {
         let whole = SyntaxNodePtr::new(&self.parsed().syntax().clone());
-        let syntax = self.hir().syntax(hir).unwrap_or(&whole);
-        parser::SyntaxNodePtr::text_range(syntax)
+        let syntax = self.hir().syntax(hir).unwrap_or(whole);
+        parser::SyntaxNodePtr::text_range(&syntax)
     }
 
     fn lsp_type_errors(&self) -> Vec<lsp_types::Diagnostic> {
