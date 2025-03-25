@@ -18,6 +18,7 @@ impl Language for CamlotLanguage {
 
 pub type SyntaxNode = rowan::SyntaxNode<CamlotLanguage>;
 pub type SyntaxToken = rowan::SyntaxToken<CamlotLanguage>;
+pub type NodeOrToken = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
 pub type SyntaxElement = rowan::SyntaxElement<CamlotLanguage>;
 pub type SyntaxNodeChildren = rowan::SyntaxNodeChildren<CamlotLanguage>;
 pub type SyntaxElementChildren = rowan::SyntaxElementChildren<CamlotLanguage>;

@@ -4,8 +4,8 @@
 use lsp_server::ResponseError;
 use lsp_types::notification::PublishDiagnostics;
 use lsp_types::{
-    DocumentDiagnosticReport, DocumentDiagnosticReportResult, PublishDiagnosticsParams,
-    ServerCapabilities, WorkDoneProgressOptions,
+    DocumentDiagnosticReport, DocumentDiagnosticReportResult, DocumentSymbolResponse,
+    PublishDiagnosticsParams, ServerCapabilities, WorkDoneProgressOptions,
 };
 
 use crate::server::{Context, Server};
@@ -178,6 +178,18 @@ pub(crate) fn handle_selection_range_request(
         .collect();
 
     Ok(Some(ranges))
+}
+
+pub(crate) fn handle_document_symbol_request(
+    req: &lsp_types::DocumentSymbolParams,
+    _lsp: &Server,
+    ctx: &Context,
+) -> Result<Option<DocumentSymbolResponse>, ResponseError> {
+    let doc = ctx.get_document(&req.text_document.uri).unwrap();
+
+    let symbols = doc.get_symbols();
+
+    Ok(Some(DocumentSymbolResponse::Nested(symbols)))
 }
 
 fn doc_not_found_error(uri: &lsp_types::Uri) -> ResponseError {
