@@ -5,10 +5,15 @@ use lsp_server::ResponseError;
 use lsp_types::notification::PublishDiagnostics;
 use lsp_types::{
     DocumentDiagnosticReport, DocumentDiagnosticReportResult, DocumentSymbolResponse,
-    PublishDiagnosticsParams, ServerCapabilities, WorkDoneProgressOptions,
+    PublishDiagnosticsParams, SemanticTokensResult, ServerCapabilities, TextDocumentIdentifier,
+    WorkDoneProgressOptions,
 };
 
+use analysis::Document;
+
 use crate::server::{Context, Server};
+
+type HandlerResult<T> = Result<Option<T>, ResponseError>;
 
 pub(crate) fn handle_document_diagnostic_request(
     req: &lsp_types::DocumentDiagnosticParams,
@@ -107,7 +112,7 @@ pub(crate) struct HirTreeRequest {
 
 impl lsp_types::request::Request for HirTree {
     type Params = HirTreeRequest;
-    type Result = String;
+    type Result = Option<String>;
     const METHOD: &'static str = "camlot-analyzer/hir";
 }
 
@@ -115,9 +120,8 @@ pub(crate) fn handle_hir_tree_request(
     req: &HirTreeRequest,
     _lsp: &Server,
     ctx: &Context,
-) -> Result<String, ResponseError> {
-    let doc = ctx.get_document(&req.text_document.uri).unwrap();
-    Ok(doc.pretty_module())
+) -> HandlerResult<String> {
+    handle(&req.text_document, ctx, Document::pretty_module)
 }
 
 pub(crate) fn setup_semantic_tokens_capability(server_capabilities: &mut ServerCapabilities) {
@@ -139,57 +143,44 @@ pub(crate) fn handle_semantic_tokens_full_request(
     req: &lsp_types::SemanticTokensParams,
     _lsp: &Server,
     ctx: &Context,
-) -> Result<Option<lsp_types::SemanticTokensResult>, ResponseError> {
-    let doc = ctx.get_document(&req.text_document.uri).unwrap();
-
-    let tokens = doc.get_semantic_tokens();
-
-    Ok(Some(lsp_types::SemanticTokensResult::Tokens(
-        lsp_types::SemanticTokens {
+) -> HandlerResult<SemanticTokensResult> {
+    handle(&req.text_document, ctx, |doc| {
+        SemanticTokensResult::Tokens(lsp_types::SemanticTokens {
             result_id: None,
-            data: tokens,
-        },
-    )))
+            data: doc.get_semantic_tokens(),
+        })
+    })
 }
 
 pub(crate) fn handle_inlay_hints_request(
     req: &lsp_types::InlayHintParams,
     _lsp: &Server,
     ctx: &Context,
-) -> Result<Option<Vec<lsp_types::InlayHint>>, ResponseError> {
-    let doc = ctx.get_document(&req.text_document.uri).unwrap();
-
-    let hints = doc.get_inlay_hints();
-
-    Ok(Some(hints))
+) -> HandlerResult<Vec<lsp_types::InlayHint>> {
+    handle(&req.text_document, ctx, Document::get_inlay_hints)
 }
 
 pub(crate) fn handle_selection_range_request(
     req: &lsp_types::SelectionRangeParams,
     _lsp: &Server,
     ctx: &Context,
-) -> Result<Option<Vec<lsp_types::SelectionRange>>, ResponseError> {
-    let doc = ctx.get_document(&req.text_document.uri).unwrap();
-
-    let ranges = req
-        .positions
-        .iter()
-        .map(|&pos| doc.get_selection_ranges(pos))
-        .collect();
-
-    Ok(Some(ranges))
+) -> HandlerResult<Vec<lsp_types::SelectionRange>> {
+    handle(&req.text_document, ctx, |doc| {
+        req.positions
+            .iter()
+            .map(|&pos| doc.get_selection_ranges(pos))
+            .collect()
+    })
 }
 
 pub(crate) fn handle_document_symbol_request(
     req: &lsp_types::DocumentSymbolParams,
     _lsp: &Server,
     ctx: &Context,
-) -> Result<Option<DocumentSymbolResponse>, ResponseError> {
-    let doc = ctx.get_document(&req.text_document.uri).unwrap();
-
-    let symbols = doc.get_symbols();
-
-    Ok(Some(DocumentSymbolResponse::Nested(symbols)))
+) -> HandlerResult<DocumentSymbolResponse> {
+    handle(&req.text_document, ctx, |doc| {
+        DocumentSymbolResponse::Nested(doc.get_symbols())
+    })
 }
 
 fn doc_not_found_error(uri: &lsp_types::Uri) -> ResponseError {
@@ -198,4 +189,15 @@ fn doc_not_found_error(uri: &lsp_types::Uri) -> ResponseError {
         message: format!("Document not found: {}", uri.as_str()),
         data: None,
     }
+}
+
+fn handle<R, H>(doc: &TextDocumentIdentifier, ctx: &Context, handler: H) -> HandlerResult<R>
+where
+    H: Fn(&Document) -> R,
+{
+    let uri = &doc.uri;
+    let doc = ctx
+        .get_document(uri)
+        .ok_or_else(|| doc_not_found_error(uri))?;
+    Ok(Some(handler(doc)))
 }
