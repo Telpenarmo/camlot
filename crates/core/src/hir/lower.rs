@@ -283,7 +283,7 @@ impl LoweringContext<'_> {
                 let return_type = return_type.unwrap_or_else(|| self.module.alloc_missing());
 
                 Expr::let_expr(pattern, rec, type_params, return_type, defn, cont)
-                    .alloc(self.module, &ast)
+                    .alloc(self.module, &ast) // possibly overriding HIR for `&ast`
             }
         }
     }

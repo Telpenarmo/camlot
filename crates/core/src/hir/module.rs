@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ops::Index;
 
 use la_arena::{Arena, ArenaMap};
@@ -16,14 +17,16 @@ use super::{
 #[derive(Debug)]
 struct HirNodeStorage<T> {
     arena: Arena<T>,
-    syntax: ArenaMap<la_arena::Idx<T>, SyntaxNodePtr>,
+    syntax_of_hir: ArenaMap<la_arena::Idx<T>, SyntaxNodePtr>,
+    hir_of_syntax: HashMap<SyntaxNodePtr, la_arena::Idx<T>>,
 }
 
 impl<T> HirNodeStorage<T> {
     fn new() -> Self {
         Self {
             arena: Arena::new(),
-            syntax: ArenaMap::new(),
+            syntax_of_hir: ArenaMap::new(),
+            hir_of_syntax: HashMap::new(),
         }
     }
 }
@@ -213,6 +216,11 @@ impl Module {
     pub fn syntax<'a, T: HirNode + 'a>(&'a self, idx: la_arena::Idx<T>) -> Option<SyntaxNodePtr> {
         T::get_syntax(self, idx)
     }
+
+    #[must_use]
+    pub fn idx_at<T: HirNode>(&self, ptr: SyntaxNodePtr) -> Option<la_arena::Idx<T>> {
+        T::get_at_syntax(self, ptr)
+    }
 }
 
 impl<T: HirNodeInternal> Index<la_arena::Idx<T>> for Module {
@@ -229,6 +237,7 @@ trait HirNodeInternal: std::marker::Sized {
 }
 
 pub trait HirNode: std::marker::Sized {
+    fn get_at_syntax(module: &Module, ptr: SyntaxNodePtr) -> Option<la_arena::Idx<Self>>;
     fn alloc_opt(self, module: &mut Module, syntax: Option<&SyntaxNode>) -> la_arena::Idx<Self>;
     fn get_syntax(module: &Module, idx: la_arena::Idx<Self>) -> Option<SyntaxNodePtr>;
 
@@ -240,19 +249,26 @@ pub trait HirNode: std::marker::Sized {
         self.alloc_opt(module, None)
     }
 }
+
 impl<T: HirNodeInternal> HirNode for T {
     fn alloc_opt(self, module: &mut Module, syntax: Option<&SyntaxNode>) -> la_arena::Idx<Self> {
         let idx = Self::storage_mut(module).arena.alloc(self);
         if let Some(syntax) = syntax {
-            Self::storage_mut(module)
-                .syntax
-                .insert(idx, SyntaxNodePtr::new(syntax));
+            let storage = Self::storage_mut(module);
+            let ptr = SyntaxNodePtr::new(syntax);
+
+            storage.syntax_of_hir.insert(idx, ptr);
+            storage.hir_of_syntax.insert(ptr, idx);
         }
         idx
     }
 
     fn get_syntax(module: &Module, idx: la_arena::Idx<Self>) -> Option<SyntaxNodePtr> {
-        Self::storage(module).syntax.get(idx).copied()
+        Self::storage(module).syntax_of_hir.get(idx).copied()
+    }
+
+    fn get_at_syntax(module: &Module, ptr: SyntaxNodePtr) -> Option<la_arena::Idx<Self>> {
+        Self::storage(module).hir_of_syntax.get(&ptr).copied()
     }
 }
 
