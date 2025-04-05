@@ -8,7 +8,7 @@ pub use crate::hir::*;
 
 pub use types::{bound_variables, display_type, GeneralizedLabels, Type, TypeIdx};
 
-pub(crate) use hir::Name;
+pub use hir::Name;
 
 pub use infer::{infer, InferenceResult, TypeError};
 

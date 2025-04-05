@@ -5,8 +5,8 @@ use lsp_server::ResponseError;
 use lsp_types::notification::PublishDiagnostics;
 use lsp_types::{
     DocumentDiagnosticReport, DocumentDiagnosticReportResult, DocumentSymbolResponse,
-    PublishDiagnosticsParams, SemanticTokensResult, ServerCapabilities, TextDocumentIdentifier,
-    WorkDoneProgressOptions,
+    GotoDefinitionResponse, Location, PublishDiagnosticsParams, SemanticTokensResult,
+    ServerCapabilities, TextDocumentIdentifier, WorkDoneProgressOptions,
 };
 
 use analysis::Document;
@@ -181,6 +181,22 @@ pub(crate) fn handle_document_symbol_request(
     handle(&req.text_document, ctx, |doc| {
         DocumentSymbolResponse::Nested(doc.get_symbols())
     })
+}
+
+pub(crate) fn handle_goto_definition_request(
+    req: &lsp_types::GotoDefinitionParams,
+    _lsp: &Server,
+    ctx: &Context,
+) -> HandlerResult<GotoDefinitionResponse> {
+    let doc_id = &req.text_document_position_params.text_document;
+    let doc = ctx
+        .get_document(&doc_id.uri)
+        .ok_or_else(|| doc_not_found_error(&doc_id.uri))?;
+    let pos = req.text_document_position_params.position;
+    Ok(doc.get_definition(pos).map(|range| {
+        let uri = doc_id.uri.clone();
+        GotoDefinitionResponse::Scalar(Location { uri, range })
+    }))
 }
 
 fn doc_not_found_error(uri: &lsp_types::Uri) -> ResponseError {

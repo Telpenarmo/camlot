@@ -218,7 +218,8 @@ impl Module {
     }
 
     #[must_use]
-    pub fn idx_at<T: HirNode>(&self, ptr: SyntaxNodePtr) -> Option<la_arena::Idx<T>> {
+    pub fn idx_at<T: HirNode>(&self, syntax: &SyntaxNode) -> Option<la_arena::Idx<T>> {
+        let ptr = SyntaxNodePtr::new(syntax);
         T::get_at_syntax(self, ptr)
     }
 }

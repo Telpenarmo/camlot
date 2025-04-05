@@ -1,16 +1,17 @@
-use std::fmt::Debug;
+use core::{fmt, hash};
+use std::{borrow::Borrow, cmp, fmt::Debug, marker};
 
 use indexmap::IndexSet;
 
 #[derive(Default, PartialEq)]
-pub struct Interner<T: std::cmp::Eq + std::hash::Hash> {
+pub struct Interner<T: cmp::Eq + hash::Hash> {
     set: IndexSet<T>,
 }
 
 #[derive(PartialEq, Eq, Hash)]
 pub struct Interned<T> {
     id: u32,
-    phantom: std::marker::PhantomData<T>,
+    phantom: marker::PhantomData<T>,
 }
 
 impl<T> Interned<T> {
@@ -18,7 +19,7 @@ impl<T> Interned<T> {
     pub(crate) fn new(id: u32) -> Self {
         Self {
             id,
-            phantom: std::marker::PhantomData,
+            phantom: marker::PhantomData,
         }
     }
 
@@ -27,8 +28,8 @@ impl<T> Interned<T> {
     }
 }
 
-impl<T> std::fmt::Debug for Interned<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<T> fmt::Debug for Interned<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.id.fmt(f)
     }
 }
@@ -41,7 +42,7 @@ impl<T> Copy for Interned<T> {}
 
 impl<T> Interner<T>
 where
-    T: Eq + std::hash::Hash,
+    T: Eq + hash::Hash,
 {
     #[must_use]
     pub fn new() -> Self {
@@ -72,10 +73,24 @@ where
         assert!(is_new, "New element was already interned.");
         self.set.swap_remove_index(old.id as usize);
     }
+
+    /// Returns an index to previously interned item.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `value` is not interned.
+    pub fn idx_of<Q>(&self, value: &Q) -> Interned<T>
+    where
+        T: Borrow<Q>,
+        Q: ?Sized + cmp::Eq + hash::Hash,
+    {
+        let id = self.set.get_index_of(value).unwrap();
+        Interned::from_usize(id)
+    }
 }
 
-impl<T: std::fmt::Debug + std::cmp::Eq + std::hash::Hash> Debug for Interner<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<T: fmt::Debug + cmp::Eq + hash::Hash> Debug for Interner<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_map().entries(self.set.iter().enumerate()).finish()
     }
 }

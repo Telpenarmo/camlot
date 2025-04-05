@@ -2,8 +2,8 @@ use std::error::Error;
 
 use lsp_types::notification::{DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument};
 use lsp_types::request::{
-    DocumentDiagnosticRequest, DocumentSymbolRequest, InlayHintRequest, SelectionRangeRequest,
-    SemanticTokensFullRequest,
+    DocumentDiagnosticRequest, DocumentSymbolRequest, GotoDefinition, InlayHintRequest,
+    SelectionRangeRequest, SemanticTokensFullRequest,
 };
 use lsp_types::{
     OneOf, SelectionRangeProviderCapability, ServerCapabilities, TextDocumentSyncCapability,
@@ -63,6 +63,11 @@ pub(crate) fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     server_builder.register_request::<_, DocumentSymbolRequest, _>(
         |caps| caps.document_symbol_provider = Some(OneOf::Left(true)),
         handlers::handle_document_symbol_request,
+    );
+
+    server_builder.register_request::<_, GotoDefinition, _>(
+        |caps| caps.definition_provider = Some(OneOf::Left(true)),
+        handlers::handle_goto_definition_request,
     );
 
     server_builder.register_request::<_, SelectionRangeRequest, _>(

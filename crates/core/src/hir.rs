@@ -19,7 +19,7 @@ pub type TypeDefinitionIdx = Idx<TypeDefinition>;
 pub type ParamIdx = Idx<Param>;
 pub type PatternIdx = Idx<Pattern>;
 
-pub(crate) type Name = Interned<String>;
+pub type Name = Interned<String>;
 
 #[derive(PartialEq, Debug)]
 pub struct Definition {
@@ -138,8 +138,8 @@ impl std::fmt::Display for Literal {
 #[allow(unused)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Param {
-    pub(crate) pattern: PatternIdx,
-    pub(crate) typ: TypeExprIdx,
+    pub pattern: PatternIdx,
+    pub typ: TypeExprIdx,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]

@@ -4,8 +4,10 @@ use std::ops::Range;
 use line_index::{LineCol, LineIndex, TextRange};
 use lsp_types::Position;
 
+mod definitions;
 mod diagnostics;
 mod document;
+mod env;
 mod inlay_hints;
 mod selection_range;
 mod semantic_tokens;
