@@ -29,9 +29,7 @@ impl crate::Document {
     ) -> Vec<lsp_types::InlayHint> {
         let defn = &self.hir()[defn_idx];
 
-        let defn_syntax = self
-            .syntax::<_, parser::nodes::Definition>(defn_idx)
-            .unwrap();
+        let defn_syntax: nodes::Definition = self.syntax(defn_idx).unwrap();
 
         let params = defn_syntax.params().unwrap();
 
@@ -46,7 +44,7 @@ impl crate::Document {
     ) -> Option<Vec<lsp_types::InlayHint>> {
         match &self.hir()[expr] {
             // core::Expr::LambdaExpr(lambda) => {
-            //     let syntax = &self.syntax::<_, parser::nodes::LambdaExpr>(expr)?;
+            //     let syntax: nodes::LambdaExpr = &self.syntax(expr)?;
             //     let parent_kind = syntax.syntax().parent().unwrap().kind();
             //     if parent_kind == parser::SyntaxKind::LET_STMT {
             //         return None;
@@ -56,7 +54,7 @@ impl crate::Document {
             //     Some(hints_for_function(doc, &params, lambda.return_type, *typ))
             // }
             core::Expr::LetExpr(let_expr) => {
-                let syntax = &self.syntax::<_, parser::nodes::LetStmt>(expr)?;
+                let syntax: nodes::LetStmt = self.syntax(expr)?;
                 let params = syntax.params().unwrap();
                 let typ = self.expr_types().get(let_expr.defn).unwrap();
                 Some(self.hints_for_function(
@@ -72,7 +70,7 @@ impl crate::Document {
 
     fn hints_for_function(
         &self,
-        params: &parser::nodes::Params,
+        params: &nodes::Params,
         generalized_labels: &GeneralizedLabels,
         return_type: core::TypeExprIdx,
         typ: core::TypeIdx,

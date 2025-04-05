@@ -1,7 +1,7 @@
 use core::{ModuleAndNames, Type};
 use std::ops::Range;
 
-use line_index::{LineCol, TextRange};
+use line_index::{LineCol, LineIndex, TextRange};
 use lsp_types::Position;
 
 mod diagnostics;
@@ -19,12 +19,12 @@ pub struct ErrorDiagnostic {
     pub message: String,
 }
 
-fn offset_to_position(line_index: &line_index::LineIndex, offset: u32) -> Position {
+fn offset_to_position(line_index: &LineIndex, offset: u32) -> Position {
     let pos = line_index.line_col(line_index::TextSize::new(offset));
     Position::new(pos.line, pos.col)
 }
 
-fn position_to_offset(line_index: &line_index::LineIndex, pos: Position) -> line_index::TextSize {
+pub(crate) fn position_to_offset(line_index: &LineIndex, pos: Position) -> line_index::TextSize {
     line_index
         .offset(LineCol {
             line: pos.line,
@@ -47,19 +47,16 @@ impl Document {
         idx: core::ArenaIdx<T>,
     ) -> Option<N> {
         let ptr = self.hir().syntax(idx)?;
-        let ptr = ptr.cast::<N>()?;
-        Some(ptr.to_node(&self.parsed().syntax()))
+        self.ptr_to_node(ptr)
     }
 
     #[must_use]
     pub fn pretty_module(&self) -> String {
-        format!(
-            "{}",
-            ModuleAndNames {
-                module: self.hir(),
-                names: self.names()
-            }
-        )
+        let module = ModuleAndNames {
+            module: self.hir(),
+            names: self.names(),
+        };
+        format!("{module}")
     }
 
     pub(crate) fn syntax_at(&self, pos: Position) -> parser::SyntaxElement {
@@ -74,6 +71,11 @@ impl Document {
         let end = offset_to_position(line_index, range.end().into());
         lsp_types::Range::new(start, end)
     }
+
+    fn ptr_to_node<N: parser::AstNode>(&self, ptr: parser::SyntaxNodePtr) -> Option<N> {
+        let ptr = ptr.cast()?;
+        Some(ptr.to_node(&self.parsed().syntax()))
+    }
 }
 
 #[cfg(test)]
@@ -83,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_offset_to_position() {
-        let line_index = line_index::LineIndex::new("hello\nworld");
+        let line_index = LineIndex::new("hello\nworld");
 
         assert_eq!(offset_to_position(&line_index, 0), Position::new(0, 0));
         assert_eq!(offset_to_position(&line_index, 5), Position::new(0, 5));
@@ -92,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_position_to_offset() {
-        let line_index = line_index::LineIndex::new("hello\nworld");
+        let line_index = LineIndex::new("hello\nworld");
 
         assert_eq!(
             position_to_offset(&line_index, Position::new(0, 0)),
