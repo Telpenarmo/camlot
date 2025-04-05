@@ -24,3 +24,5 @@ pub type SyntaxNodeChildren = rowan::SyntaxNodeChildren<CamlotLanguage>;
 pub type SyntaxElementChildren = rowan::SyntaxElementChildren<CamlotLanguage>;
 pub type PreorderWithTokens = rowan::api::PreorderWithTokens<CamlotLanguage>;
 pub type SyntaxNodePtr = rowan::ast::SyntaxNodePtr<CamlotLanguage>;
+
+pub type TokenAtOffset = rowan::TokenAtOffset<SyntaxToken>;

@@ -12,6 +12,7 @@ mod semantic_tokens;
 mod symbols;
 
 pub use document::*;
+use parser::{SyntaxKind, TokenAtOffset};
 pub use semantic_tokens::*;
 
 pub struct ErrorDiagnostic {
@@ -59,10 +60,19 @@ impl Document {
         format!("{module}")
     }
 
-    pub(crate) fn syntax_at(&self, pos: Position) -> parser::SyntaxElement {
+    pub(crate) fn syntax_at(&self, pos: Position) -> Option<parser::SyntaxToken> {
         let pos = position_to_offset(self.line_index(), pos);
-        let range = TextRange::new(pos, pos);
-        self.parsed().syntax().covering_element(range)
+        let token = self.parsed().syntax().token_at_offset(pos);
+        match token {
+            TokenAtOffset::None => None,
+            TokenAtOffset::Single(token) => Some(token),
+            TokenAtOffset::Between(left, right) => {
+                match ((left.clone(), left.kind()), (right.clone(), right.kind())) {
+                    ((id, SyntaxKind::IDENT), _) | (_, (id, SyntaxKind::IDENT)) => Some(id),
+                    ((tok, _), _) => Some(tok),
+                }
+            }
+        }
     }
 
     fn text_range_to_lsp_range(&self, range: TextRange) -> lsp_types::Range {

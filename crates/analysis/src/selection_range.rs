@@ -8,7 +8,7 @@ impl crate::Document {
 
     #[must_use]
     fn collect_selection_ranges(&self, pos: Position) -> Vec<lsp_types::Range> {
-        let mut top_syntax = self.syntax_at(pos);
+        let mut top_syntax = self.syntax_at(pos).expect("Empty file").into();
         let mut ranges = vec![self.range_of_syntax(&top_syntax)];
 
         while let Some(parent) = top_syntax.parent() {
