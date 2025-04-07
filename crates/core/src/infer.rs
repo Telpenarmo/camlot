@@ -1,13 +1,12 @@
 mod errors;
 // mod normalize;
+mod env;
 mod label;
 mod nth_ident;
 mod unify;
 
-use std::collections::HashMap;
-
-pub use errors::TypeError;
 use la_arena::ArenaMap;
+use std::collections::HashMap;
 use unify::{
     annotated_return, check_constraint, ConstraintReason, ConstraintReasonFactory, MaybeType,
 };
@@ -16,6 +15,9 @@ use crate::hir::{Expr, ExprIdx, Literal, Module, TypeExpr, TypeExprIdx};
 use crate::intern::Interner;
 use crate::types::{GeneralizedLabels, Level, Skolem, Type, TypeIdx, Unifier, Unique};
 use crate::{Definition, DefinitionIdx, Name, Pattern, PatternIdx};
+
+use env::Environment;
+pub use errors::TypeError;
 
 pub(crate) struct TypeInference<'a> {
     defn_types: ArenaMap<DefinitionIdx, TypeIdx>,
@@ -28,8 +30,6 @@ pub(crate) struct TypeInference<'a> {
     next_unification_var: Unique,
     generalized_labels: GeneralizedLabels,
 }
-
-type Environment = imbl::HashMap<Name, TypeIdx>;
 
 pub struct InferenceResult {
     pub expr_types: ArenaMap<ExprIdx, TypeIdx>,
@@ -67,10 +67,6 @@ impl<'a> TypeInference<'a> {
         }
     }
 
-    fn get_from_env(&mut self, env: &Environment, name: Name) -> Option<TypeIdx> {
-        env.get(&name).map(|typ| self.instantiate(*typ))
-    }
-
     fn load_type_aliases(&mut self, types_env: &mut Environment) {
         for (idx, defn) in self.module.type_definitions() {
             let typ = self.resolve_type_expr_or_var(types_env, defn.defn);
@@ -96,9 +92,9 @@ impl<'a> TypeInference<'a> {
     }
 
     fn infer(mut self) -> InferenceResult {
-        let mut env = self.module.get_known_definitions();
+        let mut env = self.module.get_known_definitions().into();
 
-        let mut types_env = self.module.get_known_types();
+        let mut types_env = self.module.get_known_types().into();
 
         self.load_type_aliases(&mut types_env);
 
@@ -149,9 +145,7 @@ impl<'a> TypeInference<'a> {
         let body_type = self.resolve_type_expr_or_var(&types_env, defn.return_type);
         let defn_type = curry(self.types, &params, body_type);
 
-        if defn.name != self.names.empty_name() {
-            env.insert(defn.name, defn_type);
-        }
+        self.env_insert(&mut env, defn.name, defn_type);
 
         self.insert_new(global_env, defn.name, defn_type, |name| {
             TypeError::DuplicatedDefinition { name, double: idx }
@@ -217,7 +211,7 @@ impl<'a> TypeInference<'a> {
                 self.infer_expr(&new_env, &types_env, let_expr.body)
             }
 
-            &Expr::IdentExpr { name } => self.get_from_env(env, name).unwrap_or_else(|| {
+            &Expr::IdentExpr { name } => self.env_get(env, name).unwrap_or_else(|| {
                 let err = TypeError::UnboundVariable { expr, name };
                 self.errors.push(err);
                 self.fresh()
@@ -349,7 +343,7 @@ impl<'a> TypeInference<'a> {
         match &self.module[type_expr] {
             TypeExpr::Missing => None,
             &TypeExpr::IdentTypeExpr { name } => {
-                Some(self.get_from_env(types_env, name).unwrap_or_else(|| {
+                Some(self.env_get(types_env, name).unwrap_or_else(|| {
                     let err = TypeError::UnboundTypeVariable { type_expr, name };
                     self.errors.push(err);
                     let tag = self.next_tag();
@@ -433,23 +427,6 @@ impl<'a> TypeInference<'a> {
         }
         let new = Type::Link(new, self.next_tag());
         self.types.replace_with_fresh(idx, new);
-    }
-
-    fn insert_new<F>(&mut self, env: &mut Environment, name: Name, typ: TypeIdx, error: F)
-    where
-        F: Fn(Name) -> TypeError,
-    {
-        if name == self.names.empty_name() {
-            return;
-        }
-        match env.entry(name) {
-            imbl::hashmap::Entry::Occupied(_prev) => {
-                self.errors.push(error(name));
-            }
-            imbl::hashmap::Entry::Vacant(entry) => {
-                entry.insert(typ);
-            }
-        }
     }
 }
 

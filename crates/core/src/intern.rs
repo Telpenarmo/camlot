@@ -2,6 +2,8 @@ use std::{borrow::Borrow, cmp, fmt, fmt::Debug, hash, marker};
 
 use indexmap::IndexSet;
 
+use crate::Name;
+
 #[derive(Default, PartialEq)]
 pub struct Interner<T: cmp::Eq + hash::Hash> {
     set: IndexSet<T>,
@@ -98,16 +100,16 @@ impl<T: fmt::Debug + cmp::Eq + hash::Hash> Debug for Interner<T> {
 }
 
 impl Interner<String> {
-    pub(super) fn empty_name(&mut self) -> Interned<String> {
+    pub(super) fn empty_name(&mut self) -> Name {
         self.intern("_".into())
     }
 
-    pub(crate) fn name<S: Into<String>>(&mut self, name: S) -> Interned<String> {
+    pub(crate) fn name<S: Into<String>>(&mut self, name: S) -> Name {
         self.intern(name.into())
     }
 
     #[must_use]
-    pub fn get_name(&self, name: Interned<String>) -> &str {
+    pub fn get_name(&self, name: Name) -> &str {
         self.lookup(name)
     }
 }
