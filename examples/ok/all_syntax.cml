@@ -1,12 +1,14 @@
 type a = int;
-type aa = a -> a;
 type aaa = (a -> a) -> a;
 
 def x : int = 42;
 
 def x2 { 42 }
 
-def const_42 = \(x: a) -> 42;
+def const_42 : aa = \(x: a) -> 42;
+
+type aa = a -> a;
+
 def const_42_2 (x: a) = 42;
 
 def id = \x -> x;
