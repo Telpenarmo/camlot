@@ -11,14 +11,13 @@ impl crate::Document {
             return None;
         }
 
+        let name = self.names().idx_of(syntax.text());
+        let pos = position_to_offset(self.line_index(), pos);
+
         let binding = match syntax.parent()?.kind() {
-            SyntaxKind::IDENT_EXPR => {
-                let name = self.names().idx_of(syntax.text());
-                let pos = position_to_offset(self.line_index(), pos);
-                self.env_at(pos).get(&name).cloned()
-            }
+            SyntaxKind::IDENT_EXPR => self.env_at(pos).get(&name).cloned(),
             #[allow(clippy::match_same_arms)]
-            SyntaxKind::TYPE_IDENT => None,
+            SyntaxKind::TYPE_IDENT => self.type_env_at(pos).get(&name).cloned(),
             _ => None,
         }?;
 

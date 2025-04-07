@@ -1,4 +1,4 @@
-use core::{DefinitionIdx, Expr, ExprIdx, Name, PatternIdx};
+use core::{DefinitionIdx, Expr, ExprIdx, PatternIdx};
 use std::collections::HashMap;
 
 use line_index::TextSize;
@@ -7,7 +7,7 @@ use parser::{
     AstNode, SyntaxToken,
 };
 
-type Environment = HashMap<Name, SyntaxToken>;
+use crate::Environment;
 
 impl crate::Document {
     pub(crate) fn env_at(&self, needle: TextSize) -> Environment {
@@ -26,7 +26,7 @@ impl crate::Document {
 
                 env.insert(defn.name, def_syntax.ident_lit().unwrap());
 
-                if def_syntax.syntax().text_range().contains_inclusive(needle) {
+                if it.syntax().text_range().contains_inclusive(needle) {
                     for &p in &defn.params {
                         let param = &self.hir()[p];
                         self.extend_env(&mut env, param.pattern);

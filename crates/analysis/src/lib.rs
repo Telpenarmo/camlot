@@ -1,8 +1,10 @@
-use core::{ModuleAndNames, Type};
-use std::ops::Range;
+use core::{ModuleAndNames, Name, Type};
+use std::{collections::HashMap, ops::Range};
 
 use line_index::{LineCol, LineIndex, TextRange};
 use lsp_types::Position;
+
+use parser::{SyntaxKind, SyntaxToken, TokenAtOffset};
 
 mod definitions;
 mod diagnostics;
@@ -12,15 +14,17 @@ mod inlay_hints;
 mod selection_range;
 mod semantic_tokens;
 mod symbols;
+mod type_env;
 
 pub use document::*;
-use parser::{SyntaxKind, TokenAtOffset};
 pub use semantic_tokens::*;
 
 pub struct ErrorDiagnostic {
     pub range: Range<usize>,
     pub message: String,
 }
+
+pub(crate) type Environment = HashMap<Name, SyntaxToken>;
 
 fn offset_to_position(line_index: &LineIndex, offset: u32) -> Position {
     let pos = line_index.line_col(line_index::TextSize::new(offset));

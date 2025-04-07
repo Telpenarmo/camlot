@@ -1,5 +1,4 @@
-use core::{fmt, hash};
-use std::{borrow::Borrow, cmp, fmt::Debug, marker};
+use std::{borrow::Borrow, cmp, fmt, fmt::Debug, hash, marker};
 
 use indexmap::IndexSet;
 
