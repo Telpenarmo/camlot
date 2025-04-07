@@ -81,9 +81,12 @@ where
     pub fn idx_of<Q>(&self, value: &Q) -> Interned<T>
     where
         T: Borrow<Q>,
-        Q: ?Sized + cmp::Eq + hash::Hash,
+        Q: ?Sized + cmp::Eq + hash::Hash + std::fmt::Debug,
     {
-        let id = self.set.get_index_of(value).unwrap();
+        let id = self
+            .set
+            .get_index_of(value)
+            .unwrap_or_else(|| panic!("Value {value:?} is not interned"));
         Interned::from_usize(id)
     }
 }

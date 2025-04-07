@@ -72,9 +72,12 @@ impl<'a> TypeInference<'a> {
     }
 
     fn load_type_aliases(&mut self, types_env: &mut Environment) {
-        for (_, defn) in self.module.type_definitions() {
+        for (idx, defn) in self.module.type_definitions() {
             let typ = self.resolve_type_expr_or_var(types_env, defn.defn);
-            types_env.insert(defn.name, typ);
+
+            self.insert_new(types_env, defn.name, typ, |name| {
+                TypeError::DuplicatedTypeDefinition { name, double: idx }
+            });
         }
     }
 
@@ -145,7 +148,15 @@ impl<'a> TypeInference<'a> {
 
         let body_type = self.resolve_type_expr_or_var(&types_env, defn.return_type);
         let defn_type = curry(self.types, &params, body_type);
-        env.insert(defn.name, defn_type);
+
+        if defn.name != self.names.empty_name() {
+            env.insert(defn.name, defn_type);
+        }
+
+        self.insert_new(global_env, defn.name, defn_type, |name| {
+            TypeError::DuplicatedDefinition { name, double: idx }
+        });
+        self.defn_types.insert(idx, defn_type);
 
         let constraint = annotated_return(self.module, defn.defn, defn.return_type, body_type);
         self.check_expr(&env, &types_env, defn.defn, body_type, constraint);
@@ -153,9 +164,6 @@ impl<'a> TypeInference<'a> {
         self.exit();
 
         self.generalize(defn_type);
-
-        global_env.insert(defn.name, defn_type);
-        self.defn_types.insert(idx, defn_type);
 
         self.assign_labels(idx);
     }
@@ -425,6 +433,23 @@ impl<'a> TypeInference<'a> {
         }
         let new = Type::Link(new, self.next_tag());
         self.types.replace_with_fresh(idx, new);
+    }
+
+    fn insert_new<F>(&mut self, env: &mut Environment, name: Name, typ: TypeIdx, error: F)
+    where
+        F: Fn(Name) -> TypeError,
+    {
+        if name == self.names.empty_name() {
+            return;
+        }
+        match env.entry(name) {
+            imbl::hashmap::Entry::Occupied(_prev) => {
+                self.errors.push(error(name));
+            }
+            imbl::hashmap::Entry::Vacant(entry) => {
+                entry.insert(typ);
+            }
+        }
     }
 }
 

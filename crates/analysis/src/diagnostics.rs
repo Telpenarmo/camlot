@@ -47,8 +47,7 @@ impl crate::Document {
         hir: core::ArenaIdx<T>,
     ) -> TextRange {
         let whole = SyntaxNodePtr::new(&self.parsed().syntax().clone());
-        let syntax = self.hir().syntax(hir).unwrap_or(whole);
-        parser::SyntaxNodePtr::text_range(&syntax)
+        self.hir().syntax(hir).unwrap_or(whole).text_range()
     }
 
     fn lsp_type_errors(&self) -> Vec<lsp_types::Diagnostic> {
@@ -116,10 +115,17 @@ impl crate::Document {
                 "This expression was expected to have type {expected}, but it has type {actual}."
             )
             }
+            TypeError::DuplicatedDefinition { double: _, name } => {
+                format!("Definition `{}` already exists", names.get_name(name))
+            }
+            TypeError::DuplicatedTypeDefinition { double: _, name } => {
+                format!("Type alias `{}` already exists", names.get_name(name))
+            }
         }
     }
 
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn type_error_range(&self, error: &TypeError) -> TextRange {
         match *error {
             TypeError::AppliedToNonFunction { lhs: expr, .. }
@@ -134,6 +140,24 @@ impl crate::Document {
                 annotation: type_expr,
                 ..
             } => self.range_of_expr(type_expr),
+            TypeError::DuplicatedDefinition { double, name: _ } => {
+                let syntax: parser::nodes::Definition = self
+                    .syntax(double)
+                    .expect("Duplicated definition error in nonexistent definition");
+                syntax
+                    .ident_lit()
+                    .expect("Duplicated definition error in nameless definition")
+                    .text_range()
+            }
+            TypeError::DuplicatedTypeDefinition { double, name: _ } => {
+                let syntax: parser::nodes::TypeDefinition = self
+                    .syntax(double)
+                    .expect("Duplicated type definition error in nonexistent type definition");
+                syntax
+                    .ident_lit()
+                    .expect("Duplicated type definition error in nameless type definition")
+                    .text_range()
+            }
         }
     }
 

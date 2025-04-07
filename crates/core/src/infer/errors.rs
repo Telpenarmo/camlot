@@ -1,6 +1,6 @@
 use crate::hir::{ExprIdx, TypeExprIdx};
 use crate::types::{Type, TypeIdx};
-use crate::{Name, PatternIdx};
+use crate::{DefinitionIdx, Name, PatternIdx, TypeDefinitionIdx};
 
 use super::unify::UnifcationError;
 use super::{ConstraintReason, TypeInference};
@@ -49,6 +49,14 @@ pub enum TypeError {
         actual: TypeIdx,
         expected: TypeIdx,
     },
+    DuplicatedDefinition {
+        double: DefinitionIdx,
+        name: Name
+    },
+    DuplicatedTypeDefinition{
+        double: TypeDefinitionIdx,
+        name: Name
+    }
 }
 
 impl TypeInference<'_> {
