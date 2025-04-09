@@ -4,7 +4,7 @@
   "description": "",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.89.0"
   },
   "categories": [
     "Other"
@@ -44,7 +44,10 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "pnpm run esbuild-base --minify",
+    "dev-server": "cargo xtask build-wasm --debug",
+    "release-server": "cargo xtask build-wasm --release",
+    "vscode:prepublish": "pnpm run esbuild-base --minify && pnpm run release-server",
+    "build": "pnpm run esbuild-base && pnpm run dev-server",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
@@ -57,7 +60,7 @@
     "@eslint/js": "^9.15.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "~20.17.7",
-    "@types/vscode": "~1.80.0",
+    "@types/vscode": "~1.89.0",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
     "@vscode/test-cli": "^0.0.4",
@@ -69,6 +72,8 @@
     "typescript-eslint": "^8.15.0"
   },
   "dependencies": {
-    "vscode-languageclient": "^9.0.1"
+    "@vscode/wasm-wasi": "^1.0.1",
+    "@vscode/wasm-wasi-lsp": "0.1.0-pre.8",
+    "vscode-languageclient": "10.0.0-next.14"
   }
 }

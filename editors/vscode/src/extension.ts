@@ -6,6 +6,8 @@ import {
 	LanguageClientOptions,
 	ServerOptions,
 } from "vscode-languageclient/node";
+import { Wasm, ProcessOptions } from '@vscode/wasm-wasi/v1';
+import { createStdioOptions, startServer, createUriConverters } from '@vscode/wasm-wasi-lsp';
 
 import { Ctx } from './ctx';
 import { syntaxTree } from './syntax_tree';
@@ -14,16 +16,38 @@ import { viewHIR } from './hir';
 let client: LanguageClient | undefined;
 let commands: vscode.Disposable[] = [];
 
-function initLanguageClient() {
-	const serverOptions: ServerOptions = {
-		command: "camlot-server",
-		args: ["lsp"],
+async function initLanguageClient(context: vscode.ExtensionContext) {
+	const wasm: Wasm = await Wasm.load();
+
+	const channel = vscode.window.createOutputChannel('Camlot WASM Server');
+	const serverOptions: ServerOptions = async () => {
+		const options: ProcessOptions = {
+			stdio: createStdioOptions(),
+			args: ["lsp"],
+			mountPoints: [
+				{ kind: 'workspaceFolder' },
+			]
+		};
+		const filename = vscode.Uri.joinPath(context.extensionUri, 'out', 'camlot-server.wasm');
+		const module = await wasm.compile(filename);
+		const memory = { initial: 160, maximum: 160, shared: true };
+		const process = await wasm.createProcess('lsp-server', module, memory, options);
+
+		const decoder = new TextDecoder('utf-8');
+		process.stderr?.onData((data) => {
+			channel.append(decoder.decode(data));
+		});
+
+		return startServer(process);
 	};
+
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ language: "camlot" }],
 		synchronize: {
 			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{cml,cmli}"),
 		},
+		outputChannel: channel,
+		uriConverters: createUriConverters(),
 	};
 
 	return new LanguageClient("camlot-lsp", "Camlot Language Server", serverOptions, clientOptions);
@@ -35,7 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	if (!client) {
 		try {
-			client = initLanguageClient();
+			client = await initLanguageClient(context);
 			await client.start();
 
 			const ctx = {

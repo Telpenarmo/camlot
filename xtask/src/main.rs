@@ -1,4 +1,5 @@
 #![allow(clippy::missing_errors_doc)]
+#![allow(clippy::must_use_candidate)]
 
 use std::{env, ffi::OsString, path::PathBuf};
 
@@ -7,6 +8,7 @@ use xshell::Shell;
 
 mod install;
 mod sourcegen;
+mod wasm;
 
 fn main() -> Result<()> {
     let mode = App::from_env()?.subcommand;
@@ -17,6 +19,7 @@ fn main() -> Result<()> {
     match mode {
         AppCmd::Generate(_) => sourcegen::generate_ungrammar(),
         AppCmd::Install(opts) => install::install(&sh, &opts),
+        AppCmd::BuildWasm(opts) => wasm::build(&sh, &opts),
     }
 }
 
@@ -27,12 +30,12 @@ xflags::xflags! {
         cmd generate {}
         /// Install the language server and vscode extension
         cmd install {
-            /// Do not install the language server
-            optional --skip-server
-            /// Do not install the vscode extension
-            optional --skip-extension
             /// The path to the vscode executable, defaults to 'code'
             optional --code-path path: OsString
+        }
+        cmd build-wasm {
+            optional --release
+            optional --debug
         }
     }
 }
@@ -48,6 +51,7 @@ pub struct App {
 pub enum AppCmd {
     Generate(Generate),
     Install(Install),
+    BuildWasm(BuildWasm),
 }
 
 #[derive(Debug)]
@@ -55,14 +59,17 @@ pub struct Generate;
 
 #[derive(Debug)]
 pub struct Install {
-    pub skip_server: bool,
-    pub skip_extension: bool,
     pub code_path: Option<OsString>,
+}
+
+#[derive(Debug)]
+pub struct BuildWasm {
+    pub release: bool,
+    pub debug: bool,
 }
 
 impl App {
     #[allow(dead_code)]
-    #[must_use]
     pub fn from_env_or_exit() -> Self {
         Self::from_env_or_exit_()
     }

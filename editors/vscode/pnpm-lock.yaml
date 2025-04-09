@@ -8,9 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@vscode/wasm-wasi':
+        specifier: ^1.0.1
+        version: 1.0.1
+      '@vscode/wasm-wasi-lsp':
+        specifier: 0.1.0-pre.8
+        version: 0.1.0-pre.8(@vscode/wasm-wasi@1.0.1)(vscode-languageclient@10.0.0-next.14)
       vscode-languageclient:
-        specifier: ^9.0.1
-        version: 9.0.1
+        specifier: 10.0.0-next.14
+        version: 10.0.0-next.14
     devDependencies:
       '@eslint/js':
         specifier: ^9.15.0
@@ -22,8 +28,8 @@ importers:
         specifier: ~20.17.7
         version: 20.17.7
       '@types/vscode':
-        specifier: ~1.80.0
-        version: 1.80.0
+        specifier: ~1.89.0
+        version: 1.89.0
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.15.0
         version: 8.15.0(@typescript-eslint/parser@8.15.0(eslint@9.15.0)(typescript@5.7.2))(eslint@9.15.0)(typescript@5.7.2)
@@ -328,8 +334,8 @@ packages:
   '@types/node@20.17.7':
     resolution: {integrity: sha512-sZXXnpBFMKbao30dUAvzKbdwA2JM1fwUtVEq/kxKuPI5mMwZiRElCpTXb0Biq/LMEVpXDZL5G5V0RPnxKeyaYg==}
 
-  '@types/vscode@1.80.0':
-    resolution: {integrity: sha512-qK/CmOdS2o7ry3k6YqU4zD3R2AYlJfbwBoSbKpBoP+GpXNE+0NEgJOli4n0bm0diK5kfBnchgCEj4igQz/44Hg==}
+  '@types/vscode@1.89.0':
+    resolution: {integrity: sha512-TMfGKLSVxfGfoO8JfIE/neZqv7QLwS4nwPwL/NwMvxtAY2230H2I4Z5xx6836pmJvMAzqooRQ4pmLm7RUicP3A==}
 
   '@typescript-eslint/eslint-plugin@8.15.0':
     resolution: {integrity: sha512-+zkm9AR1Ds9uLWN3fkoeXgFppaQ+uEVtfOV62dDmsy9QCNqlRHWNEck4yarvRNrvRcHQLGfqBNui3cimoz8XAg==}
@@ -452,6 +458,18 @@ packages:
   '@vscode/vsce@3.2.1':
     resolution: {integrity: sha512-AY9vBjwExakK1c0cI/3NN2Ey0EgiKLBye/fxl/ue+o4q6RZ7N+xzd1jAD6eI6eBeMVANi617+V2rxIAkDPco2Q==}
     engines: {node: '>= 20'}
+    hasBin: true
+
+  '@vscode/wasm-wasi-lsp@0.1.0-pre.8':
+    resolution: {integrity: sha512-txfdrvjSc1GDxQm373+i1bQmPVAmHLiRLbv3dsGw/8H4X+KnoMlPmK2Oih1WTpmtefgPW/NrZldfcj3tV9XSUA==}
+    engines: {node: '>=18.18.2'}
+    peerDependencies:
+      '@vscode/wasm-wasi': ^1.0.1
+      vscode-languageclient: 10.0.0-next.12
+
+  '@vscode/wasm-wasi@1.0.1':
+    resolution: {integrity: sha512-sqzRASxeXNO9PGZxcRGMI6DeCaxX5qfTcYO0eorG2RLiJKOgNW2Ke2J1/vS1X693a27IF5jXWqqDdwN/qcF4pg==}
+    engines: {node: '>=20.9.0', vscode: ^1.88.0}
     hasBin: true
 
   acorn-jsx@5.3.2:
@@ -1577,19 +1595,19 @@ packages:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     hasBin: true
 
-  vscode-jsonrpc@8.2.0:
-    resolution: {integrity: sha512-C+r0eKJUIfiDIfwJhria30+TYWPtuHJXHtI7J0YlOmKAo7ogxP20T0zxB7HZQIFhIyvoBPwWskjxrvAtfjyZfA==}
+  vscode-jsonrpc@9.0.0-next.7:
+    resolution: {integrity: sha512-7SgnbbbJfYr3off0T2KV/RCMYhVsuLeFPw8l3bkxSiavtoTLsOdu1jyxK3yWbdQuO8QOJC7+no0TXmYjRWSC+g==}
     engines: {node: '>=14.0.0'}
 
-  vscode-languageclient@9.0.1:
-    resolution: {integrity: sha512-JZiimVdvimEuHh5olxhxkht09m3JzUGwggb5eRUkzzJhZ2KjCN0nh55VfiED9oez9DyF8/fz1g1iBV3h+0Z2EA==}
-    engines: {vscode: ^1.82.0}
+  vscode-languageclient@10.0.0-next.14:
+    resolution: {integrity: sha512-4m/cpNocRgrAkWc8IH4wd3zllAs16NvMmeGcQxFa6xt+mGXJASIeqp0NAFWKZERKg6ClVgBph+SDSZSVvNZ2oA==}
+    engines: {vscode: ^1.91.0}
 
-  vscode-languageserver-protocol@3.17.5:
-    resolution: {integrity: sha512-mb1bvRJN8SVznADSGWM9u/b07H7Ecg0I3OgXDuLdn307rl/J3A9YD6/eYOssqhecL27hK1IPZAsaqh00i/Jljg==}
+  vscode-languageserver-protocol@3.17.6-next.12:
+    resolution: {integrity: sha512-EqrbwF0glTWD2HiDpFc32pJOr6/bJvyKSfCpRQrKy3XsfdloH4p3o/rNJYcpujM0OVLmPZgl1i9g57z9g2YRJA==}
 
-  vscode-languageserver-types@3.17.5:
-    resolution: {integrity: sha512-Ld1VelNuX9pdF39h2Hgaeb5hEZM2Z3jUrrMgWQAu82jMtZp7p3vJT3BzToKtZI7NgQssZje5o0zryOrhQvzQAg==}
+  vscode-languageserver-types@3.17.6-next.6:
+    resolution: {integrity: sha512-aiJY5/yW+xzw7KPNlwi3gQtddq/3EIn5z8X8nCgJfaiAij2R1APKePngv+MUdLdYJBVTLu+Qa0ODsT+pHgYguQ==}
 
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
@@ -1906,7 +1924,7 @@ snapshots:
     dependencies:
       undici-types: 6.19.8
 
-  '@types/vscode@1.80.0': {}
+  '@types/vscode@1.89.0': {}
 
   '@typescript-eslint/eslint-plugin@8.15.0(@typescript-eslint/parser@8.15.0(eslint@9.15.0)(typescript@5.7.2))(eslint@9.15.0)(typescript@5.7.2)':
     dependencies:
@@ -2079,6 +2097,16 @@ snapshots:
       keytar: 7.9.0
     transitivePeerDependencies:
       - supports-color
+
+  '@vscode/wasm-wasi-lsp@0.1.0-pre.8(@vscode/wasm-wasi@1.0.1)(vscode-languageclient@10.0.0-next.14)':
+    dependencies:
+      '@vscode/wasm-wasi': 1.0.1
+      vscode-languageclient: 10.0.0-next.14
+
+  '@vscode/wasm-wasi@1.0.1':
+    dependencies:
+      semver: 7.6.3
+      yargs: 17.7.2
 
   acorn-jsx@5.3.2(acorn@8.14.0):
     dependencies:
@@ -3301,20 +3329,20 @@ snapshots:
 
   uuid@8.3.2: {}
 
-  vscode-jsonrpc@8.2.0: {}
+  vscode-jsonrpc@9.0.0-next.7: {}
 
-  vscode-languageclient@9.0.1:
+  vscode-languageclient@10.0.0-next.14:
     dependencies:
-      minimatch: 5.1.6
+      minimatch: 10.0.1
       semver: 7.6.3
-      vscode-languageserver-protocol: 3.17.5
+      vscode-languageserver-protocol: 3.17.6-next.12
 
-  vscode-languageserver-protocol@3.17.5:
+  vscode-languageserver-protocol@3.17.6-next.12:
     dependencies:
-      vscode-jsonrpc: 8.2.0
-      vscode-languageserver-types: 3.17.5
+      vscode-jsonrpc: 9.0.0-next.7
+      vscode-languageserver-types: 3.17.6-next.6
 
-  vscode-languageserver-types@3.17.5: {}
+  vscode-languageserver-types@3.17.6-next.6: {}
 
   whatwg-encoding@3.1.1:
     dependencies:

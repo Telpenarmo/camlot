@@ -27,3 +27,9 @@ lsp-types = "0.97.0"
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 module_name_repetitions = "allow"
+
+[profile.release-wasm]
+inherits = "release"
+lto = true
+strip = "debuginfo"
+opt-level = "s"

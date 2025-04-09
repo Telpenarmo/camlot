@@ -1,5 +1,6 @@
 [alias]
 xtask = "run --package xtask --"
+build-wasm = "build --profile release-wasm --target wasm32-wasip1-threads --bin camlot-server"
 
 [build]
 rustflags = ["-W", "unreachable-pub", "-W", "rust-2021-compatibility"]
