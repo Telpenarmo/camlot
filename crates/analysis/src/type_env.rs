@@ -19,7 +19,7 @@ impl crate::Document {
                 }
                 if def_syntax.ident_lit().is_none() {
                     continue;
-                };
+                }
                 let defn: TypeDefinitionIdx = hir.idx_at(it.syntax()).unwrap();
                 let defn = &hir[defn];
 

@@ -259,7 +259,7 @@ impl<'a, T> OneOrMany<'a, T> {
                 *self = OneOrMany::Multiple(vec![prev_field, field]);
             }
             OneOrMany::Multiple(fields) => fields.push(field),
-        };
+        }
     }
 }
 

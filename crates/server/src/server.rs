@@ -104,7 +104,7 @@ impl Server {
                     eprintln!("got request: {req:?}");
                     if let Some(resp) = self.handle_request(&ctx, req) {
                         self.send_response(resp);
-                    };
+                    }
                 }
                 Message::Response(resp) => {
                     eprintln!("got response: {resp:?}");

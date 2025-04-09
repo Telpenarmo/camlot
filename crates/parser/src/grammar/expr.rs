@@ -101,7 +101,7 @@ fn paren_expr(parser: &mut Parser) -> CompletedMarker {
                 );
             }
         }
-    };
+    }
 
     parser.expect(SyntaxKind::R_PAREN);
     parser.close(mark, SyntaxKind::PAREN_EXPR)

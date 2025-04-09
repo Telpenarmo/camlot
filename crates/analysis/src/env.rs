@@ -20,7 +20,7 @@ impl crate::Document {
             if let ModuleItem::Definition(ref def_syntax) = it {
                 if def_syntax.ident_lit().is_none() {
                     continue;
-                };
+                }
                 let defn: DefinitionIdx = hir.idx_at(it.syntax()).unwrap();
                 let defn = &hir[defn];
 
